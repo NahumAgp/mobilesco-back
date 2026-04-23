@@ -1,0 +1,46 @@
+﻿// ============================================
+// RUTA: src/main/java/com/mobilesco/mobilesco_back/dto/variante/VarianteUpdateDTO.java
+// ============================================
+package com.mobilesco.mobilesco_back.dto.variante;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Size;
+
+public class VarianteUpdateDTO {
+
+    @Size(max = 30, message = "El sku no puede exceder 30 caracteres")
+    private String sku;
+
+    @Size(max = 200, message = "El nombre no puede exceder 200 caracteres")
+    private String nombre;
+
+    @Size(max = 500, message = "La descripcion no puede exceder 500 caracteres")
+    private String descripcion;
+
+    @JsonProperty("id_producto_base")
+    private Long productoBaseId;
+
+    @JsonProperty("id_nivel")
+    private Long nivelId;
+
+    @JsonProperty("id_color")
+    private Long colorId;
+
+    public String getSku() { return sku; }
+    public void setSku(String sku) { this.sku = sku; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+
+    public Long getProductoBaseId() { return productoBaseId; }
+    public void setProductoBaseId(Long productoBaseId) { this.productoBaseId = productoBaseId; }
+
+    public Long getNivelId() { return nivelId; }
+    public void setNivelId(Long nivelId) { this.nivelId = nivelId; }
+
+    public Long getColorId() { return colorId; }
+    public void setColorId(Long colorId) { this.colorId = colorId; }
+}

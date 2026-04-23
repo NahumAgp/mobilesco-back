@@ -18,14 +18,12 @@ import com.mobilesco.mobilesco_back.models.LineaProductoModel;
 import com.mobilesco.mobilesco_back.models.MaterialModel;
 import com.mobilesco.mobilesco_back.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.models.ProductoModel;
-import com.mobilesco.mobilesco_back.models.TipoProductoModel;
 import com.mobilesco.mobilesco_back.repositories.CategoriaRepository;
 import com.mobilesco.mobilesco_back.repositories.LineaProductoRepository;
 import com.mobilesco.mobilesco_back.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoOperacionRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
-import com.mobilesco.mobilesco_back.repositories.TipoProductoRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ProductoService {
 
     private final ProductoRepository productoRepository;
-    private final TipoProductoRepository tipoProductoRepository;
+    
     private final LineaProductoRepository lineaProductoRepository;
     private final CategoriaRepository categoriaRepository;
     private final MaterialRepository materialRepository;
@@ -53,9 +51,7 @@ public class ProductoService {
         }
 
         // Validar tipo de producto
-        TipoProductoModel tipoProducto = tipoProductoRepository.findById(dto.getTipoProductoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Tipo de producto no encontrado"));
-
+       
         // Validar línea (opcional)
         LineaProductoModel linea = null;
         if (dto.getLineaId() != null) {
@@ -82,7 +78,6 @@ public class ProductoService {
                 .sku(dto.getSku())
                 .nombre(dto.getNombre())
                 .descripcion(dto.getDescripcion())
-                .tipoProducto(tipoProducto)
                 .linea(linea)
                 .categoria(categoria)
                 .material(material)
@@ -112,11 +107,7 @@ public class ProductoService {
         }
 
         // Actualizar relaciones si cambiaron
-        if (!producto.getTipoProducto().getId().equals(dto.getTipoProductoId())) {
-            TipoProductoModel tipoProducto = tipoProductoRepository.findById(dto.getTipoProductoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Tipo de producto no encontrado"));
-            producto.setTipoProducto(tipoProducto);
-        }
+       
 
         if (dto.getLineaId() != null) {
             if (producto.getLinea() == null || !producto.getLinea().getId().equals(dto.getLineaId())) {
@@ -283,8 +274,7 @@ public class ProductoService {
             .sku(producto.getSku())
             .nombre(producto.getNombre())
             .descripcion(producto.getDescripcion())
-            .tipoProductoId(producto.getTipoProducto().getId())
-            .tipoProductoNombre(producto.getTipoProducto().getNombre())
+           
             .lineaId(producto.getLinea() != null ? producto.getLinea().getId() : null)
             .lineaNombre(producto.getLinea() != null ? producto.getLinea().getNombre() : null)
             .categoriaId(producto.getCategoria() != null ? producto.getCategoria().getId() : null)

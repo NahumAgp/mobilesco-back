@@ -52,10 +52,7 @@ public class ProductoModel {
     private String descripcion;
 
     // Relaciones con catálogos
-    @ManyToOne
-    @JoinColumn(name = "tipo_producto_id", nullable = false,
-                foreignKey = @ForeignKey(name = "fk_producto_tipo"))
-    private TipoProductoModel tipoProducto;
+    
 
     @ManyToOne
     @JoinColumn(name = "linea_id",

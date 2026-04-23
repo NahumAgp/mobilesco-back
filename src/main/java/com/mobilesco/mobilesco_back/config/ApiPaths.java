@@ -19,11 +19,13 @@ public final class ApiPaths {
     public static final String PROVEEDORES = API_VERSION + "/proveedores";
     public static final String UNIDADES_MEDIDA = API_VERSION + "/unidades-medida";
 
-    public static final String FAMILIAS = API_VERSION + "/familias";
-    public static final String LINEA_PRODUCTO = API_VERSION + "/lineas-producto";
-    public static final String CATEGORIA = API_VERSION + "/categorias";
-    public static final String MATERIALES = API_VERSION + "/materiales";
-    public static final String TIPO_PRODUCTO = API_VERSION + "/tipos-producto";
+    //  PRODUCTOS
+    public static final String LINEAS = API_VERSION + "/lineas"; 
+    public static final String FAMILIAS = API_VERSION + "/familias"; //PENDIENTE: Ver si se queda o se integra en LineaProducto|
+    
+    public static final String CATEGORIA = API_VERSION + "/categorias";//pendiente: Ver si se queda o se integra en LineaProducto|
+    public static final String MATERIALES = API_VERSION + "/materiales";//Quitar
+    public static final String TIPO_PRODUCTO = API_VERSION + "/tipos-producto";//quitar
 
     public static final String INSUMOS = API_VERSION + "/insumos";
 

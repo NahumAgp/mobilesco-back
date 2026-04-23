@@ -1,129 +1,120 @@
+// ============================================
+// RUTA: src/main/java/com/mobilesco/mobilesco_back/services/MaterialService.java
+// ============================================
 package com.mobilesco.mobilesco_back.services;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import com.mobilesco.mobilesco_back.dto.Material.MaterialCreateDTO;
-import com.mobilesco.mobilesco_back.dto.Material.MaterialResponseDTO;
-import com.mobilesco.mobilesco_back.dto.Material.MaterialUpdateDTO;
-import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
-import com.mobilesco.mobilesco_back.exceptions.ValidationException;
+import com.mobilesco.mobilesco_back.dto.material.MaterialCreateDTO;
+import com.mobilesco.mobilesco_back.dto.material.MaterialResponseDTO;
+import com.mobilesco.mobilesco_back.dto.material.MaterialUpdateDTO;
+import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
+import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.models.MaterialModel;
 import com.mobilesco.mobilesco_back.repositories.MaterialRepository;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class MaterialService {
 
     private final MaterialRepository materialRepository;
 
-    @Transactional
-    public MaterialResponseDTO crear(MaterialCreateDTO dto) {
-        log.info("Creando nuevo material: {}", dto.getNombre());
-        
-        // Validar nombre único
-        if (materialRepository.existsByNombreIgnoreCase(dto.getNombre())) {
-            throw new ValidationException("Ya existe un material con el nombre: " + dto.getNombre());
-        }
-
-        // Crear entidad
-        MaterialModel material = MaterialModel.builder()
-                .nombre(dto.getNombre())
-                .descripcion(dto.getDescripcion())
-                .activo(true)
-                .build();
-
-        MaterialModel saved = materialRepository.save(material);
-        log.info("Material creado con ID: {}", saved.getId());
-        
-        return mapToResponseDTO(saved);
+    public MaterialService(MaterialRepository materialRepository) {
+        this.materialRepository = materialRepository;
     }
 
-    @Transactional
-    public MaterialResponseDTO actualizar(Long id, MaterialUpdateDTO dto) {
-        log.info("Actualizando material ID: {}", id);
+    // ========== MAPPER ==========
+    
+    private MaterialResponseDTO mapToResponseDTO(MaterialModel material) {
+        MaterialResponseDTO dto = new MaterialResponseDTO();
+        dto.setId(material.getId());
+        dto.setNombre(material.getNombre());
+        dto.setDescripcion(material.getDescripcion());
+        dto.setActivo(material.getActivo());
+        dto.setCreatedAt(material.getCreatedAt());
+        return dto;
+    }
+    
+    private List<MaterialResponseDTO> mapToResponseDTOList(List<MaterialModel> materiales) {
+        return materiales.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+    
+    // ========== CREATE ==========
+    
+    public MaterialResponseDTO crear(MaterialCreateDTO dto) {
         
-        MaterialModel material = materialRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Material no encontrado con id: " + id));
-
-        // Validar nombre único (excepto si es el mismo)
-        if (!material.getNombre().equalsIgnoreCase(dto.getNombre()) &&
-                materialRepository.existsByNombreIgnoreCase(dto.getNombre())) {
-            throw new ValidationException("Ya existe un material con el nombre: " + dto.getNombre());
+        if (materialRepository.existsByNombre(dto.getNombre())) {
+            throw new BadRequestException("Ya existe un material con el nombre: " + dto.getNombre());
         }
-
-        // Actualizar
+        
+        MaterialModel material = new MaterialModel();
         material.setNombre(dto.getNombre());
         material.setDescripcion(dto.getDescripcion());
-        if (dto.getActivo() != null) {
-            material.setActivo(dto.getActivo());
-        }
-
-        MaterialModel updated = materialRepository.save(material);
-        log.info("Material actualizado: {}", updated.getNombre());
+        material.setActivo(true);
         
-        return mapToResponseDTO(updated);
+        MaterialModel guardado = materialRepository.save(material);
+        return mapToResponseDTO(guardado);
     }
-
-    @Transactional(readOnly = true)
+    
+    // ========== READ ==========
+    
+    public List<MaterialResponseDTO> obtenerTodos() {
+        return mapToResponseDTOList(materialRepository.findAll());
+    }
+    
+    public List<MaterialResponseDTO> obtenerActivos() {
+        return mapToResponseDTOList(materialRepository.findByActivo(true));
+    }
+    
     public MaterialResponseDTO obtenerPorId(Long id) {
         MaterialModel material = materialRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Material no encontrado con id: " + id));
+                .orElseThrow(() -> new NotFoundException("Material no encontrado con ID: " + id));
         return mapToResponseDTO(material);
     }
-
-    @Transactional(readOnly = true)
-    public List<MaterialResponseDTO> listar() {
-        return materialRepository.findAll()
-                .stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+    
+    public MaterialResponseDTO obtenerPorNombre(String nombre) {
+        MaterialModel material = materialRepository.findByNombre(nombre)
+                .orElseThrow(() -> new NotFoundException("Material no encontrado con nombre: " + nombre));
+        return mapToResponseDTO(material);
     }
-
-    @Transactional(readOnly = true)
-    public List<MaterialResponseDTO> listarActivos() {
-        return materialRepository.findByActivoTrue()
-                .stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+    
+    // ========== UPDATE ==========
+    
+    public MaterialResponseDTO actualizar(Long id, MaterialUpdateDTO dto) {
+        
+        MaterialModel existente = materialRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Material no encontrado con ID: " + id));
+        
+        // Validar nombre único
+        if (dto.getNombre() != null && !dto.getNombre().equals(existente.getNombre())) {
+            if (materialRepository.existsByNombre(dto.getNombre())) {
+                throw new BadRequestException("Ya existe un material con el nombre: " + dto.getNombre());
+            }
+            existente.setNombre(dto.getNombre());
+        }
+        
+        if (dto.getDescripcion() != null) {
+            existente.setDescripcion(dto.getDescripcion());
+        }
+        
+        if (dto.getActivo() != null) {
+            existente.setActivo(dto.getActivo());
+        }
+        
+        MaterialModel actualizado = materialRepository.save(existente);
+        return mapToResponseDTO(actualizado);
     }
-
-    @Transactional(readOnly = true)
-    public List<MaterialResponseDTO> buscar(String nombre) {
-        return materialRepository.buscarPorNombre(nombre)
-                .stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional
+    
+    // ========== DELETE ==========
+    
     public void eliminar(Long id) {
-        log.info("Eliminando (desactivando) material ID: {}", id);
-        
-        MaterialModel material = materialRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Material no encontrado con id: " + id));
-        
-        material.setActivo(false);
-        materialRepository.save(material);
-        
-        log.info("Material desactivado correctamente");
-    }
-
-    private MaterialResponseDTO mapToResponseDTO(MaterialModel material) {
-        return MaterialResponseDTO.builder()
-                .id(material.getId())
-                .nombre(material.getNombre())
-                .descripcion(material.getDescripcion())
-                .activo(material.getActivo())
-                .fechaRegistro(material.getFechaRegistro())
-                .fechaActualizacion(material.getFechaActualizacion())
-                .build();
+        if (!materialRepository.existsById(id)) {
+            throw new NotFoundException("Material no encontrado con ID: " + id);
+        }
+        materialRepository.deleteById(id);
     }
 }

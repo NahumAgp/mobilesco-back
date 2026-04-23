@@ -1,6 +1,8 @@
+// RUTA: src/main/java/com/mobilesco/mobilesco_back/repositories/FamiliaRepository.java
 package com.mobilesco.mobilesco_back.repositories;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -9,26 +11,14 @@ import com.mobilesco.mobilesco_back.models.FamiliaModel;
 
 @Repository
 public interface FamiliaRepository extends JpaRepository<FamiliaModel, Long> {
-
-    // Para validación en creación
-    boolean existsByNombreAndPadreIsNull(String nombre);
     
-    boolean existsByNombreAndPadreId(String nombre, Long padreId);
+    Optional<FamiliaModel> findByNombre(String nombre);
     
-    // 🔴 NUEVOS - Para validación en actualización (excluyendo el ID actual)
-    boolean existsByNombreAndPadreIsNullAndIdNot(String nombre, Long id);
+    List<FamiliaModel> findByActivo(Boolean activo);
     
-    boolean existsByNombreAndPadreIdAndIdNot(String nombre, Long padreId, Long id);
+    List<FamiliaModel> findByLineaId(Long lineaId);
     
-    // Para verificar hijos
-    List<FamiliaModel> findByPadreIdAndActivoTrue(Long padreId);
+    List<FamiliaModel> findByLineaIdAndActivo(Long lineaId, Boolean activo);
     
-    // Para listar activas
-    List<FamiliaModel> findByActivoTrue();
-    
-    // Para buscar raíces
-    List<FamiliaModel> findByPadreIsNullAndActivoTrue();
-    
-    // Para búsquedas
-    List<FamiliaModel> findByNombreContainingIgnoreCaseAndActivoTrue(String nombre);
+    boolean existsByNombre(String nombre);
 }
