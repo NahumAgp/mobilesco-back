@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.variante.VarianteCompletaResponseDTO;
 import com.mobilesco.mobilesco_back.dto.variante.VarianteCreateDTO;
 import com.mobilesco.mobilesco_back.dto.variante.VarianteResponseDTO;
@@ -26,7 +27,7 @@ import com.mobilesco.mobilesco_back.services.VarianteService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/variantes")
+@RequestMapping(ApiPaths.VARIANTES)
 public class VarianteController {
 
     private final VarianteService varianteService;

@@ -21,6 +21,10 @@ public class ProductoBaseCreateDTO {
     @Size(max = 500, message = "La descripcion no puede exceder 500 caracteres")
     private String descripcion;
 
+    @Size(max = 500, message = "La url de imagen no puede exceder 500 caracteres")
+    @JsonProperty("url_imagen")
+    private String urlImagen;
+
     @NotNull(message = "La familia es obligatoria")
     @JsonProperty("familia_id")
     private Long familiaId;
@@ -49,6 +53,14 @@ public class ProductoBaseCreateDTO {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public String getUrlImagen() {
+        return urlImagen;
+    }
+
+    public void setUrlImagen(String urlImagen) {
+        this.urlImagen = urlImagen;
     }
 
     public Long getFamiliaId() {

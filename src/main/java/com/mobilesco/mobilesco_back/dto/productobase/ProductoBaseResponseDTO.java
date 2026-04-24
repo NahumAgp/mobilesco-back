@@ -11,6 +11,7 @@ public class ProductoBaseResponseDTO {
     private String codigo;
     private String nombre;
     private String descripcion;
+    private String urlImagen;
     private Boolean activo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -48,6 +49,14 @@ public class ProductoBaseResponseDTO {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public String getUrlImagen() {
+        return urlImagen;
+    }
+
+    public void setUrlImagen(String urlImagen) {
+        this.urlImagen = urlImagen;
     }
 
     public Boolean getActivo() {

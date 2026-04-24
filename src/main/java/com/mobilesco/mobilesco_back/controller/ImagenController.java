@@ -6,6 +6,7 @@ package com.mobilesco.mobilesco_back.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,9 +14,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.imagen.ImagenCreateDTO;
 import com.mobilesco.mobilesco_back.dto.imagen.ImagenResponseDTO;
 import com.mobilesco.mobilesco_back.dto.imagen.ImagenUpdateDTO;
@@ -24,7 +28,7 @@ import com.mobilesco.mobilesco_back.services.ImagenService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/imagenes")
+@RequestMapping(ApiPaths.IMAGENES)
 public class ImagenController {
 
     private final ImagenService imagenService;
@@ -38,6 +42,18 @@ public class ImagenController {
     @PostMapping
     public ResponseEntity<ImagenResponseDTO> crear(@Valid @RequestBody ImagenCreateDTO dto) {
         ImagenResponseDTO creado = imagenService.crear(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    }
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ImagenResponseDTO> subirYCrear(
+            @RequestParam Long varianteId,
+            @RequestParam("archivo") MultipartFile archivo,
+            @RequestParam(required = false) Boolean esPrincipal,
+            @RequestParam(required = false) Integer orden,
+            @RequestParam(required = false) String altTexto
+    ) {
+        ImagenResponseDTO creado = imagenService.crearDesdeArchivo(varianteId, archivo, esPrincipal, orden, altTexto);
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 

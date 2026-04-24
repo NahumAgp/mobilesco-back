@@ -3,11 +3,13 @@
 // ============================================
 package com.mobilesco.mobilesco_back.services;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.mobilesco.mobilesco_back.dto.imagen.ImagenCreateDTO;
 import com.mobilesco.mobilesco_back.dto.imagen.ImagenResponseDTO;
@@ -24,10 +26,16 @@ public class ImagenService {
 
     private final ImagenRepository imagenRepository;
     private final VarianteRepository varianteRepository;
+    private final AlmacenamientoImagenesService almacenamientoImagenesService;
 
-    public ImagenService(ImagenRepository imagenRepository, VarianteRepository varianteRepository) {
+    public ImagenService(
+            ImagenRepository imagenRepository,
+            VarianteRepository varianteRepository,
+            AlmacenamientoImagenesService almacenamientoImagenesService
+    ) {
         this.imagenRepository = imagenRepository;
         this.varianteRepository = varianteRepository;
+        this.almacenamientoImagenesService = almacenamientoImagenesService;
     }
 
     // ========== MAPPER ==========
@@ -83,6 +91,36 @@ public class ImagenService {
         
         ImagenModel guardado = imagenRepository.save(imagen);
         return mapToResponseDTO(guardado);
+    }
+
+    @Transactional
+    public ImagenResponseDTO crearDesdeArchivo(
+            Long varianteId,
+            MultipartFile archivo,
+            Boolean esPrincipal,
+            Integer orden,
+            String altTexto
+    ) {
+        try {
+            String urlPublica = almacenamientoImagenesService.guardarImagenVariante(varianteId, archivo);
+
+            ImagenCreateDTO dto = new ImagenCreateDTO();
+            dto.setVarianteId(varianteId);
+            dto.setUrl(urlPublica);
+            dto.setAltTexto(altTexto);
+            if (esPrincipal != null) {
+                dto.setEsPrincipal(esPrincipal);
+            }
+            if (orden != null) {
+                dto.setOrden(orden);
+            }
+
+            return crear(dto);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(e.getMessage());
+        } catch (IOException e) {
+            throw new BadRequestException("No se pudo guardar la imagen. Verifica que el archivo sea valido.");
+        }
     }
     
     // ========== READ ==========

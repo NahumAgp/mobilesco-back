@@ -28,12 +28,11 @@ public class AlmacenamientoImagenesService {
             "image/webp"
     );
 
-    public String guardarFotoPerfilEmpleado(Long empleadoId, MultipartFile archivo) throws IOException {
-
-        // ✅ Validación fuerte: si Postman no manda el archivo, aquí te enteras
+    private void validarArchivoImagen(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new IllegalArgumentException(
-                    "No se recibió archivo. En Postman usa Body -> form-data, key=archivo (File).");
+                    "No se recibio archivo. En Postman usa Body -> form-data, key=archivo (File)."
+            );
         }
 
         String tipo = archivo.getContentType();
@@ -43,32 +42,51 @@ public class AlmacenamientoImagenesService {
 
         long maxBytes = 5L * 1024 * 1024;
         if (archivo.getSize() > maxBytes) {
-            throw new IllegalArgumentException("La imagen supera el máximo permitido (5MB).");
+            throw new IllegalArgumentException("La imagen supera el maximo permitido (5MB).");
         }
+    }
 
-        // Carpeta física: uploads/empleados/{id}/perfil
+    public String guardarFotoPerfilEmpleado(Long empleadoId, MultipartFile archivo) throws IOException {
+        validarArchivoImagen(archivo);
+
         Path carpeta = Paths.get(uploadsDir, "empleados", empleadoId.toString(), "perfil");
-        System.out.println("UPLOADS_DIR = " + uploadsDir);
-        System.out.println("Carpeta destino absoluta = " + carpeta.toAbsolutePath());
         Files.createDirectories(carpeta);
 
-        // Nombre único
         String nombre = UUID.randomUUID().toString();
         Path destinoJpg = carpeta.resolve(nombre + ".jpg");
 
-        // Leer imagen real
         BufferedImage img = ImageIO.read(archivo.getInputStream());
         if (img == null) {
-            throw new IllegalArgumentException("El archivo no es una imagen válida o no es compatible.");
+            throw new IllegalArgumentException("El archivo no es una imagen valida o no es compatible.");
         }
 
-        // Guardar como JPG (seguro)
         Thumbnails.of(img)
                 .scale(1.0)
                 .outputFormat("jpg")
                 .toFile(destinoJpg.toFile());
 
-        // Ruta pública
         return "/uploads/empleados/" + empleadoId + "/perfil/" + destinoJpg.getFileName().toString();
+    }
+
+    public String guardarImagenVariante(Long varianteId, MultipartFile archivo) throws IOException {
+        validarArchivoImagen(archivo);
+
+        Path carpeta = Paths.get(uploadsDir, "productos", "variantes", varianteId.toString());
+        Files.createDirectories(carpeta);
+
+        String nombre = UUID.randomUUID().toString();
+        Path destinoJpg = carpeta.resolve(nombre + ".jpg");
+
+        BufferedImage img = ImageIO.read(archivo.getInputStream());
+        if (img == null) {
+            throw new IllegalArgumentException("El archivo no es una imagen valida o no es compatible.");
+        }
+
+        Thumbnails.of(img)
+                .scale(1.0)
+                .outputFormat("jpg")
+                .toFile(destinoJpg.toFile());
+
+        return "/uploads/productos/variantes/" + varianteId + "/" + destinoJpg.getFileName().toString();
     }
 }

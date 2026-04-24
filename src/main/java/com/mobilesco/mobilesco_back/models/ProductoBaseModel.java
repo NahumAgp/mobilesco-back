@@ -27,6 +27,9 @@ public class ProductoBaseModel {
     @Column(length = 500)
     private String descripcion;
 
+    @Column(name = "url_imagen", length = 500)
+    private String urlImagen;
+
     @Column(name = "activo")
     private Boolean activo = true;
     

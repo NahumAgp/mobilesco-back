@@ -36,6 +36,7 @@ public class ProductoBaseService {
         dto.setCodigo(productoBase.getCodigo());
         dto.setNombre(productoBase.getNombre());
         dto.setDescripcion(productoBase.getDescripcion());
+        dto.setUrlImagen(productoBase.getUrlImagen());
         dto.setActivo(productoBase.getActivo());
         dto.setCreatedAt(productoBase.getCreatedAt());
         dto.setUpdatedAt(productoBase.getUpdatedAt());
@@ -67,6 +68,7 @@ public class ProductoBaseService {
         productoBase.setCodigo(dto.getCodigo());
         productoBase.setNombre(dto.getNombre());
         productoBase.setDescripcion(dto.getDescripcion());
+        productoBase.setUrlImagen(dto.getUrlImagen());
         productoBase.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
         productoBase.setFamilia(familia);
 
@@ -113,6 +115,10 @@ public class ProductoBaseService {
 
         if (dto.getDescripcion() != null) {
             existente.setDescripcion(dto.getDescripcion());
+        }
+
+        if (dto.getUrlImagen() != null) {
+            existente.setUrlImagen(dto.getUrlImagen());
         }
 
         if (dto.getFamiliaId() != null) {
