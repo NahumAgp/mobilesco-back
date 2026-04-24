@@ -31,7 +31,7 @@ public class NivelService {
         dto.setId(nivel.getId());
         dto.setCodigo(nivel.getCodigo());
         dto.setNombre(nivel.getNombre());
-        dto.setAlturaCm(nivel.getAlturaCm());
+        dto.setDescripcion(nivel.getDescripcion());
         dto.setActivo(nivel.getActivo());
         dto.setCreatedAt(nivel.getCreatedAt());
         return dto;
@@ -58,7 +58,7 @@ public class NivelService {
         NivelModel nivel = new NivelModel();
         nivel.setCodigo(dto.getCodigo());
         nivel.setNombre(dto.getNombre());
-        nivel.setAlturaCm(dto.getAlturaCm());
+        nivel.setDescripcion(dto.getDescripcion());
         nivel.setActivo(true);
         
         NivelModel guardado = nivelRepository.save(nivel);
@@ -116,8 +116,8 @@ public class NivelService {
             existente.setNombre(dto.getNombre());
         }
         
-        if (dto.getAlturaCm() != null) {
-            existente.setAlturaCm(dto.getAlturaCm());
+        if (dto.getDescripcion() != null) {
+            existente.setDescripcion(dto.getDescripcion());
         }
         
         if (dto.getActivo() != null) {

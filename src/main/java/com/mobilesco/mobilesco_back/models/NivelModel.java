@@ -29,7 +29,8 @@ public class NivelModel {
     @Column(nullable = false, length = 50)
     private String nombre;
     
-    private Integer alturaCm;
+    @Column(length = 255)
+    private String descripcion;
     
     @Column(name = "activo")
     private Boolean activo = true;

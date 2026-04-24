@@ -24,7 +24,10 @@ public class ColorModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(unique = true, nullable = false, length = 10)
+    private String codigo;
+
     @Column(unique = true, nullable = false, length = 30)
     private String nombre;
     

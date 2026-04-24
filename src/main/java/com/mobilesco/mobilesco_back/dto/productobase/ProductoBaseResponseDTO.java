@@ -8,9 +8,10 @@ import java.time.LocalDateTime;
 public class ProductoBaseResponseDTO {
 
     private Long id;
-    private String sku;
+    private String codigo;
     private String nombre;
     private String descripcion;
+    private Boolean activo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -25,12 +26,12 @@ public class ProductoBaseResponseDTO {
         this.id = id;
     }
 
-    public String getSku() {
-        return sku;
+    public String getCodigo() {
+        return codigo;
     }
 
-    public void setSku(String sku) {
-        this.sku = sku;
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
     }
 
     public String getNombre() {
@@ -47,6 +48,14 @@ public class ProductoBaseResponseDTO {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public Boolean getActivo() {
+        return activo;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
     }
 
     public LocalDateTime getCreatedAt() {

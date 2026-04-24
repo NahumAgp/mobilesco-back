@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.nivel.NivelCreateDTO;
 import com.mobilesco.mobilesco_back.dto.nivel.NivelResponseDTO;
 import com.mobilesco.mobilesco_back.dto.nivel.NivelUpdateDTO;
@@ -24,7 +25,7 @@ import com.mobilesco.mobilesco_back.services.NivelService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/niveles")
+@RequestMapping(ApiPaths.NIVELES)
 public class NivelController {
 
     private final NivelService nivelService;

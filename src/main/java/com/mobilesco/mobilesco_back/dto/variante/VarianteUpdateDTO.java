@@ -26,6 +26,8 @@ public class VarianteUpdateDTO {
     @JsonProperty("id_color")
     private Long colorId;
 
+    private Boolean activo;
+
     public String getSku() { return sku; }
     public void setSku(String sku) { this.sku = sku; }
 
@@ -43,4 +45,7 @@ public class VarianteUpdateDTO {
 
     public Long getColorId() { return colorId; }
     public void setColorId(Long colorId) { this.colorId = colorId; }
+
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
 }

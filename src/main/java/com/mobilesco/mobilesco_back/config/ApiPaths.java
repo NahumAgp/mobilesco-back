@@ -21,7 +21,10 @@ public final class ApiPaths {
 
     //  PRODUCTOS
     public static final String LINEAS = API_VERSION + "/lineas"; 
-    public static final String FAMILIAS = API_VERSION + "/familias"; //PENDIENTE: Ver si se queda o se integra en LineaProducto|
+    public static final String FAMILIAS = API_VERSION + "/familias";
+    public static final String MODELOS = API_VERSION + "/productos-base";
+    public static final String NIVELES = API_VERSION + "/niveles";
+    public static final String COLORES = API_VERSION + "/colores";
     
     public static final String CATEGORIA = API_VERSION + "/categorias";//pendiente: Ver si se queda o se integra en LineaProducto|
     public static final String MATERIALES = API_VERSION + "/materiales";//Quitar

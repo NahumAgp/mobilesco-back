@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.productobase.ProductoBaseCreateDTO;
 import com.mobilesco.mobilesco_back.dto.productobase.ProductoBaseResponseDTO;
 import com.mobilesco.mobilesco_back.dto.productobase.ProductoBaseUpdateDTO;
@@ -25,7 +26,7 @@ import com.mobilesco.mobilesco_back.services.ProductoBaseService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/productos-base")
+@RequestMapping(ApiPaths.MODELOS)
 public class ProductoBaseController {
 
     private final ProductoBaseService productoBaseService;
@@ -57,10 +58,10 @@ public class ProductoBaseController {
 
     @GetMapping("/buscar")
     public ResponseEntity<List<ProductoBaseResponseDTO>> buscar(
-            @RequestParam(required = false) String sku,
+            @RequestParam(required = false) String codigo,
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) Long familiaId) {
-        return ResponseEntity.ok(productoBaseService.buscarConFiltros(sku, nombre, familiaId));
+        return ResponseEntity.ok(productoBaseService.buscarConFiltros(codigo, nombre, familiaId));
     }
 
     @PutMapping("/{id}")

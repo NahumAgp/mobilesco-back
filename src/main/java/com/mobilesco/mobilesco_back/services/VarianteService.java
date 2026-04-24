@@ -1,4 +1,3 @@
-﻿
 package com.mobilesco.mobilesco_back.services;
 
 import java.util.List;
@@ -49,6 +48,7 @@ public class VarianteService {
         dto.setSku(variante.getSku());
         dto.setNombre(variante.getNombre());
         dto.setDescripcion(variante.getDescripcion());
+        dto.setActivo(variante.getActivo());
         dto.setCreatedAt(variante.getCreatedAt());
         dto.setUpdatedAt(variante.getUpdatedAt());
 
@@ -65,15 +65,29 @@ public class VarianteService {
         return dto;
     }
 
+    private String generarSku(ProductoBaseModel productoBase, NivelModel nivel, ColorModel color) {
+        if (productoBase.getFamilia() == null || productoBase.getFamilia().getLinea() == null) {
+            throw new BadRequestException("El modelo debe tener familia y linea para generar el sku");
+        }
+
+        String lineaCodigo = productoBase.getFamilia().getLinea().getCodigo();
+        String familiaCodigo = productoBase.getFamilia().getCodigo();
+        String modeloCodigo = productoBase.getCodigo();
+        String nivelCodigo = nivel.getCodigo();
+        String colorCodigo = color.getCodigo();
+
+        if (lineaCodigo == null || familiaCodigo == null || modeloCodigo == null || nivelCodigo == null || colorCodigo == null) {
+            throw new BadRequestException("Faltan codigos requeridos para generar el sku de variante");
+        }
+
+        return (lineaCodigo + familiaCodigo + modeloCodigo + "-" + nivelCodigo + "-" + colorCodigo).toUpperCase();
+    }
+
     private List<VarianteResponseDTO> mapToResponseDTOList(List<VarianteModel> variantes) {
         return variantes.stream().map(this::mapToResponseDTO).collect(Collectors.toList());
     }
 
     public VarianteResponseDTO crear(VarianteCreateDTO dto) {
-
-        if (varianteRepository.existsBySku(dto.getSku())) {
-            throw new BadRequestException("Ya existe una variante con el sku: " + dto.getSku());
-        }
 
         ProductoBaseModel productoBase = productoBaseRepository.findById(dto.getProductoBaseId())
                 .orElseThrow(() -> new NotFoundException("Producto base no encontrado con ID: " + dto.getProductoBaseId()));
@@ -84,10 +98,16 @@ public class VarianteService {
         ColorModel color = colorRepository.findById(dto.getColorId())
                 .orElseThrow(() -> new NotFoundException("Color no encontrado con ID: " + dto.getColorId()));
 
+        String skuGenerado = generarSku(productoBase, nivel, color);
+        if (varianteRepository.existsBySku(skuGenerado)) {
+            throw new BadRequestException("Ya existe una variante con el sku: " + skuGenerado);
+        }
+
         VarianteModel variante = new VarianteModel();
-        variante.setSku(dto.getSku());
+        variante.setSku(skuGenerado);
         variante.setNombre(dto.getNombre());
         variante.setDescripcion(dto.getDescripcion());
+        variante.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
         variante.setProductoBase(productoBase);
         variante.setNivel(nivel);
         variante.setColor(color);
@@ -125,13 +145,6 @@ public class VarianteService {
         VarianteModel existente = varianteRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Variante no encontrada con ID: " + id));
 
-        if (dto.getSku() != null && !dto.getSku().equals(existente.getSku())) {
-            if (varianteRepository.existsBySku(dto.getSku())) {
-                throw new BadRequestException("Ya existe una variante con el sku: " + dto.getSku());
-            }
-            existente.setSku(dto.getSku());
-        }
-
         if (dto.getNombre() != null) {
             existente.setNombre(dto.getNombre());
         }
@@ -157,6 +170,18 @@ public class VarianteService {
                     .orElseThrow(() -> new NotFoundException("Color no encontrado con ID: " + dto.getColorId()));
             existente.setColor(color);
         }
+
+        if (dto.getActivo() != null) {
+            existente.setActivo(dto.getActivo());
+        }
+
+        String skuGenerado = generarSku(existente.getProductoBase(), existente.getNivel(), existente.getColor());
+        varianteRepository.findBySku(skuGenerado)
+                .filter(otra -> !otra.getId().equals(existente.getId()))
+                .ifPresent(otra -> {
+                    throw new BadRequestException("Ya existe una variante con el sku: " + skuGenerado);
+                });
+        existente.setSku(skuGenerado);
 
         return mapToResponseDTO(varianteRepository.save(existente));
     }
@@ -186,6 +211,7 @@ public class VarianteService {
         dto.setSku(variante.getSku());
         dto.setNombre(variante.getNombre());
         dto.setDescripcion(variante.getDescripcion());
+        dto.setActivo(variante.getActivo());
         dto.setCreatedAt(variante.getCreatedAt());
         dto.setUpdatedAt(variante.getUpdatedAt());
 

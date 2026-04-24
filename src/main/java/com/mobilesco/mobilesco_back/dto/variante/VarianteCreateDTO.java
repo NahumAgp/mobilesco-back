@@ -4,15 +4,13 @@
 package com.mobilesco.mobilesco_back.dto.variante;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+ 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class VarianteCreateDTO {
 
-    @NotBlank(message = "El sku es obligatorio")
-    @Pattern(regexp = "^[A-Z0-9-]+$", message = "El sku solo puede contener letras mayusculas, numeros y guiones")
     @Size(max = 30, message = "El sku no puede exceder 30 caracteres")
     private String sku;
 
@@ -35,6 +33,8 @@ public class VarianteCreateDTO {
     @JsonProperty("id_color")
     private Long colorId;
 
+    private Boolean activo;
+
     public String getSku() { return sku; }
     public void setSku(String sku) { this.sku = sku; }
 
@@ -52,4 +52,7 @@ public class VarianteCreateDTO {
 
     public Long getColorId() { return colorId; }
     public void setColorId(Long colorId) { this.colorId = colorId; }
+
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
 }

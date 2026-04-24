@@ -18,14 +18,17 @@ public class ProductoBaseModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(unique = true, nullable = false, length = 30)
-    private String sku;
+    @Column(name = "codigo", unique = true, nullable = false, length = 30)
+    private String codigo;
 
     @Column(nullable = false, length = 200)
     private String nombre;
     
     @Column(length = 500)
     private String descripcion;
+
+    @Column(name = "activo")
+    private Boolean activo = true;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -42,6 +45,9 @@ public class ProductoBaseModel {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (activo == null) {
+            activo = true;
+        }
     }
     
     @PreUpdate

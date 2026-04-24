@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.color.ColorCreateDTO;
 import com.mobilesco.mobilesco_back.dto.color.ColorResponseDTO;
 import com.mobilesco.mobilesco_back.dto.color.ColorUpdateDTO;
@@ -24,7 +25,7 @@ import com.mobilesco.mobilesco_back.services.ColorService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/colores")
+@RequestMapping(ApiPaths.COLORES)
 public class ColorController {
 
     private final ColorService colorService;

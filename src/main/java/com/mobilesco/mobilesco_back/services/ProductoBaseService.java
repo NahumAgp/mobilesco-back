@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // RUTA: src/main/java/com/mobilesco/mobilesco_back/services/ProductoBaseService.java
 // ============================================
 package com.mobilesco.mobilesco_back.services;
@@ -33,9 +33,10 @@ public class ProductoBaseService {
     private ProductoBaseResponseDTO mapToResponseDTO(ProductoBaseModel productoBase) {
         ProductoBaseResponseDTO dto = new ProductoBaseResponseDTO();
         dto.setId(productoBase.getId());
-        dto.setSku(productoBase.getSku());
+        dto.setCodigo(productoBase.getCodigo());
         dto.setNombre(productoBase.getNombre());
         dto.setDescripcion(productoBase.getDescripcion());
+        dto.setActivo(productoBase.getActivo());
         dto.setCreatedAt(productoBase.getCreatedAt());
         dto.setUpdatedAt(productoBase.getUpdatedAt());
 
@@ -55,17 +56,18 @@ public class ProductoBaseService {
 
     public ProductoBaseResponseDTO crear(ProductoBaseCreateDTO dto) {
 
-        if (productoBaseRepository.existsBySku(dto.getSku())) {
-            throw new BadRequestException("Ya existe un producto base con el sku: " + dto.getSku());
+        if (productoBaseRepository.existsByCodigo(dto.getCodigo())) {
+            throw new BadRequestException("Ya existe un producto base con el codigo: " + dto.getCodigo());
         }
 
         FamiliaModel familia = familiaRepository.findById(dto.getFamiliaId())
                 .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + dto.getFamiliaId()));
 
         ProductoBaseModel productoBase = new ProductoBaseModel();
-        productoBase.setSku(dto.getSku());
+        productoBase.setCodigo(dto.getCodigo());
         productoBase.setNombre(dto.getNombre());
         productoBase.setDescripcion(dto.getDescripcion());
+        productoBase.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
         productoBase.setFamilia(familia);
 
         ProductoBaseModel guardado = productoBaseRepository.save(productoBase);
@@ -89,8 +91,8 @@ public class ProductoBaseService {
         return mapToResponseDTOList(productoBaseRepository.findByFamiliaId(familiaId));
     }
 
-    public List<ProductoBaseResponseDTO> buscarConFiltros(String sku, String nombre, Long familiaId) {
-        return mapToResponseDTOList(productoBaseRepository.buscarConFiltros(sku, nombre, familiaId));
+    public List<ProductoBaseResponseDTO> buscarConFiltros(String codigo, String nombre, Long familiaId) {
+        return mapToResponseDTOList(productoBaseRepository.buscarConFiltros(codigo, nombre, familiaId));
     }
 
     public ProductoBaseResponseDTO actualizar(Long id, ProductoBaseUpdateDTO dto) {
@@ -98,11 +100,11 @@ public class ProductoBaseService {
         ProductoBaseModel existente = productoBaseRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Producto base no encontrado con ID: " + id));
 
-        if (dto.getSku() != null && !dto.getSku().equals(existente.getSku())) {
-            if (productoBaseRepository.existsBySku(dto.getSku())) {
-                throw new BadRequestException("Ya existe un producto base con el sku: " + dto.getSku());
+        if (dto.getCodigo() != null && !dto.getCodigo().equals(existente.getCodigo())) {
+            if (productoBaseRepository.existsByCodigo(dto.getCodigo())) {
+                throw new BadRequestException("Ya existe un producto base con el codigo: " + dto.getCodigo());
             }
-            existente.setSku(dto.getSku());
+            existente.setCodigo(dto.getCodigo());
         }
 
         if (dto.getNombre() != null) {
@@ -117,6 +119,10 @@ public class ProductoBaseService {
             FamiliaModel familia = familiaRepository.findById(dto.getFamiliaId())
                     .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + dto.getFamiliaId()));
             existente.setFamilia(familia);
+        }
+
+        if (dto.getActivo() != null) {
+            existente.setActivo(dto.getActivo());
         }
 
         ProductoBaseModel actualizado = productoBaseRepository.save(existente);

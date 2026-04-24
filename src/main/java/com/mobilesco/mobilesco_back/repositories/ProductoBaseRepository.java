@@ -16,18 +16,18 @@ import com.mobilesco.mobilesco_back.models.ProductoBaseModel;
 @Repository
 public interface ProductoBaseRepository extends JpaRepository<ProductoBaseModel, Long> {
 
-    Optional<ProductoBaseModel> findBySku(String sku);
+    Optional<ProductoBaseModel> findByCodigo(String codigo);
 
     List<ProductoBaseModel> findByFamiliaId(Long familiaId);
 
-    boolean existsBySku(String sku);
+    boolean existsByCodigo(String codigo);
 
     @Query("SELECT p FROM ProductoBaseModel p WHERE " +
-           "(:sku IS NULL OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :sku, '%'))) AND " +
+           "(:codigo IS NULL OR LOWER(p.codigo) LIKE LOWER(CONCAT('%', :codigo, '%'))) AND " +
            "(:nombre IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) AND " +
            "(:familiaId IS NULL OR p.familia.id = :familiaId)")
     List<ProductoBaseModel> buscarConFiltros(
-            @Param("sku") String sku,
+            @Param("codigo") String codigo,
             @Param("nombre") String nombre,
             @Param("familiaId") Long familiaId
     );

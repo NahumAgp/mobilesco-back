@@ -40,6 +40,9 @@ public class VarianteModel {
     @Column(length = 500)
     private String descripcion;
 
+    @Column(name = "activo")
+    private Boolean activo = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -62,6 +65,9 @@ public class VarianteModel {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (activo == null) {
+            activo = true;
+        }
     }
 
     @PreUpdate

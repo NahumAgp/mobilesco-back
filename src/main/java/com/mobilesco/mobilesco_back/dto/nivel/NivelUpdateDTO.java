@@ -15,7 +15,8 @@ public class NivelUpdateDTO {
     @Size(max = 50, message = "El nombre no puede exceder 50 caracteres")
     private String nombre;
     
-    private Integer alturaCm;
+    @Size(max = 255, message = "La descripcion no puede exceder 255 caracteres")
+    private String descripcion;
     
     private Boolean activo;
     
@@ -36,12 +37,12 @@ public class NivelUpdateDTO {
         this.nombre = nombre;
     }
     
-    public Integer getAlturaCm() {
-        return alturaCm;
+    public String getDescripcion() {
+        return descripcion;
     }
     
-    public void setAlturaCm(Integer alturaCm) {
-        this.alturaCm = alturaCm;
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
     
     public Boolean getActivo() {

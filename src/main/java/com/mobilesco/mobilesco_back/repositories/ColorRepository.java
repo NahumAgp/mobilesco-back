@@ -12,9 +12,13 @@ import com.mobilesco.mobilesco_back.models.ColorModel;
 @Repository
 public interface ColorRepository extends JpaRepository<ColorModel, Long> {
     
+    Optional<ColorModel> findByCodigo(String codigo);
+    
     Optional<ColorModel> findByNombre(String nombre);
     
     List<ColorModel> findByActivo(Boolean activo);
+    
+    boolean existsByCodigo(String codigo);
     
     boolean existsByNombre(String nombre);
 }

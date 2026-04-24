@@ -15,6 +15,7 @@ public class VarianteCompletaResponseDTO {
     private String sku;
     private String nombre;
     private String descripcion;
+    private Boolean activo;
 
     @JsonProperty("id_producto_base")
     private Long productoBaseId;
@@ -40,6 +41,9 @@ public class VarianteCompletaResponseDTO {
 
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
 
     public Long getProductoBaseId() { return productoBaseId; }
     public void setProductoBaseId(Long productoBaseId) { this.productoBaseId = productoBaseId; }

@@ -24,7 +24,10 @@ public class FamiliaModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(unique = true, nullable = false, length = 10)
+    private String codigo;
+
     @Column(unique = true, nullable = false, length = 100)
     private String nombre;
     

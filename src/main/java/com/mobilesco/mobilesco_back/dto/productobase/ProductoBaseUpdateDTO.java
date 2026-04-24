@@ -8,8 +8,8 @@ import jakarta.validation.constraints.Size;
 
 public class ProductoBaseUpdateDTO {
 
-    @Size(max = 30, message = "El sku no puede exceder 30 caracteres")
-    private String sku;
+    @Size(max = 30, message = "El codigo no puede exceder 30 caracteres")
+    private String codigo;
 
     @Size(max = 200, message = "El nombre no puede exceder 200 caracteres")
     private String nombre;
@@ -20,12 +20,14 @@ public class ProductoBaseUpdateDTO {
     @JsonProperty("familia_id")
     private Long familiaId;
 
-    public String getSku() {
-        return sku;
+    private Boolean activo;
+
+    public String getCodigo() {
+        return codigo;
     }
 
-    public void setSku(String sku) {
-        this.sku = sku;
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
     }
 
     public String getNombre() {
@@ -50,5 +52,13 @@ public class ProductoBaseUpdateDTO {
 
     public void setFamiliaId(Long familiaId) {
         this.familiaId = familiaId;
+    }
+
+    public Boolean getActivo() {
+        return activo;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
     }
 }

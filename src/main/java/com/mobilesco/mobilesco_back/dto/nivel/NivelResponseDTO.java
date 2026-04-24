@@ -8,7 +8,7 @@ public class NivelResponseDTO {
     private Long id;
     private String codigo;
     private String nombre;
-    private Integer alturaCm;
+    private String descripcion;
     private Boolean activo;
     private LocalDateTime createdAt;
     
@@ -37,12 +37,12 @@ public class NivelResponseDTO {
         this.nombre = nombre;
     }
     
-    public Integer getAlturaCm() {
-        return alturaCm;
+    public String getDescripcion() {
+        return descripcion;
     }
     
-    public void setAlturaCm(Integer alturaCm) {
-        this.alturaCm = alturaCm;
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
     
     public Boolean getActivo() {

@@ -27,10 +27,11 @@ public class LineaService {
     }
 
     // ========== MAPPER ==========
-    
+
     private LineaResponseDTO mapToResponseDTO(LineaModel linea) {
         LineaResponseDTO dto = new LineaResponseDTO();
         dto.setId(linea.getId());
+        dto.setCodigo(linea.getCodigo());
         dto.setNombre(linea.getNombre());
         dto.setDescripcion(linea.getDescripcion());
         dto.setOrden(linea.getOrden());
@@ -38,83 +39,94 @@ public class LineaService {
         dto.setCreatedAt(linea.getCreatedAt());
         return dto;
     }
-    
+
     private List<LineaResponseDTO> mapToResponseDTOList(List<LineaModel> lineas) {
         return lineas.stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
-    
+
     // ========== CREATE ==========
-    
+
     public LineaResponseDTO crear(LineaCreateDTO dto) {
-        
-        if (lineaRepository.existsByNombre(dto.getNombre())) {
-            throw new BadRequestException("Ya existe una línea con el nombre: " + dto.getNombre());
+
+        if (lineaRepository.existsByCodigo(dto.getCodigo())) {
+            throw new BadRequestException("Ya existe una linea con el codigo: " + dto.getCodigo());
         }
-        
+
+        if (lineaRepository.existsByNombre(dto.getNombre())) {
+            throw new BadRequestException("Ya existe una linea con el nombre: " + dto.getNombre());
+        }
+
         LineaModel linea = new LineaModel();
+        linea.setCodigo(dto.getCodigo());
         linea.setNombre(dto.getNombre());
         linea.setDescripcion(dto.getDescripcion());
         linea.setOrden(Objects.requireNonNullElse(dto.getOrden(), 0));
         linea.setActivo(true);
-        
+
         LineaModel guardado = lineaRepository.save(linea);
         return mapToResponseDTO(guardado);
     }
-    
+
     // ========== READ ==========
-    
+
     public List<LineaResponseDTO> obtenerTodos() {
         return mapToResponseDTOList(lineaRepository.findAll());
     }
-    
+
     public List<LineaResponseDTO> obtenerActivos() {
         return mapToResponseDTOList(lineaRepository.findByActivo(true));
     }
-    
+
     public LineaResponseDTO obtenerPorId(Long id) {
         LineaModel linea = lineaRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Línea no encontrada con ID: " + id));
+                .orElseThrow(() -> new NotFoundException("Linea no encontrada con ID: " + id));
         return mapToResponseDTO(linea);
     }
-    
+
     // ========== UPDATE ==========
-    
+
     public LineaResponseDTO actualizar(Long id, LineaUpdateDTO dto) {
-        
+
         LineaModel existente = lineaRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Línea no encontrada con ID: " + id));
-        
-        // Validar nombre único (excluyendo el mismo registro)
+                .orElseThrow(() -> new NotFoundException("Linea no encontrada con ID: " + id));
+
+        if (dto.getCodigo() != null && !dto.getCodigo().equals(existente.getCodigo())) {
+            if (lineaRepository.existsByCodigo(dto.getCodigo())) {
+                throw new BadRequestException("Ya existe una linea con el codigo: " + dto.getCodigo());
+            }
+            existente.setCodigo(dto.getCodigo());
+        }
+
         if (dto.getNombre() != null && !dto.getNombre().equals(existente.getNombre())) {
             if (lineaRepository.existsByNombre(dto.getNombre())) {
-                throw new BadRequestException("Ya existe una línea con el nombre: " + dto.getNombre());
+                throw new BadRequestException("Ya existe una linea con el nombre: " + dto.getNombre());
             }
             existente.setNombre(dto.getNombre());
         }
-        
+
         if (dto.getDescripcion() != null) {
             existente.setDescripcion(dto.getDescripcion());
         }
-        
+
         if (dto.getOrden() != null) {
             existente.setOrden(dto.getOrden());
         }
-        
+
         if (dto.getActivo() != null) {
             existente.setActivo(dto.getActivo());
         }
-        
+
         LineaModel actualizado = lineaRepository.save(existente);
         return mapToResponseDTO(actualizado);
     }
-    
+
     // ========== DELETE ==========
-    
+
     public void eliminar(Long id) {
         if (!lineaRepository.existsById(id)) {
-            throw new NotFoundException("Línea no encontrada con ID: " + id);
+            throw new NotFoundException("Linea no encontrada con ID: " + id);
         }
         lineaRepository.deleteById(id);
     }

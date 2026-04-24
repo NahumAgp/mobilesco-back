@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public class LineaResponseDTO {
     
     private Long id;
+    private String codigo;
     private String nombre;
     private String descripcion;
     private Integer orden;
@@ -19,6 +20,14 @@ public class LineaResponseDTO {
     
     public void setId(Long id) {
         this.id = id;
+    }
+    
+    public String getCodigo() {
+        return codigo;
+    }
+    
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
     }
     
     public String getNombre() {

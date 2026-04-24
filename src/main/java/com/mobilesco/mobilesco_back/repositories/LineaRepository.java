@@ -12,9 +12,13 @@ import com.mobilesco.mobilesco_back.models.LineaModel;
 @Repository
 public interface LineaRepository extends JpaRepository<LineaModel, Long> {
     
+    Optional<LineaModel> findByCodigo(String codigo);
+
     Optional<LineaModel> findByNombre(String nombre);
     
     List<LineaModel> findByActivo(Boolean activo);
+    
+    boolean existsByCodigo(String codigo);
     
     boolean existsByNombre(String nombre);
 }

@@ -2,9 +2,14 @@
 package com.mobilesco.mobilesco_back.dto.linea;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class LineaUpdateDTO {
+
+    @NotBlank(message = "El codigo es obligatorio")
+    @Pattern(regexp = "^[A-Z0-9]{1,10}$", message = "El codigo solo puede contener mayusculas y numeros (maximo 10)")
+    private String codigo;
     
     @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 50, message = "El nombre no puede exceder 50 caracteres")
@@ -18,6 +23,14 @@ public class LineaUpdateDTO {
     private Boolean activo;
     
     // Getters y Setters
+    public String getCodigo() {
+        return codigo;
+    }
+    
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
+    }
+    
     public String getNombre() {
         return nombre;
     }
