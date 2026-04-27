@@ -21,7 +21,6 @@ public class ProductoUpdateDTO {
     private Long tipoProductoId;
     private Long lineaId;
     private Long categoriaId;
-    private Long materialId;
     
     @Size(max = 500)
     private String caracteristicas;

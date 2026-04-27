@@ -119,6 +119,13 @@ public class VarianteService {
         return mapToResponseDTOList(varianteRepository.findAll());
     }
 
+    public List<VarianteCompletaResponseDTO> obtenerTodosCompletos() {
+        return varianteRepository.findAll()
+                .stream()
+                .map(this::mapToVarianteCompletaDTO)
+                .collect(Collectors.toList());
+    }
+
     public VarianteResponseDTO obtenerPorId(Long id) {
         VarianteModel variante = varianteRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Variante no encontrada con ID: " + id));
@@ -135,9 +142,24 @@ public class VarianteService {
         return mapToResponseDTOList(varianteRepository.findByProductoBaseId(productoBaseId));
     }
 
+    public List<VarianteCompletaResponseDTO> obtenerCompletosPorProductoBase(Long productoBaseId) {
+        return varianteRepository.findByProductoBaseId(productoBaseId)
+                .stream()
+                .map(this::mapToVarianteCompletaDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<VarianteResponseDTO> buscarConFiltros(String sku, String nombre, Long productoBaseId,
                                                        Long nivelId, Long colorId) {
         return mapToResponseDTOList(varianteRepository.buscarConFiltros(sku, nombre, productoBaseId, nivelId, colorId));
+    }
+
+    public List<VarianteCompletaResponseDTO> buscarCompletasConFiltros(String sku, String nombre, Long productoBaseId,
+                                                                       Long nivelId, Long colorId) {
+        return varianteRepository.buscarConFiltros(sku, nombre, productoBaseId, nivelId, colorId)
+                .stream()
+                .map(this::mapToVarianteCompletaDTO)
+                .collect(Collectors.toList());
     }
 
     public VarianteResponseDTO actualizar(Long id, VarianteUpdateDTO dto) {

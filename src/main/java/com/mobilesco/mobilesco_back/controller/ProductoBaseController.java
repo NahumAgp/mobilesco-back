@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // RUTA: src/main/java/com/mobilesco/mobilesco_back/controller/ProductoBaseController.java
 // ============================================
 package com.mobilesco.mobilesco_back.controller;

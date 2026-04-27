@@ -29,7 +29,6 @@ public final class ApiPaths {
     public static final String IMAGENES = API_VERSION + "/imagenes";
     
     public static final String CATEGORIA = API_VERSION + "/categorias";//pendiente: Ver si se queda o se integra en LineaProducto|
-    public static final String MATERIALES = API_VERSION + "/materiales";//Quitar
     public static final String TIPO_PRODUCTO = API_VERSION + "/tipos-producto";//quitar
 
     public static final String INSUMOS = API_VERSION + "/insumos";

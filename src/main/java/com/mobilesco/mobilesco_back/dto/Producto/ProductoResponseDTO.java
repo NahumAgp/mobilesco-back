@@ -29,9 +29,6 @@ public class ProductoResponseDTO {
     private Long categoriaId;
     private String categoriaNombre;
     
-    private Long materialId;
-    private String materialNombre;
-    
     private String caracteristicas;
     private String dimensiones;
     private Double pesoKg;

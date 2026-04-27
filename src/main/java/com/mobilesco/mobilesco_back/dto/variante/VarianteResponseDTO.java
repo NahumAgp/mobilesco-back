@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // RUTA: src/main/java/com/mobilesco/mobilesco_back/dto/variante/VarianteResponseDTO.java
 // ============================================
 package com.mobilesco.mobilesco_back.dto.variante;

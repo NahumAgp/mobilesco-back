@@ -64,11 +64,6 @@ public class ProductoModel {
                 foreignKey = @ForeignKey(name = "fk_producto_categoria"))
     private CategoriaModel categoria;
 
-    @ManyToOne
-    @JoinColumn(name = "material_id",
-                foreignKey = @ForeignKey(name = "fk_producto_material"))
-    private MaterialModel material;
-
     @Column(name = "caracteristicas", length = 500)
     private String caracteristicas;  // "ASIENTO Y RESPALDO", "CON CODERAS", etc.
 

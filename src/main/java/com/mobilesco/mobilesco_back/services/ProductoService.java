@@ -15,12 +15,10 @@ import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.models.CategoriaModel;
 import com.mobilesco.mobilesco_back.models.LineaProductoModel;
-import com.mobilesco.mobilesco_back.models.MaterialModel;
 import com.mobilesco.mobilesco_back.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.models.ProductoModel;
 import com.mobilesco.mobilesco_back.repositories.CategoriaRepository;
 import com.mobilesco.mobilesco_back.repositories.LineaProductoRepository;
-import com.mobilesco.mobilesco_back.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoOperacionRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
@@ -37,7 +35,6 @@ public class ProductoService {
     
     private final LineaProductoRepository lineaProductoRepository;
     private final CategoriaRepository categoriaRepository;
-    private final MaterialRepository materialRepository;
     private final ProductoInsumoRepository productoInsumoRepository;
     private final ProductoOperacionRepository productoOperacionRepository;
     private final KardexService kardexService;
@@ -66,13 +63,6 @@ public class ProductoService {
                     .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
         }
 
-        // Validar material (opcional)
-        MaterialModel material = null;
-        if (dto.getMaterialId() != null) {
-            material = materialRepository.findById(dto.getMaterialId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Material no encontrado"));
-        }
-
         // Crear producto
         ProductoModel producto = ProductoModel.builder()
                 .sku(dto.getSku())
@@ -80,7 +70,6 @@ public class ProductoService {
                 .descripcion(dto.getDescripcion())
                 .linea(linea)
                 .categoria(categoria)
-                .material(material)
                 .caracteristicas(dto.getCaracteristicas())
                 .dimensiones(dto.getDimensiones())
                 .pesoKg(dto.getPesoKg())
@@ -127,16 +116,6 @@ public class ProductoService {
             }
         } else {
             producto.setCategoria(null);
-        }
-
-        if (dto.getMaterialId() != null) {
-            if (producto.getMaterial() == null || !producto.getMaterial().getId().equals(dto.getMaterialId())) {
-                MaterialModel material = materialRepository.findById(dto.getMaterialId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Material no encontrado"));
-                producto.setMaterial(material);
-            }
-        } else {
-            producto.setMaterial(null);
         }
 
         // Actualizar campos
@@ -279,8 +258,6 @@ public class ProductoService {
             .lineaNombre(producto.getLinea() != null ? producto.getLinea().getNombre() : null)
             .categoriaId(producto.getCategoria() != null ? producto.getCategoria().getId() : null)
             .categoriaNombre(producto.getCategoria() != null ? producto.getCategoria().getNombre() : null)
-            .materialId(producto.getMaterial() != null ? producto.getMaterial().getId() : null)
-            .materialNombre(producto.getMaterial() != null ? producto.getMaterial().getNombre() : null)
             .caracteristicas(producto.getCaracteristicas())
             .dimensiones(producto.getDimensiones())
             .pesoKg(producto.getPesoKg())

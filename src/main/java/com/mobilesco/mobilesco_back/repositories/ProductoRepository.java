@@ -26,6 +26,4 @@ public interface ProductoRepository extends JpaRepository<ProductoModel, Long> {
     List<ProductoModel> findByLineaId(Long lineaId);
     
     List<ProductoModel> findByCategoriaId(Long categoriaId);
-    
-    List<ProductoModel> findByMaterialId(Long materialId);
 }
