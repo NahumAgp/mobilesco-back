@@ -46,30 +46,7 @@ public class EmpleadoController {
             @RequestParam(required = false) Boolean activo,
             @RequestParam(required = false) String nombre
     ) {
-
-        boolean tieneNombre = (nombre != null && !nombre.isBlank());
-
-        if (activo != null && tieneNombre) {
-            return ResponseEntity.ok(
-                    empleadoService.buscarPorActivoYNombre(activo, nombre)
-            );
-        }
-
-        if (activo != null) {
-            return ResponseEntity.ok(
-                    empleadoService.buscarPorActivo(activo)
-            );
-        }
-
-        if (tieneNombre) {
-            return ResponseEntity.ok(
-                    empleadoService.buscarPorNombre(nombre)
-            );
-        }
-
-        return ResponseEntity.ok(
-                empleadoService.obtenerTodos()
-        );
+        return ResponseEntity.ok(empleadoService.listar(activo, nombre));
     }
 
     // =====================================================

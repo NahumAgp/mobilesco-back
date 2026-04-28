@@ -29,34 +29,33 @@ public class EmpleadoFotoService {
         this.almacenamientoImagenesService = almacenamientoImagenesService;
     }
 
+    public String subirFotoDelEmpleado(Long empleadoId, MultipartFile archivo) {
+        EmpleadoModel empleado = empleadoRepository.findById(empleadoId)
+                .orElseThrow(() -> new NotFoundException("Empleado no encontrado"));
+
+        return guardarYActualizarFoto(empleado, archivo);
+    }
+
     public String subirFotoDelEmpleadoActual(Authentication auth, MultipartFile archivo) {
-
-        // 1) Sacamos el correo del usuario logueado (viene del JWT)
         String email = auth.getName();
-
-        // 2) Buscamos el usuario en BD
         var usuario = usuarioRepository.findOneByEmail(email)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        // 3) Validamos que tenga empleado asociado
         if (usuario.getEmpleado() == null) {
             throw new BadRequestException("Tu usuario no tiene un empleado asociado");
         }
 
-        EmpleadoModel empleado = usuario.getEmpleado();
+        return guardarYActualizarFoto(usuario.getEmpleado(), archivo);
+    }
 
+    private String guardarYActualizarFoto(EmpleadoModel empleado, MultipartFile archivo) {
         try {
-            // 4) Guardamos archivo físicamente y obtenemos URL pública /uploads/...
             String fotoUrl = almacenamientoImagenesService.guardarFotoPerfilEmpleado(empleado.getId(), archivo);
-
-            // 5) Guardamos URL en BD
             empleado.setFotoUrl(fotoUrl);
             empleadoRepository.save(empleado);
 
             return fotoUrl;
-
         } catch (IOException e) {
-            // Si algo falla con disco/imagen, regresamos un error claro
             throw new BadRequestException("No se pudo guardar la imagen. Verifica que sea válida.");
         }
     }

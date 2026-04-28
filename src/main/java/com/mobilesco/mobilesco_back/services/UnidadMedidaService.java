@@ -1,7 +1,6 @@
 package com.mobilesco.mobilesco_back.services;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,22 +63,25 @@ public class UnidadMedidaService {
     }
 
     //----------UPDATE----------
-    public Optional<UnidadMedidaResponseDTO> actualizar(Long id, UnidadMedidaUpdateDTO umM) {
-        return unidadMedidaRepository.findById(id).map(unidadMedida -> {
-            unidadMedida.setNombre(umM.getNombre());
-            unidadMedida.setSimbolo(umM.getSimbolo());
-            unidadMedida.setTipo(umM.getTipo());
-            UnidadMedidaModel actualizado = unidadMedidaRepository.save(unidadMedida);
-            return mapToResponseDTO(actualizado);
-        });
+    public UnidadMedidaResponseDTO actualizar(Long id, UnidadMedidaUpdateDTO umM) {
+        UnidadMedidaModel unidadMedida = unidadMedidaRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Unidad de Medida no encontrada"));
+
+        unidadMedida.setNombre(umM.getNombre());
+        unidadMedida.setSimbolo(umM.getSimbolo());
+        unidadMedida.setTipo(umM.getTipo());
+
+        UnidadMedidaModel actualizado = unidadMedidaRepository.save(unidadMedida);
+        return mapToResponseDTO(actualizado);
            
     }
 
     // --------- DELETE ---------
-    public boolean eliminar(Long id) {
-        if (!unidadMedidaRepository.existsById(id)) return false;
-            unidadMedidaRepository.deleteById(id);
-            return true;
+    public void eliminar(Long id) {
+        UnidadMedidaModel unidadMedida = unidadMedidaRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Unidad de Medida no encontrada"));
+
+        unidadMedidaRepository.delete(unidadMedida);
     }   
 
     //------------Desactivar----------

@@ -2,7 +2,12 @@ package com.mobilesco.mobilesco_back.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,6 +36,8 @@ import jakarta.validation.Valid;
 @RequestMapping(ApiPaths.PROVEEDORES)
 public class ProveedorController {  // ✅ Nombre correcto con 'e'
 
+    private static final int PAGE_SIZE = 10;
+
     private final ProveedorService proveedorService;  // ✅ Nombre correcto con 'e'
 
     public ProveedorController(ProveedorService proveedorService) {
@@ -43,34 +50,45 @@ public class ProveedorController {  // ✅ Nombre correcto con 'e'
 
     @GetMapping
     @Operation(summary = "Listar proveedores")
-    public ResponseEntity<List<ProveedorResponseDTO>> listar(
+    public ResponseEntity<?> listar(
             @RequestParam(required = false) Boolean activo,
-            @RequestParam(required = false) String nombre
+            @RequestParam(required = false) TipoInsumo tipoInsumo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
     ) {
-
-        boolean tieneNombre = (nombre != null && !nombre.isBlank());
-
-        if (activo != null && tieneNombre) {
-            return ResponseEntity.ok(
-                    proveedorService.buscarPorActivoYNombre(activo, nombre)
-            );
+        if (page != null || size != null) {
+            int pageNumber = page != null ? page : 0;
+            int pageSize = size != null ? size : PAGE_SIZE;
+            Sort sort = Sort.by(Sort.Direction.fromString(direction), sortBy);
+            PageRequest pageable = PageRequest.of(pageNumber, pageSize, sort);
+            Page<ProveedorResponseDTO> proveedores = proveedorService.buscarFiltradoPaginado(activo, tipoInsumo, busqueda, pageable);
+            return ResponseEntity.ok(proveedores);
         }
 
-        if (activo != null) {
-            return ResponseEntity.ok(
-                    proveedorService.buscarPorActivo(activo)
-            );
-        }
+        return ResponseEntity.ok(proveedorService.buscarFiltrado(activo, tipoInsumo, busqueda));
+    }
 
-        if (tieneNombre) {
-            return ResponseEntity.ok(
-                    proveedorService.buscarPorNombre(nombre)
-            );
-        }
+    // =====================================================
+    // 🔹 REPORTE EXCEL
+    // =====================================================
 
-        return ResponseEntity.ok(
-                proveedorService.obtenerTodos()
-        );
+    @GetMapping("/reporte/excel")
+    @Operation(summary = "Exportar proveedores a Excel")
+    public ResponseEntity<byte[]> exportarExcel(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) TipoInsumo tipoInsumo,
+            @RequestParam(required = false) String busqueda
+    ) {
+        byte[] excel = proveedorService.generarReporteExcel(activo, tipoInsumo, busqueda);
+        String filename = "proveedores.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
     }
 
     // =====================================================

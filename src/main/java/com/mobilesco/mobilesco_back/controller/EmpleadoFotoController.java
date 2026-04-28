@@ -1,6 +1,5 @@
 package com.mobilesco.mobilesco_back.controller;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -13,10 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
-import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
-import com.mobilesco.mobilesco_back.models.EmpleadoModel;
-import com.mobilesco.mobilesco_back.repositories.EmpleadoRepository;
-import com.mobilesco.mobilesco_back.services.AlmacenamientoImagenesService;
+import com.mobilesco.mobilesco_back.services.EmpleadoFotoService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,15 +22,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping(ApiPaths.EMPLEADOS)
 public class EmpleadoFotoController {
 
-    private final EmpleadoRepository empleadoRepository;
-    private final AlmacenamientoImagenesService almacenamientoImagenesService;
+    private final EmpleadoFotoService empleadoFotoService;
 
-    public EmpleadoFotoController(
-            EmpleadoRepository empleadoRepository,
-            AlmacenamientoImagenesService almacenamientoImagenesService
-    ) {
-        this.empleadoRepository = empleadoRepository;
-        this.almacenamientoImagenesService = almacenamientoImagenesService;
+    public EmpleadoFotoController(EmpleadoFotoService empleadoFotoService) {
+        this.empleadoFotoService = empleadoFotoService;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -43,16 +34,8 @@ public class EmpleadoFotoController {
     public ResponseEntity<?> subirFotoEmpleado(
             @PathVariable Long id,
             @RequestParam("archivo") MultipartFile archivo
-    ) throws IOException {
-
-        EmpleadoModel empleado = empleadoRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Empleado no encontrado"));
-
-        String rutaPublica = almacenamientoImagenesService.guardarFotoPerfilEmpleado(id, archivo);
-
-        empleado.setFotoUrl(rutaPublica);
-        empleadoRepository.save(empleado);
-
+    ) {
+        String rutaPublica = empleadoFotoService.subirFotoDelEmpleado(id, archivo);
         return ResponseEntity.ok(Map.of("fotoUrl", rutaPublica));
     }
 }

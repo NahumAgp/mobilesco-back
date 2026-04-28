@@ -166,6 +166,28 @@ public class EmpleadoService {
     }
 
     // =====================================================
+    // 🔹 READ - Listado con filtros opcionales
+    // =====================================================
+
+    public List<EmpleadoResponseDTO> listar(Boolean activo, String nombre) {
+        boolean tieneNombre = nombre != null && !nombre.isBlank();
+
+        if (activo != null && tieneNombre) {
+            return buscarPorActivoYNombre(activo, nombre);
+        }
+
+        if (activo != null) {
+            return buscarPorActivo(activo);
+        }
+
+        if (tieneNombre) {
+            return buscarPorNombre(nombre);
+        }
+
+        return obtenerTodos();
+    }
+
+    // =====================================================
     // 🔹 UPDATE
     // =====================================================
 

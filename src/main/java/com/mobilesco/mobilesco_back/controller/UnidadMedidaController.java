@@ -39,8 +39,8 @@ public class UnidadMedidaController {
         summary= "Listar Unidades de Medida",
         description = "Devuelve Unidades de Medida"
     )
-        public List<?> listar() {
-            return unidadMedidaService.obtenerTodos();
+        public ResponseEntity<List<UnidadMedidaResponseDTO>> listar() {
+            return ResponseEntity.ok(unidadMedidaService.obtenerTodos());
     }
 
     //CREAR una nueva unidad de medida
@@ -68,18 +68,15 @@ public class UnidadMedidaController {
     @Operation(summary = "Actualizar Unidad de Medida", description = "Actualiza una Unidad de Medida existente")
     @PutMapping("/{id}")
     public ResponseEntity<UnidadMedidaResponseDTO> actualizar(@PathVariable Long id, @Valid @RequestBody UnidadMedidaUpdateDTO dto) {
-        return unidadMedidaService.actualizar(id, dto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(unidadMedidaService.actualizar(id, dto));
     }
 
     //Eliminar un regiustro de la bd
     @Operation(summary = "Eliminar Unidad de Medida", description = "Elimina una Unidad de Medida por su ID")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        boolean ok = unidadMedidaService.eliminar(id);
-        return ok ? ResponseEntity.noContent().build() 
-                  : ResponseEntity.notFound().build();
+        unidadMedidaService.eliminar(id);
+        return ResponseEntity.noContent().build();
         
     }
 }
