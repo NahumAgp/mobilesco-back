@@ -1,16 +1,20 @@
 // ============================================
-// RUTA: src/main/java/com/mobilesco/mobilesco_back/dto/productobase/ProductoBaseUpdateDTO.java
+// RUTA: src/main/java/com/mobilesco/mobilesco_back/dto/modelo/ModeloCreateDTO.java
 // ============================================
-package com.mobilesco.mobilesco_back.dto.productobase;
+package com.mobilesco.mobilesco_back.dto.modelo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public class ProductoBaseUpdateDTO {
+public class ModeloCreateDTO {
 
+    @NotBlank(message = "El codigo es obligatorio")
     @Size(max = 30, message = "El codigo no puede exceder 30 caracteres")
     private String codigo;
 
+    @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 200, message = "El nombre no puede exceder 200 caracteres")
     private String nombre;
 
@@ -21,6 +25,7 @@ public class ProductoBaseUpdateDTO {
     @JsonProperty("url_imagen")
     private String urlImagen;
 
+    @NotNull(message = "La familia es obligatoria")
     @JsonProperty("familia_id")
     private Long familiaId;
 

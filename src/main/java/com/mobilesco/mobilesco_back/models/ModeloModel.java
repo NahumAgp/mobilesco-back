@@ -1,6 +1,3 @@
-// ============================================
-// RUTA: src/main/java/com/mobilesco/mobilesco_back/models/ProductoBaseModel.java
-// ============================================
 package com.mobilesco.mobilesco_back.models;
 
 import jakarta.persistence.*;
@@ -12,7 +9,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Table(name = "productos_base")
-public class ProductoBaseModel {
+public class ModeloModel {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

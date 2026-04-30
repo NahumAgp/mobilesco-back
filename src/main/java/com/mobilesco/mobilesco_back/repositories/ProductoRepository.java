@@ -25,5 +25,19 @@ public interface ProductoRepository extends JpaRepository<ProductoModel, Long> {
         
     List<ProductoModel> findByLineaId(Long lineaId);
     
-    List<ProductoModel> findByCategoriaId(Long categoriaId);
+    List<ProductoModel> findByModeloId(Long modeloId);
+
+    @Query("SELECT p FROM ProductoModel p WHERE " +
+           "(:sku IS NULL OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :sku, '%'))) AND " +
+           "(:nombre IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) AND " +
+           "(:modeloId IS NULL OR p.modelo.id = :modeloId) AND " +
+           "(:nivelId IS NULL OR p.nivel.id = :nivelId) AND " +
+           "(:colorId IS NULL OR p.color.id = :colorId)")
+    List<ProductoModel> buscarConFiltros(
+            @Param("sku") String sku,
+            @Param("nombre") String nombre,
+            @Param("modeloId") Long modeloId,
+            @Param("nivelId") Long nivelId,
+            @Param("colorId") Long colorId
+    );
 }

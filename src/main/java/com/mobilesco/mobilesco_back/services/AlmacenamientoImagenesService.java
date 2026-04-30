@@ -68,10 +68,10 @@ public class AlmacenamientoImagenesService {
         return "/uploads/empleados/" + empleadoId + "/perfil/" + destinoJpg.getFileName().toString();
     }
 
-    public String guardarImagenVariante(Long varianteId, MultipartFile archivo) throws IOException {
+    public String guardarImagenProducto(Long productoId, MultipartFile archivo) throws IOException {
         validarArchivoImagen(archivo);
 
-        Path carpeta = Paths.get(uploadsDir, "productos", "variantes", varianteId.toString());
+        Path carpeta = Paths.get(uploadsDir, "productos", "catalogo", productoId.toString());
         Files.createDirectories(carpeta);
 
         String nombre = UUID.randomUUID().toString();
@@ -87,6 +87,6 @@ public class AlmacenamientoImagenesService {
                 .outputFormat("jpg")
                 .toFile(destinoJpg.toFile());
 
-        return "/uploads/productos/variantes/" + varianteId + "/" + destinoJpg.getFileName().toString();
+        return "/uploads/productos/catalogo/" + productoId + "/" + destinoJpg.getFileName().toString();
     }
 }

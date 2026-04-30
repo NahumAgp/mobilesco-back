@@ -17,24 +17,24 @@ import com.mobilesco.mobilesco_back.dto.imagen.ImagenUpdateDTO;
 import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.models.ImagenModel;
-import com.mobilesco.mobilesco_back.models.VarianteModel;
+import com.mobilesco.mobilesco_back.models.ProductoModel;
 import com.mobilesco.mobilesco_back.repositories.ImagenRepository;
-import com.mobilesco.mobilesco_back.repositories.VarianteRepository;
+import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
 
 @Service
 public class ImagenService {
 
     private final ImagenRepository imagenRepository;
-    private final VarianteRepository varianteRepository;
+    private final ProductoRepository productoRepository;
     private final AlmacenamientoImagenesService almacenamientoImagenesService;
 
     public ImagenService(
             ImagenRepository imagenRepository,
-            VarianteRepository varianteRepository,
+            ProductoRepository productoRepository,
             AlmacenamientoImagenesService almacenamientoImagenesService
     ) {
         this.imagenRepository = imagenRepository;
-        this.varianteRepository = varianteRepository;
+        this.productoRepository = productoRepository;
         this.almacenamientoImagenesService = almacenamientoImagenesService;
     }
 
@@ -48,8 +48,8 @@ public class ImagenService {
         dto.setOrden(imagen.getOrden());
         dto.setAltTexto(imagen.getAltTexto());
         dto.setCreatedAt(imagen.getCreatedAt());
-        if (imagen.getVariante() != null) {
-            dto.setVarianteId(imagen.getVariante().getId());
+        if (imagen.getProducto() != null) {
+            dto.setProductoId(imagen.getProducto().getId());
         }
         return dto;
     }
@@ -65,21 +65,21 @@ public class ImagenService {
     @Transactional
     public ImagenResponseDTO crear(ImagenCreateDTO dto) {
         
-        VarianteModel variante = varianteRepository.findById(dto.getVarianteId())
-                .orElseThrow(() -> new NotFoundException("Variante no encontrada con ID: " + dto.getVarianteId()));
+        ProductoModel producto = productoRepository.findById(dto.getProductoId())
+                .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + dto.getProductoId()));
         
-        // Si es la primera imagen de la variante, forzar como principal
-        boolean esPrimeraImagen = imagenRepository.countByVarianteId(variante.getId()) == 0;
+        // Si es la primera imagen del producto, forzar como principal
+        boolean esPrimeraImagen = imagenRepository.countByProductoId(producto.getId()) == 0;
         
         ImagenModel imagen = new ImagenModel();
         imagen.setUrl(dto.getUrl());
         imagen.setAltTexto(dto.getAltTexto());
-        imagen.setVariante(variante);
+        imagen.setProducto(producto);
         
         // Manejar imagen principal
         if (esPrimeraImagen || (dto.getEsPrincipal() != null && dto.getEsPrincipal())) {
-            // Resetear flag principal en otras imágenes de esta variante
-            imagenRepository.resetPrincipalFlag(variante.getId());
+            // Resetear flag principal en otras imágenes de este producto
+            imagenRepository.resetPrincipalFlag(producto.getId());
             imagen.setEsPrincipal(true);
         } else {
             imagen.setEsPrincipal(false);
@@ -95,17 +95,17 @@ public class ImagenService {
 
     @Transactional
     public ImagenResponseDTO crearDesdeArchivo(
-            Long varianteId,
+            Long productoId,
             MultipartFile archivo,
             Boolean esPrincipal,
             Integer orden,
             String altTexto
     ) {
         try {
-            String urlPublica = almacenamientoImagenesService.guardarImagenVariante(varianteId, archivo);
+            String urlPublica = almacenamientoImagenesService.guardarImagenProducto(productoId, archivo);
 
             ImagenCreateDTO dto = new ImagenCreateDTO();
-            dto.setVarianteId(varianteId);
+            dto.setProductoId(productoId);
             dto.setUrl(urlPublica);
             dto.setAltTexto(altTexto);
             if (esPrincipal != null) {
@@ -125,15 +125,15 @@ public class ImagenService {
     
     // ========== READ ==========
     
-    public List<ImagenResponseDTO> obtenerPorVariante(Long varianteId) {
-        if (!varianteRepository.existsById(varianteId)) {
-            throw new NotFoundException("Variante no encontrada con ID: " + varianteId);
+    public List<ImagenResponseDTO> obtenerPorProducto(Long productoId) {
+        if (!productoRepository.existsById(productoId)) {
+            throw new NotFoundException("Producto no encontrado con ID: " + productoId);
         }
-        return mapToResponseDTOList(imagenRepository.findByVarianteIdOrderByOrdenAsc(varianteId));
+        return mapToResponseDTOList(imagenRepository.findByProductoIdOrderByOrdenAsc(productoId));
     }
     
-    public ImagenResponseDTO obtenerPrincipalPorVariante(Long varianteId) {
-        ImagenModel imagen = imagenRepository.findByVarianteIdAndEsPrincipalTrue(varianteId)
+    public ImagenResponseDTO obtenerPrincipalPorProducto(Long productoId) {
+        ImagenModel imagen = imagenRepository.findByProductoIdAndEsPrincipalTrue(productoId)
                 .orElse(null);
         return imagen != null ? mapToResponseDTO(imagen) : null;
     }
@@ -166,12 +166,12 @@ public class ImagenService {
         
         // Manejar cambio de imagen principal
         if (dto.getEsPrincipal() != null && dto.getEsPrincipal() && !existente.getEsPrincipal()) {
-            // Resetear flag principal en otras imágenes de esta variante
-            imagenRepository.resetPrincipalFlag(existente.getVariante().getId());
+            // Resetear flag principal en otras imágenes de este producto
+            imagenRepository.resetPrincipalFlag(existente.getProducto().getId());
             existente.setEsPrincipal(true);
         } else if (dto.getEsPrincipal() != null && !dto.getEsPrincipal() && existente.getEsPrincipal()) {
             // No permitir desmarcar la única imagen principal
-            long totalPrincipales = imagenRepository.findByVarianteIdAndEsPrincipalTrue(existente.getVariante().getId()).stream().count();
+            long totalPrincipales = imagenRepository.findByProductoIdAndEsPrincipalTrue(existente.getProducto().getId()).stream().count();
             if (totalPrincipales <= 1) {
                 throw new BadRequestException("No se puede desmarcar la única imagen principal. Debe marcar otra como principal primero.");
             }
@@ -190,14 +190,14 @@ public class ImagenService {
         ImagenModel imagen = imagenRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Imagen no encontrada con ID: " + id));
         
-        Long varianteId = imagen.getVariante().getId();
+        Long productoId = imagen.getProducto().getId();
         boolean eraPrincipal = imagen.getEsPrincipal();
         
         imagenRepository.deleteById(id);
         
         // Si se eliminó la imagen principal y quedan otras imágenes, promover la primera como principal
         if (eraPrincipal) {
-            List<ImagenModel> restantes = imagenRepository.findByVarianteIdOrderByOrdenAsc(varianteId);
+            List<ImagenModel> restantes = imagenRepository.findByProductoIdOrderByOrdenAsc(productoId);
             if (!restantes.isEmpty()) {
                 ImagenModel nuevaPrincipal = restantes.get(0);
                 nuevaPrincipal.setEsPrincipal(true);
@@ -209,8 +209,8 @@ public class ImagenService {
     // ========== BULK DELETE ==========
     
     @Transactional
-    public void eliminarTodasPorVariante(Long varianteId) {
-        List<ImagenModel> imagenes = imagenRepository.findByVarianteId(varianteId);
+    public void eliminarTodasPorProducto(Long productoId) {
+        List<ImagenModel> imagenes = imagenRepository.findByProductoId(productoId);
         imagenRepository.deleteAll(imagenes);
     }
 }

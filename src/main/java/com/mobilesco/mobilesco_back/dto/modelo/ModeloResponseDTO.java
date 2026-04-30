@@ -1,11 +1,11 @@
 // ============================================
-// RUTA: src/main/java/com/mobilesco/mobilesco_back/dto/productobase/ProductoBaseResponseDTO.java
+// RUTA: src/main/java/com/mobilesco/mobilesco_back/dto/modelo/ModeloResponseDTO.java
 // ============================================
-package com.mobilesco.mobilesco_back.dto.productobase;
+package com.mobilesco.mobilesco_back.dto.modelo;
 
 import java.time.LocalDateTime;
 
-public class ProductoBaseResponseDTO {
+public class ModeloResponseDTO {
 
     private Long id;
     private String codigo;

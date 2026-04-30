@@ -22,7 +22,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Table(name = "imagenes", indexes = {
-    @Index(name = "idx_variante_id", columnList = "variante_id"),
+    @Index(name = "idx_producto_id", columnList = "producto_id"),
     @Index(name = "idx_es_principal", columnList = "es_principal")
 })
 public class ImagenModel {
@@ -46,8 +46,8 @@ public class ImagenModel {
     private LocalDateTime createdAt;
     
     @ManyToOne
-    @JoinColumn(name = "variante_id")
-    private VarianteModel variante;
+    @JoinColumn(name = "producto_id")
+    private ProductoModel producto;
     
     @PrePersist
     protected void onCreate() {

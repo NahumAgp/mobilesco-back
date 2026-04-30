@@ -18,16 +18,16 @@ import com.mobilesco.mobilesco_back.models.ImagenModel;
 @Repository
 public interface ImagenRepository extends JpaRepository<ImagenModel, Long> {
     
-    List<ImagenModel> findByVarianteId(Long varianteId);
+    List<ImagenModel> findByProductoId(Long productoId);
     
-    List<ImagenModel> findByVarianteIdOrderByOrdenAsc(Long varianteId);
+    List<ImagenModel> findByProductoIdOrderByOrdenAsc(Long productoId);
     
-    Optional<ImagenModel> findByVarianteIdAndEsPrincipalTrue(Long varianteId);
+    Optional<ImagenModel> findByProductoIdAndEsPrincipalTrue(Long productoId);
     
     @Modifying
     @Transactional
-    @Query("UPDATE ImagenModel i SET i.esPrincipal = false WHERE i.variante.id = :varianteId")
-    void resetPrincipalFlag(@Param("varianteId") Long varianteId);
+    @Query("UPDATE ImagenModel i SET i.esPrincipal = false WHERE i.producto.id = :productoId")
+    void resetPrincipalFlag(@Param("productoId") Long productoId);
     
-    long countByVarianteId(Long varianteId);
+    long countByProductoId(Long productoId);
 }

@@ -47,26 +47,26 @@ public class ImagenController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ImagenResponseDTO> subirYCrear(
-            @RequestParam Long varianteId,
+            @RequestParam Long productoId,
             @RequestParam("archivo") MultipartFile archivo,
             @RequestParam(required = false) Boolean esPrincipal,
             @RequestParam(required = false) Integer orden,
             @RequestParam(required = false) String altTexto
     ) {
-        ImagenResponseDTO creado = imagenService.crearDesdeArchivo(varianteId, archivo, esPrincipal, orden, altTexto);
+        ImagenResponseDTO creado = imagenService.crearDesdeArchivo(productoId, archivo, esPrincipal, orden, altTexto);
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     // ========== READ ==========
     
-    @GetMapping("/variante/{varianteId}")
-    public ResponseEntity<List<ImagenResponseDTO>> obtenerPorVariante(@PathVariable Long varianteId) {
-        return ResponseEntity.ok(imagenService.obtenerPorVariante(varianteId));
+    @GetMapping("/producto/{productoId}")
+    public ResponseEntity<List<ImagenResponseDTO>> obtenerPorProducto(@PathVariable Long productoId) {
+        return ResponseEntity.ok(imagenService.obtenerPorProducto(productoId));
     }
     
-    @GetMapping("/variante/{varianteId}/principal")
-    public ResponseEntity<ImagenResponseDTO> obtenerPrincipal(@PathVariable Long varianteId) {
-        ImagenResponseDTO imagen = imagenService.obtenerPrincipalPorVariante(varianteId);
+    @GetMapping("/producto/{productoId}/principal")
+    public ResponseEntity<ImagenResponseDTO> obtenerPrincipal(@PathVariable Long productoId) {
+        ImagenResponseDTO imagen = imagenService.obtenerPrincipalPorProducto(productoId);
         return imagen != null ? ResponseEntity.ok(imagen) : ResponseEntity.noContent().build();
     }
     
@@ -92,9 +92,9 @@ public class ImagenController {
         return ResponseEntity.noContent().build();
     }
     
-    @DeleteMapping("/variante/{varianteId}")
-    public ResponseEntity<Void> eliminarTodasPorVariante(@PathVariable Long varianteId) {
-        imagenService.eliminarTodasPorVariante(varianteId);
+    @DeleteMapping("/producto/{productoId}")
+    public ResponseEntity<Void> eliminarTodasPorProducto(@PathVariable Long productoId) {
+        imagenService.eliminarTodasPorProducto(productoId);
         return ResponseEntity.noContent().build();
     }
 }

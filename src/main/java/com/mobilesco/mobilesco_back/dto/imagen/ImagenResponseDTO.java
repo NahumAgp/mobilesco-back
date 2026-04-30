@@ -13,7 +13,7 @@ public class ImagenResponseDTO {
     private Integer orden;
     private String altTexto;
     private LocalDateTime createdAt;
-    private Long varianteId;
+    private Long productoId;
     
     // Getters y Setters
     public Long getId() { return id; }
@@ -34,6 +34,6 @@ public class ImagenResponseDTO {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     
-    public Long getVarianteId() { return varianteId; }
-    public void setVarianteId(Long varianteId) { this.varianteId = varianteId; }
+    public Long getProductoId() { return productoId; }
+    public void setProductoId(Long productoId) { this.productoId = productoId; }
 }

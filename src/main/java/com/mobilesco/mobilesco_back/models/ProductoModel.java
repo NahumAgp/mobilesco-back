@@ -60,9 +60,16 @@ public class ProductoModel {
     private LineaProductoModel linea;
 
     @ManyToOne
-    @JoinColumn(name = "categoria_id",
-                foreignKey = @ForeignKey(name = "fk_producto_categoria"))
-    private CategoriaModel categoria;
+    @JoinColumn(name = "producto_base_id")
+    private ModeloModel modelo;
+
+    @ManyToOne
+    @JoinColumn(name = "nivel_id")
+    private NivelModel nivel;
+
+    @ManyToOne
+    @JoinColumn(name = "color_id")
+    private ColorModel color;
 
     @Column(name = "caracteristicas", length = 500)
     private String caracteristicas;  // "ASIENTO Y RESPALDO", "CON CODERAS", etc.
@@ -83,6 +90,12 @@ public class ProductoModel {
     @Column(name = "fecha_actualizacion", nullable = false)
     private LocalDateTime fechaActualizacion;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     // Un producto puede tener múltiples insumos (BOM)
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -93,10 +106,14 @@ public class ProductoModel {
         LocalDateTime now = LocalDateTime.now();
         fechaRegistro = now;
         fechaActualizacion = now;
+        createdAt = now;
+        updatedAt = now;
     }
 
     @PreUpdate
     protected void preUpdate() {
-        fechaActualizacion = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
+        fechaActualizacion = now;
+        updatedAt = now;
     }
 }

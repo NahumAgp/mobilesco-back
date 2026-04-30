@@ -15,78 +15,77 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
-import com.mobilesco.mobilesco_back.dto.variante.VarianteCompletaResponseDTO;
-import com.mobilesco.mobilesco_back.dto.variante.VarianteCreateDTO;
-import com.mobilesco.mobilesco_back.dto.variante.VarianteResponseDTO;
-import com.mobilesco.mobilesco_back.dto.variante.VarianteUpdateDTO;
-import com.mobilesco.mobilesco_back.services.VarianteService;
+import com.mobilesco.mobilesco_back.dto.Producto.ProductoCreateDTO;
+import com.mobilesco.mobilesco_back.dto.Producto.ProductoResponseDTO;
+import com.mobilesco.mobilesco_back.dto.Producto.ProductoUpdateDTO;
+import com.mobilesco.mobilesco_back.services.ProductoService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Tag(name = "Productos", description = "Catalogo visible de productos basado en variantes")
+@Tag(name = "Productos", description = "Catalogo visible de productos")
 @RestController
 @RequestMapping(ApiPaths.PRODUCTOS)
 @RequiredArgsConstructor
 public class ProductoController {
 
-    private final VarianteService varianteService;
+    private final ProductoService productoService;
 
-    @Operation(summary = "Crear producto visible como variante")
+    @Operation(summary = "Crear producto")
     @PostMapping
-    public ResponseEntity<VarianteResponseDTO> crear(@Valid @RequestBody VarianteCreateDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(varianteService.crear(dto));
+    public ResponseEntity<ProductoResponseDTO> crear(@Valid @RequestBody ProductoCreateDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(productoService.crear(dto));
     }
 
-    @Operation(summary = "Listar productos visibles con imagenes")
+    @Operation(summary = "Listar productos con imagenes")
     @GetMapping
-    public ResponseEntity<List<VarianteCompletaResponseDTO>> listar() {
-        return ResponseEntity.ok(varianteService.obtenerTodosCompletos());
+    public ResponseEntity<List<ProductoResponseDTO>> listar() {
+        return ResponseEntity.ok(productoService.obtenerTodosCompletos());
     }
 
-    @Operation(summary = "Obtener producto visible por ID")
+    @Operation(summary = "Obtener producto por ID")
     @GetMapping("/{id}")
-    public ResponseEntity<VarianteCompletaResponseDTO> obtenerPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(varianteService.obtenerVarianteCompleta(id));
+    public ResponseEntity<ProductoResponseDTO> obtenerPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(productoService.obtenerProductoCompleto(id));
     }
 
-    @Operation(summary = "Obtener producto visible por SKU")
+    @Operation(summary = "Obtener producto por SKU")
     @GetMapping("/sku/{sku}")
-    public ResponseEntity<VarianteCompletaResponseDTO> obtenerPorSku(@PathVariable String sku) {
-        return ResponseEntity.ok(varianteService.obtenerVarianteCompletaPorSku(sku));
+    public ResponseEntity<ProductoResponseDTO> obtenerPorSku(@PathVariable String sku) {
+        return ResponseEntity.ok(productoService.obtenerProductoCompletoPorSku(sku));
     }
 
-    @Operation(summary = "Listar productos visibles por modelo")
-    @GetMapping("/por-producto-base/{productoBaseId}")
-    public ResponseEntity<List<VarianteCompletaResponseDTO>> obtenerPorProductoBase(@PathVariable Long productoBaseId) {
-        return ResponseEntity.ok(varianteService.obtenerCompletosPorProductoBase(productoBaseId));
+    @Operation(summary = "Listar productos por modelo")
+    @GetMapping("/por-modelo/{modeloId}")
+    public ResponseEntity<List<ProductoResponseDTO>> obtenerPorModelo(@PathVariable Long modeloId) {
+        return ResponseEntity.ok(productoService.obtenerCompletosPorModelo(modeloId));
     }
 
-    @Operation(summary = "Buscar productos visibles con filtros")
+    @Operation(summary = "Buscar productos con filtros")
     @GetMapping("/buscar")
-    public ResponseEntity<List<VarianteCompletaResponseDTO>> buscar(
+    public ResponseEntity<List<ProductoResponseDTO>> buscar(
             @RequestParam(required = false) String sku,
             @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) Long productoBaseId,
+            @RequestParam(required = false) Long modeloId,
             @RequestParam(required = false) Long nivelId,
             @RequestParam(required = false) Long colorId) {
-        return ResponseEntity.ok(varianteService.buscarCompletasConFiltros(sku, nombre, productoBaseId, nivelId, colorId));
+        return ResponseEntity.ok(productoService.buscarCompletasConFiltros(sku, nombre, modeloId, nivelId, colorId));
     }
 
-    @Operation(summary = "Actualizar producto visible")
+    @Operation(summary = "Actualizar producto")
     @PutMapping("/{id}")
-    public ResponseEntity<VarianteResponseDTO> actualizar(
+    public ResponseEntity<ProductoResponseDTO> actualizar(
             @PathVariable Long id,
-            @Valid @RequestBody VarianteUpdateDTO dto) {
-        return ResponseEntity.ok(varianteService.actualizar(id, dto));
+            @Valid @RequestBody ProductoUpdateDTO dto) {
+        return ResponseEntity.ok(productoService.actualizar(id, dto));
     }
 
-    @Operation(summary = "Eliminar producto visible")
+    @Operation(summary = "Eliminar producto")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        varianteService.eliminar(id);
+        productoService.eliminarProducto(id);
         return ResponseEntity.noContent().build();
     }
 }

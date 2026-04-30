@@ -20,8 +20,8 @@ public class ImagenCreateDTO {
     @Size(max = 200, message = "El texto alternativo no puede exceder 200 caracteres")
     private String altTexto;
     
-    @NotNull(message = "El ID de la variante es obligatorio")
-    private Long varianteId;
+    @NotNull(message = "El ID del producto es obligatorio")
+    private Long productoId;
     
     // Getters y Setters
     public String getUrl() { return url; }
@@ -36,6 +36,6 @@ public class ImagenCreateDTO {
     public String getAltTexto() { return altTexto; }
     public void setAltTexto(String altTexto) { this.altTexto = altTexto; }
     
-    public Long getVarianteId() { return varianteId; }
-    public void setVarianteId(Long varianteId) { this.varianteId = varianteId; }
+    public Long getProductoId() { return productoId; }
+    public void setProductoId(Long productoId) { this.productoId = productoId; }
 }
