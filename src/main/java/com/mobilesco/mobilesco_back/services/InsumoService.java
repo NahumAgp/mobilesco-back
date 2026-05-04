@@ -65,6 +65,7 @@ public class InsumoService {
         }
 
         // Actualizar campos
+        insumo.setCodigo(dto.getCodigo());
         insumo.setNombre(dto.getNombre());
         insumo.setDescripcion(dto.getDescripcion());
         insumo.setUbicacion(dto.getUbicacion());
@@ -120,6 +121,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
     // Crear entidad
     InsumoModel insumo = InsumoModel.builder()
+            .codigo(dto.getCodigo())
             .nombre(dto.getNombre())
             .descripcion(dto.getDescripcion())
             .ubicacion(dto.getUbicacion())
@@ -258,6 +260,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     private InsumoResponseDTO mapToResponseDTO(InsumoModel insumo) {
         return InsumoResponseDTO.builder()
                 .id(insumo.getId())
+                .codigo(insumo.getCodigo())
                 .nombre(insumo.getNombre())
                 .descripcion(insumo.getDescripcion())
                 .ubicacion(insumo.getUbicacion())

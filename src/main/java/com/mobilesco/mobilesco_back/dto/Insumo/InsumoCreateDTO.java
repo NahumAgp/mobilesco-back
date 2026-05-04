@@ -2,7 +2,6 @@ package com.mobilesco.mobilesco_back.dto.Insumo;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -10,7 +9,8 @@ import lombok.Data;
 public class InsumoCreateDTO {
     
     @NotBlank(message= "El Codigo es obligatorio")
-    private Double codigo;
+    @Size(max = 150, message = "El codigo no puede exceder 150 caracteres")
+    private String codigo;
 
     @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 150, message = "El nombre no puede exceder 150 caracteres")
@@ -29,6 +29,6 @@ public class InsumoCreateDTO {
     private String fila;
     private String columna;
     
-    @Positive(message = "El stock mínimo debe ser mayor a 0")
+    @NotNull(message = "El stock mínimo es obligatorio")
     private Double stockMinimo;
 }

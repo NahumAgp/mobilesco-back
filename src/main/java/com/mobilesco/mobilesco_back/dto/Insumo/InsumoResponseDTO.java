@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class InsumoResponseDTO {
     private Long id;
+    private String codigo;
     private String nombre;
     private String descripcion;
     

@@ -1,15 +1,30 @@
 package com.mobilesco.mobilesco_back.services;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoCreateDTO;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoInsumoResponseDTO;
+import com.mobilesco.mobilesco_back.dto.Producto.ProductoEstructuraCostosDTO;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoUpdateDTO;
+import com.mobilesco.mobilesco_back.dto.DistribucionCosto.DistribucionCostoResponseDTO;
 import com.mobilesco.mobilesco_back.dto.imagen.ImagenResponseDTO;
 import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
@@ -22,9 +37,11 @@ import com.mobilesco.mobilesco_back.repositories.ColorRepository;
 import com.mobilesco.mobilesco_back.models.ModeloModel;
 import com.mobilesco.mobilesco_back.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.repositories.ModeloRepository;
+import com.mobilesco.mobilesco_back.repositories.DistribucionCostoRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoOperacionRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
+import com.mobilesco.mobilesco_back.models.DistribucionCostoModel;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +58,7 @@ public class ProductoService {
     private final ColorRepository colorRepository;
     private final ProductoInsumoRepository productoInsumoRepository;
     private final ProductoOperacionRepository productoOperacionRepository;
+    private final DistribucionCostoRepository distribucionCostoRepository;
     private final KardexService kardexService;
     private final ImagenService imagenService;
     @Transactional
@@ -71,6 +89,67 @@ public class ProductoService {
 
         ProductoModel saved = productoRepository.save(producto);
         return mapToResponseDTO(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] generarReporteExcel(Boolean activo, String busqueda, String sortBy, String direction) {
+        List<ProductoModel> productos = productoRepository.findAll(construirSortProductos(sortBy, direction));
+
+        List<ProductoModel> filtrados = productos.stream()
+                .filter(producto -> activo == null || Objects.equals(producto.getActivo(), activo))
+                .filter(producto -> coincideBusqueda(producto, busqueda))
+                .collect(Collectors.toList());
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Productos");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            String[] headers = {
+                    "ID", "SKU", "Nombre", "Descripcion", "Modelo", "Familia", "Linea", "Nivel", "Color", "Estado", "Creado", "Actualizado"
+            };
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowIndex = 1;
+            for (ProductoModel producto : filtrados) {
+                Row row = sheet.createRow(rowIndex++);
+                row.createCell(0).setCellValue(producto.getId() != null ? producto.getId() : 0L);
+                row.createCell(1).setCellValue(nvl(producto.getSku()));
+                row.createCell(2).setCellValue(nvl(producto.getNombre()));
+                row.createCell(3).setCellValue(nvl(producto.getDescripcion()));
+                row.createCell(4).setCellValue(producto.getModelo() != null ? nvl(producto.getModelo().getNombre()) : "");
+                row.createCell(5).setCellValue(producto.getModelo() != null && producto.getModelo().getFamilia() != null
+                        ? nvl(producto.getModelo().getFamilia().getNombre()) : "");
+                row.createCell(6).setCellValue(producto.getModelo() != null
+                        && producto.getModelo().getFamilia() != null
+                        && producto.getModelo().getFamilia().getLinea() != null
+                        ? nvl(producto.getModelo().getFamilia().getLinea().getNombre()) : "");
+                row.createCell(7).setCellValue(producto.getNivel() != null ? nvl(producto.getNivel().getNombre()) : "");
+                row.createCell(8).setCellValue(producto.getColor() != null ? nvl(producto.getColor().getNombre()) : "");
+                row.createCell(9).setCellValue(Boolean.TRUE.equals(producto.getActivo()) ? "Activo" : "Inactivo");
+                row.createCell(10).setCellValue(producto.getCreatedAt() != null ? producto.getCreatedAt().toString() : "");
+                row.createCell(11).setCellValue(producto.getUpdatedAt() != null ? producto.getUpdatedAt().toString() : "");
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo generar el reporte de productos", e);
+        }
     }
 
     @Transactional
@@ -131,6 +210,119 @@ public class ProductoService {
         ProductoModel producto = productoRepository.findBySku(sku)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con SKU: " + sku));
         return mapToResponseDTO(producto);
+    }
+
+    @Transactional(readOnly = true)
+    public ProductoEstructuraCostosDTO obtenerEstructuraCostos(Long productoId) {
+        ProductoModel producto = productoRepository.findById(productoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+
+        List<ProductoInsumoResponseDTO> insumos = productoInsumoRepository.findByProductoId(productoId)
+                .stream()
+                .map(pi -> {
+                    Double costoUnitario = kardexService.calcularCostoPromedio(pi.getInsumo().getId());
+                    Double cantidadConDesperdicio = pi.getCantidad() * (1 + (pi.getDesperdicioPorcentaje() != null ? pi.getDesperdicioPorcentaje() : 0) / 100);
+                    Double subtotal = cantidadConDesperdicio * costoUnitario;
+
+                    return ProductoInsumoResponseDTO.builder()
+                            .id(pi.getId())
+                            .productoId(productoId)
+                            .insumoId(pi.getInsumo().getId())
+                            .insumoNombre(pi.getInsumo().getNombre())
+                            .insumoUnidad(pi.getInsumo().getUnidadMedida().getSimbolo())
+                            .cantidad(pi.getCantidad())
+                            .desperdicioPorcentaje(pi.getDesperdicioPorcentaje())
+                            .cantidadConDesperdicio(cantidadConDesperdicio)
+                            .observaciones(pi.getObservaciones())
+                            .costoUnitario(costoUnitario)
+                            .subtotal(subtotal)
+                            .fechaRegistro(pi.getFechaRegistro())
+                            .fechaActualizacion(pi.getFechaActualizacion())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        List<ProductoOperacionResponseDTO> operaciones = productoOperacionRepository
+                .findByProductoIdOrderByOrdenAsc(productoId)
+                .stream()
+                .map(po -> ProductoOperacionResponseDTO.builder()
+                        .id(po.getId())
+                        .productoId(productoId)
+                        .productoSku(producto.getSku())
+                        .productoNombre(producto.getNombre())
+                        .operacionId(po.getOperacion().getId())
+                        .operacionCodigo(po.getOperacion().getCodigo())
+                        .operacionNombre(po.getOperacion().getNombre())
+                        .tiempoOperacion(po.getOperacion().getTiempoOperacion())
+                        .costoMinutoOperacion(po.getOperacion().getCostoMinuto())
+                        .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null
+                                ? po.getOperacion().getCentroTrabajo().getNombre() : null)
+                        .cantidad(po.getCantidad())
+                        .tiempoTotal(po.getTiempoTotal())
+                        .importeActividad(po.getImporteActividad())
+                        .orden(po.getOrden())
+                        .observaciones(po.getObservaciones())
+                        .activo(po.getActivo())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<DistribucionCostoModel> distribucionesOrdenadas = distribucionCostoRepository
+                .findByProductoIdOrderByAnioDescMesDescIdDesc(productoId);
+        Integer anioCif = null;
+        Integer mesCif = null;
+        List<DistribucionCostoResponseDTO> costosIndirectos = List.of();
+
+        if (!distribucionesOrdenadas.isEmpty()) {
+            DistribucionCostoModel primerRegistro = distribucionesOrdenadas.get(0);
+            anioCif = primerRegistro.getAnio();
+            mesCif = primerRegistro.getMes();
+
+            final Integer anioCifFiltro = anioCif;
+            final Integer mesCifFiltro = mesCif;
+
+            costosIndirectos = distribucionesOrdenadas.stream()
+                    .filter(d -> Objects.equals(d.getAnio(), anioCifFiltro) && Objects.equals(d.getMes(), mesCifFiltro))
+                    .map(this::mapToDistribucionCostoDTO)
+                    .collect(Collectors.toList());
+        }
+
+        double costoInsumosBase = insumos.stream()
+                .mapToDouble(item -> {
+                    double costoUnitario = item.getCostoUnitario() != null ? item.getCostoUnitario() : 0.0;
+                    double cantidad = item.getCantidad() != null ? item.getCantidad() : 0.0;
+                    return costoUnitario * cantidad;
+                })
+                .sum();
+
+        double costoInsumosConDesperdicio = insumos.stream()
+                .mapToDouble(item -> item.getSubtotal() != null ? item.getSubtotal() : 0.0)
+                .sum();
+
+        Double costoOperaciones = productoOperacionRepository.sumarCostoTotalByProducto(productoId);
+        double costoOperacionesSeguro = costoOperaciones != null ? costoOperaciones : 0.0;
+
+        double costoPrimo = costoInsumosConDesperdicio + costoOperacionesSeguro;
+        double costoCif = costosIndirectos.stream()
+                .mapToDouble(item -> item.getMontoAsignado() != null ? item.getMontoAsignado() : 0.0)
+                .sum();
+        double costoTotal = costoPrimo + costoCif;
+
+        return ProductoEstructuraCostosDTO.builder()
+                .productoId(producto.getId())
+                .productoSku(producto.getSku())
+                .productoNombre(producto.getNombre())
+                .costoInsumosBase(costoInsumosBase)
+                .costoInsumosConDesperdicio(costoInsumosConDesperdicio)
+                .costoOperaciones(costoOperacionesSeguro)
+                .costoPrimo(costoPrimo)
+                .costoCif(costoCif)
+                .costoTotal(costoTotal)
+                .anioCif(anioCif)
+                .mesCif(mesCif)
+                .insumos(insumos)
+                .operaciones(operaciones)
+                .costosIndirectos(costosIndirectos)
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -196,6 +388,7 @@ public class ProductoService {
             .stream()
             .map(pi -> ProductoInsumoResponseDTO.builder()
                     .id(pi.getId())
+                    .productoId(producto.getId())
                     .insumoId(pi.getInsumo().getId())
                     .insumoNombre(pi.getInsumo().getNombre())
                     .insumoUnidad(pi.getInsumo().getUnidadMedida().getSimbolo())
@@ -203,6 +396,12 @@ public class ProductoService {
                     .desperdicioPorcentaje(pi.getDesperdicioPorcentaje())
                     .cantidadConDesperdicio(pi.getCantidad() * (1 + pi.getDesperdicioPorcentaje() / 100))
                     .observaciones(pi.getObservaciones())
+                    .costoUnitario(kardexService.calcularCostoPromedio(pi.getInsumo().getId()))
+                    .subtotal(
+                            (pi.getCantidad() * (1 + pi.getDesperdicioPorcentaje() / 100))
+                                    * kardexService.calcularCostoPromedio(pi.getInsumo().getId()))
+                    .fechaRegistro(pi.getFechaRegistro())
+                    .fechaActualizacion(pi.getFechaActualizacion())
                     .build())
             .collect(Collectors.toList());
 
@@ -294,6 +493,88 @@ public class ProductoService {
             throw new ResourceNotFoundException("Producto no encontrado");
         }
         productoRepository.deleteById(id);
+    }
+
+    private org.springframework.data.domain.Sort construirSortProductos(String sortBy, String direction) {
+        org.springframework.data.domain.Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction)
+                ? org.springframework.data.domain.Sort.Direction.DESC
+                : org.springframework.data.domain.Sort.Direction.ASC;
+
+        if (sortBy == null || sortBy.isBlank()) {
+            return org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "sku")
+                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+        }
+
+        String campo = sortBy.trim().toLowerCase(Locale.ROOT);
+        return switch (campo) {
+            case "id" -> org.springframework.data.domain.Sort.by(sortDirection, "id");
+            case "sku" -> org.springframework.data.domain.Sort.by(sortDirection, "sku")
+                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            case "nombre" -> org.springframework.data.domain.Sort.by(sortDirection, "nombre")
+                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            case "descripcion" -> org.springframework.data.domain.Sort.by(sortDirection, "descripcion")
+                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            case "activo" -> org.springframework.data.domain.Sort.by(sortDirection, "activo")
+                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            case "createdat", "created_at" -> org.springframework.data.domain.Sort.by(sortDirection, "createdAt")
+                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            case "updatedat", "updated_at" -> org.springframework.data.domain.Sort.by(sortDirection, "updatedAt")
+                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            default -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "sku")
+                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+        };
+    }
+
+    private boolean coincideBusqueda(ProductoModel producto, String busqueda) {
+        if (busqueda == null || busqueda.isBlank()) {
+            return true;
+        }
+
+        String termino = busqueda.trim().toLowerCase(Locale.ROOT);
+        return Stream.of(
+                        producto.getId() != null ? String.valueOf(producto.getId()) : null,
+                        producto.getSku(),
+                        producto.getNombre(),
+                        producto.getDescripcion(),
+                        producto.getCaracteristicas(),
+                        producto.getDimensiones(),
+                        producto.getModelo() != null ? producto.getModelo().getCodigo() : null,
+                        producto.getModelo() != null ? producto.getModelo().getNombre() : null,
+                        producto.getModelo() != null && producto.getModelo().getFamilia() != null
+                                ? producto.getModelo().getFamilia().getNombre() : null,
+                        producto.getModelo() != null && producto.getModelo().getFamilia() != null
+                                && producto.getModelo().getFamilia().getLinea() != null
+                                ? producto.getModelo().getFamilia().getLinea().getNombre() : null,
+                        producto.getNivel() != null ? producto.getNivel().getNombre() : null,
+                        producto.getColor() != null ? producto.getColor().getNombre() : null,
+                        producto.getActivo() != null ? (producto.getActivo() ? "activo" : "inactivo") : null,
+                        producto.getCreatedAt() != null ? producto.getCreatedAt().toString() : null,
+                        producto.getUpdatedAt() != null ? producto.getUpdatedAt().toString() : null)
+                .filter(valor -> valor != null && !valor.isBlank())
+                .map(valor -> valor.toLowerCase(Locale.ROOT))
+                .anyMatch(valor -> valor.contains(termino));
+    }
+
+    private String nvl(String value) {
+        return value == null ? "" : value;
+    }
+
+    private DistribucionCostoResponseDTO mapToDistribucionCostoDTO(DistribucionCostoModel distribucion) {
+        return DistribucionCostoResponseDTO.builder()
+                .id(distribucion.getId())
+                .costoIndirectoId(distribucion.getCostoIndirecto() != null ? distribucion.getCostoIndirecto().getId() : null)
+                .costoIndirectoCodigo(distribucion.getCostoIndirecto() != null ? distribucion.getCostoIndirecto().getCodigo() : null)
+                .costoIndirectoNombre(distribucion.getCostoIndirecto() != null ? distribucion.getCostoIndirecto().getNombre() : null)
+                .productoId(distribucion.getProducto() != null ? distribucion.getProducto().getId() : null)
+                .productoSku(distribucion.getProducto() != null ? distribucion.getProducto().getSku() : null)
+                .productoNombre(distribucion.getProducto() != null ? distribucion.getProducto().getNombre() : null)
+                .anio(distribucion.getAnio())
+                .mes(distribucion.getMes())
+                .montoAsignado(distribucion.getMontoAsignado())
+                .porcentajeParticipacion(distribucion.getPorcentajeParticipacion())
+                .baseCalculo(distribucion.getBaseCalculo())
+                .fechaRegistro(distribucion.getFechaRegistro())
+                .build();
     }
 
     private String generarSkuProducto(ModeloModel modelo, NivelModel nivel, ColorModel color) {
