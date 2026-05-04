@@ -2,10 +2,24 @@
 // RUTA: src/main/java/com/mobilesco/mobilesco_back/services/NivelService.java
 package com.mobilesco.mobilesco_back.services;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.dto.nivel.NivelCreateDTO;
 import com.mobilesco.mobilesco_back.dto.nivel.NivelResponseDTO;
@@ -14,14 +28,17 @@ import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.models.NivelModel;
 import com.mobilesco.mobilesco_back.repositories.NivelRepository;
+import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
 
 @Service
 public class NivelService {
 
     private final NivelRepository nivelRepository;
+    private final ProductoRepository productoRepository;
 
-    public NivelService(NivelRepository nivelRepository) {
+    public NivelService(NivelRepository nivelRepository, ProductoRepository productoRepository) {
         this.nivelRepository = nivelRepository;
+        this.productoRepository = productoRepository;
     }
 
     // ========== MAPPER ==========
@@ -70,6 +87,57 @@ public class NivelService {
     public List<NivelResponseDTO> obtenerTodos() {
         return mapToResponseDTOList(nivelRepository.findAll());
     }
+
+    @Transactional(readOnly = true)
+    public byte[] generarReporteExcel(Boolean activo, String busqueda, String sortBy, String direction) {
+        List<NivelResponseDTO> niveles = mapToResponseDTOList(nivelRepository.findAll());
+
+        List<NivelResponseDTO> filtrados = niveles.stream()
+                .filter(nivel -> activo == null || Objects.equals(nivel.getActivo(), activo))
+                .filter(nivel -> coincideBusqueda(nivel, busqueda))
+                .collect(Collectors.toList());
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Niveles");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            String[] headers = {
+                    "ID", "Codigo", "Nombre", "Descripcion", "Estado", "Creado"
+            };
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowIndex = 1;
+            for (NivelResponseDTO nivel : filtrados) {
+                Row row = sheet.createRow(rowIndex++);
+                row.createCell(0).setCellValue(nivel.getId() != null ? nivel.getId() : 0L);
+                row.createCell(1).setCellValue(nivel.getCodigo() == null ? "" : nivel.getCodigo());
+                row.createCell(2).setCellValue(nivel.getNombre() == null ? "" : nivel.getNombre());
+                row.createCell(3).setCellValue(nivel.getDescripcion() == null ? "" : nivel.getDescripcion());
+                row.createCell(4).setCellValue(Boolean.TRUE.equals(nivel.getActivo()) ? "Activo" : "Inactivo");
+                row.createCell(5).setCellValue(nivel.getCreatedAt() != null ? nivel.getCreatedAt().toString() : "");
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo generar el reporte de niveles", e);
+        }
+    }
     
     public List<NivelResponseDTO> obtenerActivos() {
         return mapToResponseDTOList(nivelRepository.findByActivo(true));
@@ -91,6 +159,22 @@ public class NivelService {
         NivelModel nivel = nivelRepository.findByNombre(nombre)
                 .orElseThrow(() -> new NotFoundException("Nivel no encontrado con nombre: " + nombre));
         return mapToResponseDTO(nivel);
+    }
+
+    @Transactional
+    public NivelResponseDTO activar(Long id) {
+        NivelModel nivel = nivelRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Nivel no encontrado con ID: " + id));
+        nivel.setActivo(true);
+        return mapToResponseDTO(nivelRepository.save(nivel));
+    }
+
+    @Transactional
+    public NivelResponseDTO desactivar(Long id) {
+        NivelModel nivel = nivelRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Nivel no encontrado con ID: " + id));
+        nivel.setActivo(false);
+        return mapToResponseDTO(nivelRepository.save(nivel));
     }
     
     // ========== UPDATE ==========
@@ -134,6 +218,29 @@ public class NivelService {
         if (!nivelRepository.existsById(id)) {
             throw new NotFoundException("Nivel no encontrado con ID: " + id);
         }
+
+        if (productoRepository.existsByNivelId(id)) {
+            throw new BadRequestException("No se puede eliminar el nivel porque tiene productos asociados");
+        }
+
         nivelRepository.deleteById(id);
+    }
+
+    private boolean coincideBusqueda(NivelResponseDTO nivel, String busqueda) {
+        if (busqueda == null || busqueda.isBlank()) {
+            return true;
+        }
+
+        String termino = busqueda.trim().toLowerCase(Locale.ROOT);
+        return Stream.of(
+                        nivel.getId() != null ? String.valueOf(nivel.getId()) : null,
+                        nivel.getCodigo(),
+                        nivel.getNombre(),
+                        nivel.getDescripcion(),
+                        nivel.getActivo() != null ? (nivel.getActivo() ? "activo" : "inactivo") : null,
+                        nivel.getCreatedAt() != null ? nivel.getCreatedAt().toString() : null)
+                .filter(valor -> valor != null && !valor.isBlank())
+                .map(valor -> valor.toLowerCase(Locale.ROOT))
+                .anyMatch(valor -> valor.contains(termino));
     }
 }

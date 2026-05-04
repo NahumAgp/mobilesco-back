@@ -17,6 +17,8 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
 
     List<ModeloModel> findByFamiliaId(Long familiaId);
 
+    boolean existsByFamiliaId(Long familiaId);
+
     boolean existsByCodigo(String codigo);
 
     @Query("SELECT p FROM ModeloModel p WHERE " +

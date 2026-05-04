@@ -5,11 +5,14 @@ package com.mobilesco.mobilesco_back.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -58,6 +61,22 @@ public class FamiliaController {
 
         return ResponseEntity.ok(familiaService.obtenerTodos());
     }
+
+    @GetMapping("/reporte/excel")
+    public ResponseEntity<byte[]> exportarExcel(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Long lineaId,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        byte[] excel = familiaService.generarReporteExcel(activo, busqueda, lineaId, sortBy, direction);
+        String filename = "familias.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
+    }
     
     @GetMapping("/activos")
     public ResponseEntity<List<FamiliaResponseDTO>> obtenerActivos() {
@@ -88,6 +107,16 @@ public class FamiliaController {
             @PathVariable Long id,
             @Valid @RequestBody FamiliaUpdateDTO dto) {
         return ResponseEntity.ok(familiaService.actualizar(id, dto));
+    }
+
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<FamiliaResponseDTO> activar(@PathVariable Long id) {
+        return ResponseEntity.ok(familiaService.activar(id));
+    }
+
+    @PatchMapping("/{id}/desactivar")
+    public ResponseEntity<FamiliaResponseDTO> desactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(familiaService.desactivar(id));
     }
 
     // ========== DELETE ==========

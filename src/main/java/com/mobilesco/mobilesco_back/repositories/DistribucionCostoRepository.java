@@ -15,6 +15,8 @@ public interface DistribucionCostoRepository extends JpaRepository<DistribucionC
     List<DistribucionCostoModel> findByAnioAndMes(Integer anio, Integer mes);
     
     List<DistribucionCostoModel> findByProductoId(Long productoId);
+
+    List<DistribucionCostoModel> findByProductoIdOrderByAnioDescMesDescIdDesc(Long productoId);
     
     List<DistribucionCostoModel> findByCostoIndirectoId(Long costoIndirectoId);
     

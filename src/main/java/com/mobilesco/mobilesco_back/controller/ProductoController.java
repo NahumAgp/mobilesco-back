@@ -2,7 +2,9 @@ package com.mobilesco.mobilesco_back.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoCreateDTO;
+import com.mobilesco.mobilesco_back.dto.Producto.ProductoEstructuraCostosDTO;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoUpdateDTO;
 import com.mobilesco.mobilesco_back.services.ProductoService;
@@ -45,6 +48,22 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.obtenerTodosCompletos());
     }
 
+    @Operation(summary = "Exportar reporte de productos a Excel")
+    @GetMapping("/reporte/excel")
+    public ResponseEntity<byte[]> exportarExcel(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        byte[] excel = productoService.generarReporteExcel(activo, busqueda, sortBy, direction);
+        String filename = "productos.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
+    }
+
     @Operation(summary = "Obtener producto por ID")
     @GetMapping("/{id}")
     public ResponseEntity<ProductoResponseDTO> obtenerPorId(@PathVariable Long id) {
@@ -55,6 +74,12 @@ public class ProductoController {
     @GetMapping("/sku/{sku}")
     public ResponseEntity<ProductoResponseDTO> obtenerPorSku(@PathVariable String sku) {
         return ResponseEntity.ok(productoService.obtenerProductoCompletoPorSku(sku));
+    }
+
+    @Operation(summary = "Obtener estructura de costos del producto")
+    @GetMapping("/{id}/estructura-costos")
+    public ResponseEntity<ProductoEstructuraCostosDTO> obtenerEstructuraCostos(@PathVariable Long id) {
+        return ResponseEntity.ok(productoService.obtenerEstructuraCostos(id));
     }
 
     @Operation(summary = "Listar productos por modelo")

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -93,6 +94,16 @@ public class LineaController {
             @PathVariable Long id,
             @Valid @RequestBody LineaUpdateDTO dto) {
         return ResponseEntity.ok(lineaService.actualizar(id, dto));
+    }
+
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<LineaResponseDTO> activar(@PathVariable Long id) {
+        return ResponseEntity.ok(lineaService.activar(id));
+    }
+
+    @PatchMapping("/{id}/desactivar")
+    public ResponseEntity<LineaResponseDTO> desactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(lineaService.desactivar(id));
     }
 
     // ========== DELETE ==========

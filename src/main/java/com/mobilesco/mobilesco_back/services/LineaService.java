@@ -31,6 +31,7 @@ import com.mobilesco.mobilesco_back.dto.linea.LineaUpdateDTO;
 import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.models.LineaModel;
+import com.mobilesco.mobilesco_back.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.repositories.LineaRepository;
 
 @Service
@@ -39,9 +40,11 @@ public class LineaService {
     private static final int PAGE_SIZE = 10;
 
     private final LineaRepository lineaRepository;
+    private final FamiliaRepository familiaRepository;
 
-    public LineaService(LineaRepository lineaRepository) {
+    public LineaService(LineaRepository lineaRepository, FamiliaRepository familiaRepository) {
         this.lineaRepository = lineaRepository;
+        this.familiaRepository = familiaRepository;
     }
 
     // ========== MAPPER ==========
@@ -200,6 +203,14 @@ public class LineaService {
         return value == null ? "" : value;
     }
 
+    private LineaResponseDTO cambiarEstado(Long id, boolean activo) {
+        LineaModel linea = lineaRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Linea no encontrada con ID: " + id));
+
+        linea.setActivo(activo);
+        return mapToResponseDTO(lineaRepository.save(linea));
+    }
+
     public PageResponseDTO<LineaResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {
         int pageNumber = Math.max(page, 0);
         PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortLineas(sortBy, direction));
@@ -262,12 +273,25 @@ public class LineaService {
         return mapToResponseDTO(actualizado);
     }
 
+    public LineaResponseDTO activar(Long id) {
+        return cambiarEstado(id, true);
+    }
+
+    public LineaResponseDTO desactivar(Long id) {
+        return cambiarEstado(id, false);
+    }
+
     // ========== DELETE ==========
 
     public void eliminar(Long id) {
         if (!lineaRepository.existsById(id)) {
             throw new NotFoundException("Linea no encontrada con ID: " + id);
         }
+
+        if (familiaRepository.existsByLineaId(id)) {
+            throw new BadRequestException("No se puede eliminar la linea porque tiene familias asociadas");
+        }
+
         lineaRepository.deleteById(id);
     }
 }

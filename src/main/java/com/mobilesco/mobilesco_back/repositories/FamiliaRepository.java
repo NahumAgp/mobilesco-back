@@ -19,6 +19,8 @@ public interface FamiliaRepository extends JpaRepository<FamiliaModel, Long> {
     List<FamiliaModel> findByActivo(Boolean activo);
     
     List<FamiliaModel> findByLineaId(Long lineaId);
+
+    boolean existsByLineaId(Long lineaId);
     
     List<FamiliaModel> findByLineaIdAndActivo(Long lineaId, Boolean activo);
     

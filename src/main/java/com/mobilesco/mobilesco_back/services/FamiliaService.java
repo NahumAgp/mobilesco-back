@@ -3,14 +3,27 @@
 // ============================================
 package com.mobilesco.mobilesco_back.services;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.dto.familia.FamiliaCreateDTO;
@@ -22,6 +35,7 @@ import com.mobilesco.mobilesco_back.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.models.LineaModel;
 import com.mobilesco.mobilesco_back.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.repositories.LineaRepository;
+import com.mobilesco.mobilesco_back.repositories.ModeloRepository;
 
 @Service
 public class FamiliaService {
@@ -30,10 +44,15 @@ public class FamiliaService {
 
     private final FamiliaRepository familiaRepository;
     private final LineaRepository lineaRepository;
+    private final ModeloRepository modeloRepository;
 
-    public FamiliaService(FamiliaRepository familiaRepository, LineaRepository lineaRepository) {
+    public FamiliaService(
+            FamiliaRepository familiaRepository,
+            LineaRepository lineaRepository,
+            ModeloRepository modeloRepository) {
         this.familiaRepository = familiaRepository;
         this.lineaRepository = lineaRepository;
+        this.modeloRepository = modeloRepository;
     }
 
     // ========== MAPPER ==========
@@ -124,6 +143,60 @@ public class FamiliaService {
         return mapToResponseDTOList(familiaRepository.findAll());
     }
 
+    @Transactional(readOnly = true)
+    public byte[] generarReporteExcel(Boolean activo, String busqueda, Long lineaId, String sortBy, String direction) {
+        List<FamiliaResponseDTO> familias = mapToResponseDTOList(
+                familiaRepository.findAll(construirSortFamilias(sortBy, direction)));
+
+        List<FamiliaResponseDTO> filtradas = familias.stream()
+                .filter(familia -> activo == null || Objects.equals(familia.getActivo(), activo))
+                .filter(familia -> lineaId == null || Objects.equals(familia.getLineaId(), lineaId))
+                .filter(familia -> coincideBusqueda(familia, busqueda))
+                .collect(Collectors.toList());
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Familias");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            String[] headers = {
+                    "ID", "Codigo", "Nombre", "Descripcion", "Linea", "Estado", "Creada"
+            };
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowIndex = 1;
+            for (FamiliaResponseDTO familia : filtradas) {
+                Row row = sheet.createRow(rowIndex++);
+                row.createCell(0).setCellValue(familia.getId() != null ? familia.getId() : 0L);
+                row.createCell(1).setCellValue(nvl(familia.getCodigo()));
+                row.createCell(2).setCellValue(nvl(familia.getNombre()));
+                row.createCell(3).setCellValue(nvl(familia.getDescripcion()));
+                row.createCell(4).setCellValue(nvl(familia.getLineaNombre()));
+                row.createCell(5).setCellValue(Boolean.TRUE.equals(familia.getActivo()) ? "Activo" : "Inactivo");
+                row.createCell(6).setCellValue(familia.getCreatedAt() != null ? familia.getCreatedAt().toString() : "");
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo generar el reporte de familias", e);
+        }
+    }
+
     public PageResponseDTO<FamiliaResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {
         int pageNumber = Math.max(page, 0);
         PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortFamilias(sortBy, direction));
@@ -158,6 +231,30 @@ public class FamiliaService {
 
     public List<FamiliaResponseDTO> obtenerPorLineaYActivo(Long lineaId, Boolean activo) {
         return mapToResponseDTOList(familiaRepository.findByLineaIdAndActivo(lineaId, activo));
+    }
+
+    private boolean coincideBusqueda(FamiliaResponseDTO familia, String busqueda) {
+        if (busqueda == null || busqueda.isBlank()) {
+            return true;
+        }
+
+        String termino = busqueda.trim().toLowerCase(Locale.ROOT);
+        return Stream.of(
+                        familia.getId() != null ? String.valueOf(familia.getId()) : null,
+                        familia.getCodigo(),
+                        familia.getNombre(),
+                        familia.getDescripcion(),
+                        familia.getLineaNombre(),
+                        familia.getLineaId() != null ? String.valueOf(familia.getLineaId()) : null,
+                        familia.getActivo() != null ? (familia.getActivo() ? "activo" : "inactivo") : null,
+                        familia.getCreatedAt() != null ? familia.getCreatedAt().toString() : null)
+                .filter(valor -> valor != null && !valor.isBlank())
+                .map(valor -> valor.toLowerCase(Locale.ROOT))
+                .anyMatch(valor -> valor.contains(termino));
+    }
+
+    private String nvl(String value) {
+        return value == null ? "" : value;
     }
 
     // ========== UPDATE ==========
@@ -199,12 +296,33 @@ public class FamiliaService {
         return mapToResponseDTO(actualizado);
     }
 
+    public FamiliaResponseDTO activar(Long id) {
+        FamiliaModel existente = familiaRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + id));
+
+        existente.setActivo(true);
+        return mapToResponseDTO(familiaRepository.save(existente));
+    }
+
+    public FamiliaResponseDTO desactivar(Long id) {
+        FamiliaModel existente = familiaRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + id));
+
+        existente.setActivo(false);
+        return mapToResponseDTO(familiaRepository.save(existente));
+    }
+
     // ========== DELETE ==========
 
     public void eliminar(Long id) {
         if (!familiaRepository.existsById(id)) {
             throw new NotFoundException("Familia no encontrada con ID: " + id);
         }
+
+        if (modeloRepository.existsByFamiliaId(id)) {
+            throw new BadRequestException("No se puede eliminar la familia porque tiene modelos asociados");
+        }
+
         familiaRepository.deleteById(id);
     }
 }

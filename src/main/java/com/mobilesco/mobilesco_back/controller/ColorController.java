@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -71,6 +72,16 @@ public class ColorController {
             @PathVariable Long id,
             @Valid @RequestBody ColorUpdateDTO dto) {
         return ResponseEntity.ok(colorService.actualizar(id, dto));
+    }
+
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<ColorResponseDTO> activar(@PathVariable Long id) {
+        return ResponseEntity.ok(colorService.activar(id));
+    }
+
+    @PatchMapping("/{id}/desactivar")
+    public ResponseEntity<ColorResponseDTO> desactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(colorService.desactivar(id));
     }
 
     // ========== DELETE ==========

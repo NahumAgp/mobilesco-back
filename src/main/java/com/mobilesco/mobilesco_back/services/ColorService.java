@@ -15,14 +15,17 @@ import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.models.ColorModel;
 import com.mobilesco.mobilesco_back.repositories.ColorRepository;
+import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
 
 @Service
 public class ColorService {
 
     private final ColorRepository colorRepository;
+    private final ProductoRepository productoRepository;
 
-    public ColorService(ColorRepository colorRepository) {
+    public ColorService(ColorRepository colorRepository, ProductoRepository productoRepository) {
         this.colorRepository = colorRepository;
+        this.productoRepository = productoRepository;
     }
 
     // ========== MAPPER ==========
@@ -32,6 +35,7 @@ public class ColorService {
         dto.setId(color.getId());
         dto.setCodigo(color.getCodigo());
         dto.setNombre(color.getNombre());
+        dto.setDescripcion(color.getDescripcion());
         dto.setHex(color.getHex());
         dto.setActivo(color.getActivo());
         dto.setCreatedAt(color.getCreatedAt());
@@ -59,6 +63,7 @@ public class ColorService {
         ColorModel color = new ColorModel();
         color.setCodigo(dto.getCodigo());
         color.setNombre(dto.getNombre());
+        color.setDescripcion(dto.getDescripcion());
         color.setHex(dto.getHex());
         color.setActivo(true);
 
@@ -109,6 +114,10 @@ public class ColorService {
             existente.setNombre(dto.getNombre());
         }
 
+        if (dto.getDescripcion() != null) {
+            existente.setDescripcion(dto.getDescripcion());
+        }
+
         if (dto.getHex() != null) {
             existente.setHex(dto.getHex());
         }
@@ -121,12 +130,33 @@ public class ColorService {
         return mapToResponseDTO(actualizado);
     }
 
+    public ColorResponseDTO activar(Long id) {
+        ColorModel existente = colorRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Color no encontrado con ID: " + id));
+
+        existente.setActivo(true);
+        return mapToResponseDTO(colorRepository.save(existente));
+    }
+
+    public ColorResponseDTO desactivar(Long id) {
+        ColorModel existente = colorRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Color no encontrado con ID: " + id));
+
+        existente.setActivo(false);
+        return mapToResponseDTO(colorRepository.save(existente));
+    }
+
     // ========== DELETE ==========
 
     public void eliminar(Long id) {
         if (!colorRepository.existsById(id)) {
             throw new NotFoundException("Color no encontrado con ID: " + id);
         }
+
+        if (productoRepository.existsByColorId(id)) {
+            throw new BadRequestException("No se puede eliminar el color porque tiene productos asociados");
+        }
+
         colorRepository.deleteById(id);
     }
 }

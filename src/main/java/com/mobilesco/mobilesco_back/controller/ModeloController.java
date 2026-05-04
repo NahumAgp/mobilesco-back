@@ -2,11 +2,14 @@ package com.mobilesco.mobilesco_back.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.dto.modelo.ModeloCreateDTO;
 import com.mobilesco.mobilesco_back.dto.modelo.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.dto.modelo.ModeloUpdateDTO;
@@ -39,8 +43,32 @@ public class ModeloController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ModeloResponseDTO>> obtenerTodos() {
+    public ResponseEntity<?> obtenerTodos(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        if (page != null) {
+            PageResponseDTO<ModeloResponseDTO> resultado = modeloService.obtenerPaginado(page, sortBy, direction);
+            return ResponseEntity.ok(resultado);
+        }
+
         return ResponseEntity.ok(modeloService.obtenerTodos());
+    }
+
+    @GetMapping("/reporte/excel")
+    public ResponseEntity<byte[]> exportarExcel(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String familia,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        byte[] excel = modeloService.generarReporteExcel(activo, busqueda, familia, sortBy, direction);
+        String filename = "modelos.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
     }
 
     @GetMapping("/{id}")
@@ -66,6 +94,16 @@ public class ModeloController {
             @PathVariable Long id,
             @Valid @RequestBody ModeloUpdateDTO dto) {
         return ResponseEntity.ok(modeloService.actualizar(id, dto));
+    }
+
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<ModeloResponseDTO> activar(@PathVariable Long id) {
+        return ResponseEntity.ok(modeloService.activar(id));
+    }
+
+    @PatchMapping("/{id}/desactivar")
+    public ResponseEntity<ModeloResponseDTO> desactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(modeloService.desactivar(id));
     }
 
     @DeleteMapping("/{id}")

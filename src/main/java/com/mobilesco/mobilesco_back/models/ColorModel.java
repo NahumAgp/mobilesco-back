@@ -30,6 +30,9 @@ public class ColorModel {
 
     @Column(unique = true, nullable = false, length = 30)
     private String nombre;
+
+    @Column(length = 255)
+    private String descripcion;
     
     @Column(length = 7)
     private String hex;
