@@ -5,9 +5,14 @@ package com.mobilesco.mobilesco_back.services;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Locale;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.dto.familia.FamiliaCreateDTO;
 import com.mobilesco.mobilesco_back.dto.familia.FamiliaResponseDTO;
 import com.mobilesco.mobilesco_back.dto.familia.FamiliaUpdateDTO;
@@ -20,6 +25,8 @@ import com.mobilesco.mobilesco_back.repositories.LineaRepository;
 
 @Service
 public class FamiliaService {
+
+    private static final int PAGE_SIZE = 10;
 
     private final FamiliaRepository familiaRepository;
     private final LineaRepository lineaRepository;
@@ -82,8 +89,54 @@ public class FamiliaService {
 
     // ========== READ ==========
 
+    private Sort construirSortFamilias(String sortBy, String direction) {
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        if (sortBy == null || sortBy.isBlank()) {
+            return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+        }
+
+        String campo = sortBy.trim();
+        String campoNormalizado = campo.toLowerCase(Locale.ROOT);
+
+        switch (campoNormalizado) {
+            case "id":
+                return Sort.by(sortDirection, "id");
+            case "codigo":
+                return Sort.by(sortDirection, "codigo").and(Sort.by(Sort.Direction.ASC, "id"));
+            case "nombre":
+                return Sort.by(sortDirection, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+            case "descripcion":
+                return Sort.by(sortDirection, "descripcion").and(Sort.by(Sort.Direction.ASC, "id"));
+            case "activo":
+                return Sort.by(sortDirection, "activo").and(Sort.by(Sort.Direction.ASC, "id"));
+            case "createdat":
+            case "created_at":
+                return Sort.by(sortDirection, "createdAt").and(Sort.by(Sort.Direction.ASC, "id"));
+            default:
+                return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+        }
+    }
+
     public List<FamiliaResponseDTO> obtenerTodos() {
         return mapToResponseDTOList(familiaRepository.findAll());
+    }
+
+    public PageResponseDTO<FamiliaResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {
+        int pageNumber = Math.max(page, 0);
+        PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortFamilias(sortBy, direction));
+
+        Page<FamiliaResponseDTO> result = familiaRepository.findAll(pageable).map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     public List<FamiliaResponseDTO> obtenerActivos() {

@@ -14,14 +14,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.dto.linea.LineaCreateDTO;
 import com.mobilesco.mobilesco_back.dto.linea.LineaResponseDTO;
 import com.mobilesco.mobilesco_back.dto.linea.LineaUpdateDTO;
 import com.mobilesco.mobilesco_back.services.LineaService;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import jakarta.validation.Valid;
 
 @RestController
@@ -45,8 +49,31 @@ public class LineaController {
     // ========== READ ==========
     
     @GetMapping
-    public ResponseEntity<List<LineaResponseDTO>> obtenerTodos() {
+    public ResponseEntity<?> obtenerTodos(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        if (page != null) {
+            PageResponseDTO<LineaResponseDTO> resultado = lineaService.obtenerPaginado(page, sortBy, direction);
+            return ResponseEntity.ok(resultado);
+        }
+
         return ResponseEntity.ok(lineaService.obtenerTodos());
+    }
+
+    @GetMapping("/reporte/excel")
+    public ResponseEntity<byte[]> exportarExcel(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        byte[] excel = lineaService.generarReporteExcel(activo, busqueda, sortBy, direction);
+        String filename = "lineas_producto.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
     }
     
     @GetMapping("/activos")

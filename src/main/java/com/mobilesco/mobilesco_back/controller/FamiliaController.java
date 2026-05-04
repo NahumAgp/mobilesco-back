@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.dto.familia.FamiliaCreateDTO;
 import com.mobilesco.mobilesco_back.dto.familia.FamiliaResponseDTO;
 import com.mobilesco.mobilesco_back.dto.familia.FamiliaUpdateDTO;
@@ -46,7 +47,15 @@ public class FamiliaController {
     // ========== READ ==========
     
     @GetMapping
-    public ResponseEntity<List<FamiliaResponseDTO>> obtenerTodos() {
+    public ResponseEntity<?> obtenerTodos(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        if (page != null) {
+            PageResponseDTO<FamiliaResponseDTO> resultado = familiaService.obtenerPaginado(page, sortBy, direction);
+            return ResponseEntity.ok(resultado);
+        }
+
         return ResponseEntity.ok(familiaService.obtenerTodos());
     }
     
