@@ -21,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.dto.modelo.ModeloCreateDTO;
@@ -42,13 +43,16 @@ public class ModeloService {
     private final ModeloRepository modeloRepository;
     private final FamiliaRepository familiaRepository;
     private final ProductoRepository productoRepository;
+    private final AlmacenamientoImagenesService almacenamientoImagenesService;
 
     public ModeloService(ModeloRepository modeloRepository,
                          FamiliaRepository familiaRepository,
-                         ProductoRepository productoRepository) {
+                         ProductoRepository productoRepository,
+                         AlmacenamientoImagenesService almacenamientoImagenesService) {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
         this.productoRepository = productoRepository;
+        this.almacenamientoImagenesService = almacenamientoImagenesService;
     }
 
     private ModeloResponseDTO mapToResponseDTO(ModeloModel modelo) {
@@ -291,6 +295,31 @@ public class ModeloService {
                 .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + id));
 
         existente.setActivo(false);
+        return mapToResponseDTO(modeloRepository.save(existente));
+    }
+
+    @Transactional
+    public ModeloResponseDTO actualizarImagen(Long id, MultipartFile archivo) {
+        ModeloModel existente = modeloRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + id));
+
+        try {
+            String urlPublica = almacenamientoImagenesService.guardarImagenModelo(id, archivo);
+            existente.setUrlImagen(urlPublica);
+            return mapToResponseDTO(modeloRepository.save(existente));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(e.getMessage());
+        } catch (IOException e) {
+            throw new BadRequestException("No se pudo guardar la imagen. Verifica que el archivo sea valido.");
+        }
+    }
+
+    @Transactional
+    public ModeloResponseDTO eliminarImagen(Long id) {
+        ModeloModel existente = modeloRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + id));
+
+        existente.setUrlImagen(null);
         return mapToResponseDTO(modeloRepository.save(existente));
     }
 

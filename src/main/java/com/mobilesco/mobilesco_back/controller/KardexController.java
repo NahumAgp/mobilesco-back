@@ -1,5 +1,6 @@
 package com.mobilesco.mobilesco_back.controller;
 
+import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.Kardex.MovimientoInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.services.KardexService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,7 +15,7 @@ import java.util.List;
 
 @Tag(name = "Kardex", description = "Historial de movimientos de insumos")
 @RestController
-@RequestMapping("/api/kardex")
+@RequestMapping(ApiPaths.KARDEX)
 @RequiredArgsConstructor
 public class KardexController {
 

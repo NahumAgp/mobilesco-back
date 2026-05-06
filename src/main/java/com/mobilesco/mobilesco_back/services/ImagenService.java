@@ -1,6 +1,3 @@
-// ============================================
-// RUTA: src/main/java/com/mobilesco/mobilesco_back/services/ImagenService.java
-// ============================================
 package com.mobilesco.mobilesco_back.services;
 
 import java.io.IOException;
@@ -38,8 +35,6 @@ public class ImagenService {
         this.almacenamientoImagenesService = almacenamientoImagenesService;
     }
 
-    // ========== MAPPER ==========
-    
     private ImagenResponseDTO mapToResponseDTO(ImagenModel imagen) {
         ImagenResponseDTO dto = new ImagenResponseDTO();
         dto.setId(imagen.getId());
@@ -53,42 +48,93 @@ public class ImagenService {
         }
         return dto;
     }
-    
+
     private List<ImagenResponseDTO> mapToResponseDTOList(List<ImagenModel> imagenes) {
         return imagenes.stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
-    
-    // ========== CREATE ==========
-    
+
+    private ProductoModel obtenerProducto(Long productoId) {
+        return productoRepository.findById(productoId)
+                .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + productoId));
+    }
+
+    private boolean tieneGrupoImagenCompartida(ProductoModel producto) {
+        return producto != null
+                && producto.getModelo() != null
+                && producto.getModelo().getId() != null
+                && producto.getColor() != null
+                && producto.getColor().getId() != null;
+    }
+
+    private List<ImagenModel> obtenerImagenesDelGrupo(ProductoModel producto) {
+        if (tieneGrupoImagenCompartida(producto)) {
+            return imagenRepository.findByModeloIdAndColorIdOrderByOrdenAsc(
+                    producto.getModelo().getId(),
+                    producto.getColor().getId()
+            );
+        }
+
+        return imagenRepository.findByProductoIdOrderByOrdenAsc(producto.getId());
+    }
+
+    private ImagenModel obtenerPrincipalDelGrupo(ProductoModel producto) {
+        if (tieneGrupoImagenCompartida(producto)) {
+            List<ImagenModel> principales = imagenRepository.findPrincipalesByModeloIdAndColorId(
+                    producto.getModelo().getId(),
+                    producto.getColor().getId()
+            );
+            return principales.isEmpty() ? null : principales.get(0);
+        }
+
+        return imagenRepository.findByProductoIdAndEsPrincipalTrue(producto.getId()).orElse(null);
+    }
+
+    private long contarImagenesDelGrupo(ProductoModel producto) {
+        if (tieneGrupoImagenCompartida(producto)) {
+            return imagenRepository.countByModeloIdAndColorId(
+                    producto.getModelo().getId(),
+                    producto.getColor().getId()
+            );
+        }
+
+        return imagenRepository.countByProductoId(producto.getId());
+    }
+
+    private void resetPrincipalDelGrupo(ProductoModel producto) {
+        if (tieneGrupoImagenCompartida(producto)) {
+            imagenRepository.resetPrincipalFlagByModeloIdAndColorId(
+                    producto.getModelo().getId(),
+                    producto.getColor().getId()
+            );
+            return;
+        }
+
+        imagenRepository.resetPrincipalFlag(producto.getId());
+    }
+
     @Transactional
     public ImagenResponseDTO crear(ImagenCreateDTO dto) {
-        
-        ProductoModel producto = productoRepository.findById(dto.getProductoId())
-                .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + dto.getProductoId()));
-        
-        // Si es la primera imagen del producto, forzar como principal
-        boolean esPrimeraImagen = imagenRepository.countByProductoId(producto.getId()) == 0;
-        
+        ProductoModel producto = obtenerProducto(dto.getProductoId());
+        boolean esPrimeraImagen = contarImagenesDelGrupo(producto) == 0;
+
         ImagenModel imagen = new ImagenModel();
         imagen.setUrl(dto.getUrl());
         imagen.setAltTexto(dto.getAltTexto());
         imagen.setProducto(producto);
-        
-        // Manejar imagen principal
+
         if (esPrimeraImagen || (dto.getEsPrincipal() != null && dto.getEsPrincipal())) {
-            // Resetear flag principal en otras imágenes de este producto
-            imagenRepository.resetPrincipalFlag(producto.getId());
+            resetPrincipalDelGrupo(producto);
             imagen.setEsPrincipal(true);
         } else {
             imagen.setEsPrincipal(false);
         }
-        
+
         if (dto.getOrden() != null) {
             imagen.setOrden(dto.getOrden());
         }
-        
+
         ImagenModel guardado = imagenRepository.save(imagen);
         return mapToResponseDTO(guardado);
     }
@@ -122,82 +168,62 @@ public class ImagenService {
             throw new BadRequestException("No se pudo guardar la imagen. Verifica que el archivo sea valido.");
         }
     }
-    
-    // ========== READ ==========
-    
+
     public List<ImagenResponseDTO> obtenerPorProducto(Long productoId) {
-        if (!productoRepository.existsById(productoId)) {
-            throw new NotFoundException("Producto no encontrado con ID: " + productoId);
-        }
-        return mapToResponseDTOList(imagenRepository.findByProductoIdOrderByOrdenAsc(productoId));
+        return mapToResponseDTOList(obtenerImagenesDelGrupo(obtenerProducto(productoId)));
     }
-    
+
     public ImagenResponseDTO obtenerPrincipalPorProducto(Long productoId) {
-        ImagenModel imagen = imagenRepository.findByProductoIdAndEsPrincipalTrue(productoId)
-                .orElse(null);
+        ImagenModel imagen = obtenerPrincipalDelGrupo(obtenerProducto(productoId));
         return imagen != null ? mapToResponseDTO(imagen) : null;
     }
-    
+
     public ImagenResponseDTO obtenerPorId(Long id) {
         ImagenModel imagen = imagenRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Imagen no encontrada con ID: " + id));
         return mapToResponseDTO(imagen);
     }
-    
-    // ========== UPDATE ==========
-    
+
     @Transactional
     public ImagenResponseDTO actualizar(Long id, ImagenUpdateDTO dto) {
-        
         ImagenModel existente = imagenRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Imagen no encontrada con ID: " + id));
-        
+
         if (dto.getUrl() != null) {
             existente.setUrl(dto.getUrl());
         }
-        
+
         if (dto.getAltTexto() != null) {
             existente.setAltTexto(dto.getAltTexto());
         }
-        
+
         if (dto.getOrden() != null) {
             existente.setOrden(dto.getOrden());
         }
-        
-        // Manejar cambio de imagen principal
+
         if (dto.getEsPrincipal() != null && dto.getEsPrincipal() && !existente.getEsPrincipal()) {
-            // Resetear flag principal en otras imágenes de este producto
-            imagenRepository.resetPrincipalFlag(existente.getProducto().getId());
+            resetPrincipalDelGrupo(existente.getProducto());
             existente.setEsPrincipal(true);
         } else if (dto.getEsPrincipal() != null && !dto.getEsPrincipal() && existente.getEsPrincipal()) {
-            // No permitir desmarcar la única imagen principal
-            long totalPrincipales = imagenRepository.findByProductoIdAndEsPrincipalTrue(existente.getProducto().getId()).stream().count();
-            if (totalPrincipales <= 1) {
-                throw new BadRequestException("No se puede desmarcar la única imagen principal. Debe marcar otra como principal primero.");
-            }
-            existente.setEsPrincipal(false);
+            throw new BadRequestException("No se puede desmarcar la imagen principal. Debe marcar otra como principal primero.");
         }
-        
+
         ImagenModel actualizado = imagenRepository.save(existente);
         return mapToResponseDTO(actualizado);
     }
-    
-    // ========== DELETE ==========
-    
+
     @Transactional
     public void eliminar(Long id) {
-        
         ImagenModel imagen = imagenRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Imagen no encontrada con ID: " + id));
-        
-        Long productoId = imagen.getProducto().getId();
-        boolean eraPrincipal = imagen.getEsPrincipal();
-        
+
+        ProductoModel productoGrupo = imagen.getProducto();
+        boolean eraPrincipal = Boolean.TRUE.equals(imagen.getEsPrincipal());
+
         imagenRepository.deleteById(id);
-        
-        // Si se eliminó la imagen principal y quedan otras imágenes, promover la primera como principal
+
         if (eraPrincipal) {
-            List<ImagenModel> restantes = imagenRepository.findByProductoIdOrderByOrdenAsc(productoId);
+            List<ImagenModel> restantes = obtenerImagenesDelGrupo(productoGrupo);
             if (!restantes.isEmpty()) {
                 ImagenModel nuevaPrincipal = restantes.get(0);
                 nuevaPrincipal.setEsPrincipal(true);
@@ -205,12 +231,10 @@ public class ImagenService {
             }
         }
     }
-    
-    // ========== BULK DELETE ==========
-    
+
     @Transactional
     public void eliminarTodasPorProducto(Long productoId) {
-        List<ImagenModel> imagenes = imagenRepository.findByProductoId(productoId);
+        List<ImagenModel> imagenes = obtenerImagenesDelGrupo(obtenerProducto(productoId));
         imagenRepository.deleteAll(imagenes);
     }
 }

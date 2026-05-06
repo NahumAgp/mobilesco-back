@@ -24,7 +24,6 @@ import com.mobilesco.mobilesco_back.dto.Producto.ProductoInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoEstructuraCostosDTO;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.dto.Producto.ProductoUpdateDTO;
-import com.mobilesco.mobilesco_back.dto.DistribucionCosto.DistribucionCostoResponseDTO;
 import com.mobilesco.mobilesco_back.dto.imagen.ImagenResponseDTO;
 import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
@@ -37,11 +36,9 @@ import com.mobilesco.mobilesco_back.repositories.ColorRepository;
 import com.mobilesco.mobilesco_back.models.ModeloModel;
 import com.mobilesco.mobilesco_back.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.repositories.ModeloRepository;
-import com.mobilesco.mobilesco_back.repositories.DistribucionCostoRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoOperacionRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
-import com.mobilesco.mobilesco_back.models.DistribucionCostoModel;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +55,6 @@ public class ProductoService {
     private final ColorRepository colorRepository;
     private final ProductoInsumoRepository productoInsumoRepository;
     private final ProductoOperacionRepository productoOperacionRepository;
-    private final DistribucionCostoRepository distribucionCostoRepository;
     private final KardexService kardexService;
     private final ImagenService imagenService;
     @Transactional
@@ -266,26 +262,6 @@ public class ProductoService {
                         .build())
                 .collect(Collectors.toList());
 
-        List<DistribucionCostoModel> distribucionesOrdenadas = distribucionCostoRepository
-                .findByProductoIdOrderByAnioDescMesDescIdDesc(productoId);
-        Integer anioCif = null;
-        Integer mesCif = null;
-        List<DistribucionCostoResponseDTO> costosIndirectos = List.of();
-
-        if (!distribucionesOrdenadas.isEmpty()) {
-            DistribucionCostoModel primerRegistro = distribucionesOrdenadas.get(0);
-            anioCif = primerRegistro.getAnio();
-            mesCif = primerRegistro.getMes();
-
-            final Integer anioCifFiltro = anioCif;
-            final Integer mesCifFiltro = mesCif;
-
-            costosIndirectos = distribucionesOrdenadas.stream()
-                    .filter(d -> Objects.equals(d.getAnio(), anioCifFiltro) && Objects.equals(d.getMes(), mesCifFiltro))
-                    .map(this::mapToDistribucionCostoDTO)
-                    .collect(Collectors.toList());
-        }
-
         double costoInsumosBase = insumos.stream()
                 .mapToDouble(item -> {
                     double costoUnitario = item.getCostoUnitario() != null ? item.getCostoUnitario() : 0.0;
@@ -302,9 +278,7 @@ public class ProductoService {
         double costoOperacionesSeguro = costoOperaciones != null ? costoOperaciones : 0.0;
 
         double costoPrimo = costoInsumosConDesperdicio + costoOperacionesSeguro;
-        double costoCif = costosIndirectos.stream()
-                .mapToDouble(item -> item.getMontoAsignado() != null ? item.getMontoAsignado() : 0.0)
-                .sum();
+        double costoCif = 0.0;
         double costoTotal = costoPrimo + costoCif;
 
         return ProductoEstructuraCostosDTO.builder()
@@ -317,11 +291,10 @@ public class ProductoService {
                 .costoPrimo(costoPrimo)
                 .costoCif(costoCif)
                 .costoTotal(costoTotal)
-                .anioCif(anioCif)
-                .mesCif(mesCif)
+                .anioCif(null)
+                .mesCif(null)
                 .insumos(insumos)
                 .operaciones(operaciones)
-                .costosIndirectos(costosIndirectos)
                 .build();
     }
 
@@ -426,14 +399,22 @@ public class ProductoService {
             .collect(Collectors.toList());
 
         List<ImagenResponseDTO> imagenes = imagenService.obtenerPorProducto(producto.getId());
+        var modelo = producto.getModelo();
+        var familia = modelo != null ? modelo.getFamilia() : null;
+        var linea = familia != null ? familia.getLinea() : null;
 
         return ProductoResponseDTO.builder()
             .id(producto.getId())
             .sku(producto.getSku())
             .nombre(producto.getNombre())
             .descripcion(producto.getDescripcion())
-            .modeloId(producto.getModelo() != null ? producto.getModelo().getId() : null)
-            .modeloNombre(producto.getModelo() != null ? producto.getModelo().getNombre() : null)
+            .modeloId(modelo != null ? modelo.getId() : null)
+            .modeloNombre(modelo != null ? modelo.getNombre() : null)
+            .modeloUrlImagen(modelo != null ? modelo.getUrlImagen() : null)
+            .familiaId(familia != null ? familia.getId() : null)
+            .familiaNombre(familia != null ? familia.getNombre() : null)
+            .lineaId(linea != null ? linea.getId() : null)
+            .lineaNombre(linea != null ? linea.getNombre() : null)
             .nivelId(producto.getNivel() != null ? producto.getNivel().getId() : null)
             .nivelNombre(producto.getNivel() != null ? producto.getNivel().getNombre() : null)
             .colorId(producto.getColor() != null ? producto.getColor().getId() : null)
@@ -557,24 +538,6 @@ public class ProductoService {
 
     private String nvl(String value) {
         return value == null ? "" : value;
-    }
-
-    private DistribucionCostoResponseDTO mapToDistribucionCostoDTO(DistribucionCostoModel distribucion) {
-        return DistribucionCostoResponseDTO.builder()
-                .id(distribucion.getId())
-                .costoIndirectoId(distribucion.getCostoIndirecto() != null ? distribucion.getCostoIndirecto().getId() : null)
-                .costoIndirectoCodigo(distribucion.getCostoIndirecto() != null ? distribucion.getCostoIndirecto().getCodigo() : null)
-                .costoIndirectoNombre(distribucion.getCostoIndirecto() != null ? distribucion.getCostoIndirecto().getNombre() : null)
-                .productoId(distribucion.getProducto() != null ? distribucion.getProducto().getId() : null)
-                .productoSku(distribucion.getProducto() != null ? distribucion.getProducto().getSku() : null)
-                .productoNombre(distribucion.getProducto() != null ? distribucion.getProducto().getNombre() : null)
-                .anio(distribucion.getAnio())
-                .mes(distribucion.getMes())
-                .montoAsignado(distribucion.getMontoAsignado())
-                .porcentajeParticipacion(distribucion.getPorcentajeParticipacion())
-                .baseCalculo(distribucion.getBaseCalculo())
-                .fechaRegistro(distribucion.getFechaRegistro())
-                .build();
     }
 
     private String generarSkuProducto(ModeloModel modelo, NivelModel nivel, ColorModel color) {

@@ -23,11 +23,25 @@ public interface ImagenRepository extends JpaRepository<ImagenModel, Long> {
     List<ImagenModel> findByProductoIdOrderByOrdenAsc(Long productoId);
     
     Optional<ImagenModel> findByProductoIdAndEsPrincipalTrue(Long productoId);
+
+    @Query("SELECT i FROM ImagenModel i WHERE i.producto.modelo.id = :modeloId AND i.producto.color.id = :colorId ORDER BY i.orden ASC, i.id ASC")
+    List<ImagenModel> findByModeloIdAndColorIdOrderByOrdenAsc(@Param("modeloId") Long modeloId, @Param("colorId") Long colorId);
+
+    @Query("SELECT i FROM ImagenModel i WHERE i.producto.modelo.id = :modeloId AND i.producto.color.id = :colorId AND i.esPrincipal = true ORDER BY i.orden ASC, i.id ASC")
+    List<ImagenModel> findPrincipalesByModeloIdAndColorId(@Param("modeloId") Long modeloId, @Param("colorId") Long colorId);
     
     @Modifying
     @Transactional
     @Query("UPDATE ImagenModel i SET i.esPrincipal = false WHERE i.producto.id = :productoId")
     void resetPrincipalFlag(@Param("productoId") Long productoId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE ImagenModel i SET i.esPrincipal = false WHERE i.producto.modelo.id = :modeloId AND i.producto.color.id = :colorId")
+    void resetPrincipalFlagByModeloIdAndColorId(@Param("modeloId") Long modeloId, @Param("colorId") Long colorId);
     
     long countByProductoId(Long productoId);
+
+    @Query("SELECT COUNT(i) FROM ImagenModel i WHERE i.producto.modelo.id = :modeloId AND i.producto.color.id = :colorId")
+    long countByModeloIdAndColorId(@Param("modeloId") Long modeloId, @Param("colorId") Long colorId);
 }

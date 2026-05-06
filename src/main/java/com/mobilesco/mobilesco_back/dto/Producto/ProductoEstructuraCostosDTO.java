@@ -2,7 +2,6 @@ package com.mobilesco.mobilesco_back.dto.Producto;
 
 import java.util.List;
 
-import com.mobilesco.mobilesco_back.dto.DistribucionCosto.DistribucionCostoResponseDTO;
 import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionResponseDTO;
 
 import lombok.AllArgsConstructor;
@@ -31,5 +30,4 @@ public class ProductoEstructuraCostosDTO {
 
     private List<ProductoInsumoResponseDTO> insumos;
     private List<ProductoOperacionResponseDTO> operaciones;
-    private List<DistribucionCostoResponseDTO> costosIndirectos;
 }

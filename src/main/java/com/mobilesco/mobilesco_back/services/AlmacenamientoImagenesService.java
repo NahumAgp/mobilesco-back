@@ -89,4 +89,26 @@ public class AlmacenamientoImagenesService {
 
         return "/uploads/productos/catalogo/" + productoId + "/" + destinoJpg.getFileName().toString();
     }
+
+    public String guardarImagenModelo(Long modeloId, MultipartFile archivo) throws IOException {
+        validarArchivoImagen(archivo);
+
+        Path carpeta = Paths.get(uploadsDir, "modelos", modeloId.toString());
+        Files.createDirectories(carpeta);
+
+        String nombre = UUID.randomUUID().toString();
+        Path destinoJpg = carpeta.resolve(nombre + ".jpg");
+
+        BufferedImage img = ImageIO.read(archivo.getInputStream());
+        if (img == null) {
+            throw new IllegalArgumentException("El archivo no es una imagen valida o no es compatible.");
+        }
+
+        Thumbnails.of(img)
+                .scale(1.0)
+                .outputFormat("jpg")
+                .toFile(destinoJpg.toFile());
+
+        return "/uploads/modelos/" + modeloId + "/" + destinoJpg.getFileName().toString();
+    }
 }

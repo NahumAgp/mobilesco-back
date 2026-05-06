@@ -28,6 +28,12 @@ public class ProductoResponseDTO {
     @JsonProperty("nombre_modelo")
     private String modeloNombre;
 
+    private String modeloUrlImagen;
+    private Long familiaId;
+    private String familiaNombre;
+    private Long lineaId;
+    private String lineaNombre;
+
     @JsonProperty("id_nivel")
     private Long nivelId;
 

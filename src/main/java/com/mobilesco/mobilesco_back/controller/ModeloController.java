@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
@@ -94,6 +95,18 @@ public class ModeloController {
             @PathVariable Long id,
             @Valid @RequestBody ModeloUpdateDTO dto) {
         return ResponseEntity.ok(modeloService.actualizar(id, dto));
+    }
+
+    @PostMapping(value = "/{id}/imagen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ModeloResponseDTO> subirImagen(
+            @PathVariable Long id,
+            @RequestParam("archivo") MultipartFile archivo) {
+        return ResponseEntity.ok(modeloService.actualizarImagen(id, archivo));
+    }
+
+    @DeleteMapping("/{id}/imagen")
+    public ResponseEntity<ModeloResponseDTO> eliminarImagen(@PathVariable Long id) {
+        return ResponseEntity.ok(modeloService.eliminarImagen(id));
     }
 
     @PatchMapping("/{id}/activar")

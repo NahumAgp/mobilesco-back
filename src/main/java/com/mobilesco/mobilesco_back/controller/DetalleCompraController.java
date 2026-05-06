@@ -1,5 +1,6 @@
 package com.mobilesco.mobilesco_back.controller;
 
+import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.Compra.DetalleCompraCreateDTO;
 import com.mobilesco.mobilesco_back.dto.Compra.DetalleCompraResponseDTO;
 import com.mobilesco.mobilesco_back.dto.Compra.DetalleCompraUpdateDTO;
@@ -16,7 +17,7 @@ import java.util.List;
 
 @Tag(name = "Detalles de Compra", description = "Gestión de detalles de compras de insumos")
 @RestController
-@RequestMapping("/api/detalles-compra")
+@RequestMapping(ApiPaths.DETALLES_COMPRA)
 @RequiredArgsConstructor
 public class DetalleCompraController {
 

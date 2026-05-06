@@ -28,8 +28,6 @@ public final class ApiPaths {
     public static final String IMAGENES = API_VERSION + "/imagenes";
     
     public static final String CATEGORIA = API_VERSION + "/categorias";//pendiente: Ver si se queda o se integra en LineaProducto|
-    public static final String TIPO_PRODUCTO = API_VERSION + "/tipos-producto";//quitar
-
     public static final String INSUMOS = API_VERSION + "/insumos";
 
     public static final String CENTRO_TRABAJO = API_VERSION + "/centros-trabajo";
@@ -38,6 +36,8 @@ public final class ApiPaths {
     public static final String PRODUCTO_OPERACION = API_VERSION + "producto-operaciones";
 
     public static final String COMPRAS = API_VERSION + "/compras";
+    public static final String DETALLES_COMPRA = API_VERSION + "/detalles-compra";
+    public static final String KARDEX = API_VERSION + "/kardex";
     
     public static final String PRODUCTOS = API_VERSION + "/productos";
     public static final String CLIENTES = API_VERSION + "/clientes";
