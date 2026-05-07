@@ -41,6 +41,9 @@ public class InsumoModel {
     @Column(name = "codigo", nullable = false, length = 150)
     private String codigo;
 
+    @Column(name = "codigo_barras", unique = true, length = 13)
+    private String codigoBarras;
+
     @Column(name = "nombre", nullable = false, length = 150)
     private String nombre;
 

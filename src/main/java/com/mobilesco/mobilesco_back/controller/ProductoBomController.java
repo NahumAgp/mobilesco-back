@@ -50,7 +50,7 @@ public class ProductoBomController {
     @PostMapping("/insumos/masivo")
     public ResponseEntity<List<ProductoInsumoResponseDTO>> agregarInsumosMasivo(
             @PathVariable Long productoId,
-            @Valid @RequestBody List<ProductoInsumoCreateDTO> insumos) {
+            @RequestBody List<@Valid ProductoInsumoCreateDTO> insumos) {
         return ResponseEntity.ok(productoInsumoService.agregarInsumosMasivo(productoId, insumos));
     }
 
@@ -78,7 +78,7 @@ public class ProductoBomController {
     @PostMapping("/operaciones/masivo")
     public ResponseEntity<List<ProductoOperacionResponseDTO>> agregarOperacionesMasivo(
             @PathVariable Long productoId,
-            @Valid @RequestBody List<ProductoOperacionCreateDTO> operaciones) {
+            @RequestBody List<@Valid ProductoOperacionCreateDTO> operaciones) {
         return ResponseEntity.ok(productoOperacionService.agregarOperacionesMasivo(productoId, operaciones));
     }
 

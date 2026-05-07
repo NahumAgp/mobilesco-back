@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class InsumoResponseDTO {
     private Long id;
     private String codigo;
+    private String codigoBarras;
     private String nombre;
     private String descripcion;
     

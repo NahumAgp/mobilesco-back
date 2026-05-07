@@ -2,7 +2,9 @@ package com.mobilesco.mobilesco_back.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,8 +57,33 @@ public class InsumoController {
 
     @Operation(summary = "Listar todos los insumos")
     @GetMapping
-    public ResponseEntity<List<InsumoResponseDTO>> listar() {
+    public ResponseEntity<?> listar(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        if (page != null) {
+            return ResponseEntity.ok(insumoService.listarPaginado(page, size, sortBy, direction));
+        }
+
         return ResponseEntity.ok(insumoService.listar());
+    }
+
+    @Operation(summary = "Exportar insumos a Excel")
+    @GetMapping("/reporte/excel")
+    public ResponseEntity<byte[]> exportarExcel(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) Boolean stockBajo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        byte[] excel = insumoService.generarReporteExcel(activo, stockBajo, busqueda, sortBy, direction);
+        String filename = "insumos.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
     }
 
     @Operation(summary = "Listar solo insumos activos")
