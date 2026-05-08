@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.mobilesco.mobilesco_back.models.UsuarioModel;
+import com.mobilesco.mobilesco_back.models.EstadoCuentaUsuario;
 import com.mobilesco.mobilesco_back.repositories.UsuarioRepository;
 
 @Service
@@ -29,11 +30,20 @@ public class CustomUserDetailsService implements UserDetailsService {
         UsuarioModel user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
+        EstadoCuentaUsuario estado = user.getEstadoCuenta();
+        if (estado == null) {
+            estado = user.isEnabled() && !user.isLocked()
+                    ? EstadoCuentaUsuario.ACTIVE
+                    : EstadoCuentaUsuario.PENDING;
+        }
+        if (estado != EstadoCuentaUsuario.ACTIVE) {
+            throw new LockedException("Cuenta pendiente de aprobacion");
+        }
         if (!user.isEnabled()) {
-            throw new DisabledException("Usuario deshabilitado");
+            throw new DisabledException("Cuenta deshabilitada");
         }
         if (user.isLocked()) {
-            throw new LockedException("Usuario bloqueado");
+            throw new LockedException("Cuenta bloqueada");
         }
 
         // Convertimos roles de la BD a "authorities" que entiende Spring

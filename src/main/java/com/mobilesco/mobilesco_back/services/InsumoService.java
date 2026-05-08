@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -83,8 +84,10 @@ public class InsumoService {
             }
         }
 
-        // Actualizar campos
-        insumo.setCodigo(dto.getCodigo());
+        // El codigo queda administrado por el backend; si viene uno nuevo, se respeta.
+        if (dto.getCodigo() != null && !dto.getCodigo().isBlank()) {
+            insumo.setCodigo(dto.getCodigo().trim());
+        }
         insumo.setNombre(dto.getNombre());
         insumo.setDescripcion(dto.getDescripcion());
         insumo.setUbicacion(dto.getUbicacion());
@@ -138,9 +141,19 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         stockMinimo = 0.0;  // Usar Double, no int
     }
 
+    Double stockActual = dto.getStockActual();
+    if (stockActual == null) {
+        stockActual = 0.0;
+    }
+
+    String codigoInicial = dto.getCodigo();
+    if (codigoInicial == null || codigoInicial.isBlank()) {
+        codigoInicial = generarCodigoTemporal();
+    }
+
     // Crear entidad
     InsumoModel insumo = InsumoModel.builder()
-            .codigo(dto.getCodigo())
+            .codigo(codigoInicial.trim())
             .nombre(dto.getNombre())
             .descripcion(dto.getDescripcion())
             .ubicacion(dto.getUbicacion())
@@ -148,12 +161,13 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
             .columna(dto.getColumna())
             .unidadMedida(unidadMedida)
             .stockMinimo(stockMinimo)  // ✅ Ya es Double, no hay unboxing
-            .stockActual(0.0)           // ✅ Double literal
+            .stockActual(stockActual)
             .activo(true)                // ✅ Boolean literal
             .build();
 
     InsumoModel saved = insumoRepository.save(insumo);
     saved.setCodigoBarras(generarCodigoBarras(saved.getId()));
+    saved.setCodigo(saved.getCodigoBarras());
     saved = insumoRepository.save(saved);
     log.info("Insumo creado con ID: {}", saved.getId());
     
@@ -335,6 +349,10 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         long valor = id == null ? 0L : Math.floorMod(id, 1_000_000_000L);
         String base = "750" + String.format("%09d", valor);
         return base + calcularDigitoVerificadorEan13(base);
+    }
+
+    private String generarCodigoTemporal() {
+        return "INS-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20).toUpperCase(Locale.ROOT);
     }
 
     private int calcularDigitoVerificadorEan13(String base12) {

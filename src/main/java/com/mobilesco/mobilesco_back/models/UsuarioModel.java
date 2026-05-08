@@ -14,6 +14,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Table;
 
 @Entity
@@ -39,7 +41,33 @@ public class UsuarioModel {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
-   @ManyToMany(fetch = FetchType.EAGER)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false, length = 20)
+    private EstadoCuentaUsuario estadoCuenta = EstadoCuentaUsuario.PENDING;
+
+    @Column(name = "approved_by_director")
+    private String approvedByDirector;
+
+    @Column(name = "approved_by_director_email")
+    private String approvedByDirectorEmail;
+
+    @Column(name = "approved_by_director_at")
+    private LocalDateTime approvedByDirectorAt;
+
+    @Column(name = "approved_by_dev")
+    private String approvedByDev;
+
+    @Column(name = "approved_by_dev_email")
+    private String approvedByDevEmail;
+
+    @Column(name = "approved_by_dev_at")
+    private LocalDateTime approvedByDevAt;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "invitacion_id", unique = true)
+    private InvitacionUsuarioModel invitacion;
+
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "user_roles",
         joinColumns = @JoinColumn(name = "user_id"),
@@ -76,6 +104,30 @@ public class UsuarioModel {
 
     public LocalDateTime getLastLoginAt() { return lastLoginAt; }
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
+
+    public EstadoCuentaUsuario getEstadoCuenta() { return estadoCuenta; }
+    public void setEstadoCuenta(EstadoCuentaUsuario estadoCuenta) { this.estadoCuenta = estadoCuenta; }
+
+    public String getApprovedByDirector() { return approvedByDirector; }
+    public void setApprovedByDirector(String approvedByDirector) { this.approvedByDirector = approvedByDirector; }
+
+    public String getApprovedByDirectorEmail() { return approvedByDirectorEmail; }
+    public void setApprovedByDirectorEmail(String approvedByDirectorEmail) { this.approvedByDirectorEmail = approvedByDirectorEmail; }
+
+    public LocalDateTime getApprovedByDirectorAt() { return approvedByDirectorAt; }
+    public void setApprovedByDirectorAt(LocalDateTime approvedByDirectorAt) { this.approvedByDirectorAt = approvedByDirectorAt; }
+
+    public String getApprovedByDev() { return approvedByDev; }
+    public void setApprovedByDev(String approvedByDev) { this.approvedByDev = approvedByDev; }
+
+    public String getApprovedByDevEmail() { return approvedByDevEmail; }
+    public void setApprovedByDevEmail(String approvedByDevEmail) { this.approvedByDevEmail = approvedByDevEmail; }
+
+    public LocalDateTime getApprovedByDevAt() { return approvedByDevAt; }
+    public void setApprovedByDevAt(LocalDateTime approvedByDevAt) { this.approvedByDevAt = approvedByDevAt; }
+
+    public InvitacionUsuarioModel getInvitacion() { return invitacion; }
+    public void setInvitacion(InvitacionUsuarioModel invitacion) { this.invitacion = invitacion; }
 
     public Set<RolModel> getRoles() { return roles; }
     public void setRoles(Set<RolModel> roles) { this.roles = roles; }

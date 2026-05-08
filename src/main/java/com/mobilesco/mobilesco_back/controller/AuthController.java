@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.mobilesco.mobilesco_back.auth.AuthService;
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.auth.MeResponseDTO;
+import com.mobilesco.mobilesco_back.dto.auth.RegistroInvitacionRequestDTO;
+import com.mobilesco.mobilesco_back.dto.auth.RegistroInvitacionResponseDTO;
+import com.mobilesco.mobilesco_back.auth.AccesoService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -20,9 +23,11 @@ import jakarta.validation.constraints.NotBlank;
 public class AuthController {
 
     private final AuthService authService;
+    private final AccesoService accesoService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, AccesoService accesoService) {
         this.authService = authService;
+        this.accesoService = accesoService;
     }
 
     public record LoginRequest(@NotBlank String email, @NotBlank String password) {}
@@ -32,6 +37,13 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthService.TokenPair> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request.email(), request.password()));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<RegistroInvitacionResponseDTO> register(
+            @Valid @RequestBody RegistroInvitacionRequestDTO request
+    ) {
+        return ResponseEntity.status(201).body(accesoService.registrar(request));
     }
 
     @PostMapping("/refresh")

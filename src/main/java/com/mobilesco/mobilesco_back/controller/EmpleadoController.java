@@ -81,7 +81,7 @@ public class EmpleadoController {
     // 🔹 ACTUALIZAR
     // =====================================================
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar empleado")
     public ResponseEntity<EmpleadoResponseDTO> actualizar(

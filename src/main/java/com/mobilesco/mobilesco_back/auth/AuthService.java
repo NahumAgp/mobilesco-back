@@ -1,5 +1,8 @@
 package com.mobilesco.mobilesco_back.auth;
 
+import java.time.LocalDateTime;
+import java.util.Locale;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -31,12 +34,17 @@ public class AuthService {
     }
 
     public TokenPair login(String email, String password) {
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, password)
+                new UsernamePasswordAuthenticationToken(normalizedEmail, password)
         );
 
-        UsuarioModel user = userRepository.findByEmail(email)
+        UsuarioModel user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
 
         String access = jwtService.generateAccessToken(user);
         String refresh = refreshTokenService.issue(user);

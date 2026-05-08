@@ -47,7 +47,7 @@ public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthF
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+            .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/register").permitAll()
             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
             .requestMatchers("/uploads/**").permitAll()
             //.requestMatchers("/api/v1/proveedores/**").permitAll()

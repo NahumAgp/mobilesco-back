@@ -2,6 +2,7 @@ package com.mobilesco.mobilesco_back.config;
 
 import java.time.LocalDate;
 import java.util.Set;
+import java.util.List;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -43,6 +44,24 @@ public class DataSeeder {
                 r.setName("EMPLOYEE");
                 return roleRepo.save(r);
             });
+
+            List.of(
+                    "DIRECTOR_GENERAL",
+                    "SUBDIRECCION_ADMINISTRATIVA",
+                    "ASISTENTE_GERENCIAL",
+                    "SUPERVISOR_PRODUCCION",
+                    "JEFE_HERRERIA",
+                    "JEFE_CARPINTERIA",
+                    "JEFE_ARMADO",
+                    "JEFE_ALMACEN",
+                    "JEFE_LOGISTICA",
+                    "TECNICO",
+                    "AYUDANTE_GENERAL"
+            ).forEach(nombreRol -> roleRepo.findByName(nombreRol).orElseGet(() -> {
+                RolModel r = new RolModel();
+                r.setName(nombreRol);
+                return roleRepo.save(r);
+            }));
 
             // ===============================
             // 2️⃣ Crear empleado
@@ -87,6 +106,7 @@ public class DataSeeder {
 
                 u.setEnabled(true);
                 u.setLocked(false);
+                u.setEstadoCuenta(com.mobilesco.mobilesco_back.models.EstadoCuentaUsuario.ACTIVE);
 
                 // relación con empleado
                 u.setEmpleado(empleado);
@@ -99,6 +119,15 @@ public class DataSeeder {
                 System.out.println("✅ Usuario creado: " + email + " / Admin123!");
 
             } else {
+
+                userRepo.findByEmail(email).ifPresent(u -> {
+                    if (u.getEstadoCuenta() == null) {
+                        u.setEstadoCuenta(com.mobilesco.mobilesco_back.models.EstadoCuentaUsuario.ACTIVE);
+                        u.setEnabled(true);
+                        u.setLocked(false);
+                        userRepo.save(u);
+                    }
+                });
 
                 System.out.println("ℹ️ Usuario ya existe: " + email);
 

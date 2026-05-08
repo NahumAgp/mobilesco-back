@@ -7,6 +7,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.mobilesco.mobilesco_back.dto.Empleado.EmpleadoCreateDTO;
 import com.mobilesco.mobilesco_back.dto.Empleado.EmpleadoResponseDTO;
@@ -14,6 +16,7 @@ import com.mobilesco.mobilesco_back.dto.Empleado.EmpleadoUpdateDTO;
 import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.models.EmpleadoModel;
+import com.mobilesco.mobilesco_back.models.EstadoCuentaUsuario;
 import com.mobilesco.mobilesco_back.models.RolModel;
 import com.mobilesco.mobilesco_back.models.UsuarioModel;
 import com.mobilesco.mobilesco_back.repositories.EmpleadoRepository;
@@ -110,8 +113,9 @@ public class EmpleadoService {
             UsuarioModel user = new UsuarioModel();
             user.setEmail(dto.getEmail());
             user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-            user.setEnabled(true);
-            user.setLocked(false);
+            user.setEnabled(false);
+            user.setLocked(true);
+            user.setEstadoCuenta(EstadoCuentaUsuario.PENDING);
             user.setEmpleado(empleadoGuardado);
             user.setRoles(Set.of(rolEmpleado));
 
@@ -197,6 +201,11 @@ public class EmpleadoService {
         EmpleadoModel existente = empleadoRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Empleado no encontrado"));
 
+        UsuarioModel usuarioActual = obtenerUsuarioActual();
+        if (!puedeEditarEmpleado(usuarioActual, existente)) {
+            throw new BadRequestException("No tienes permisos para editar este empleado.");
+        }
+
         existente.setNombre(dto.getNombre());
         existente.setApellidoPaterno(dto.getApellidoPaterno());
         existente.setApellidoMaterno(dto.getApellidoMaterno());
@@ -227,8 +236,9 @@ public class EmpleadoService {
             UsuarioModel nuevoUsuario = new UsuarioModel();
             nuevoUsuario.setEmail(dto.getEmail());
             nuevoUsuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-            nuevoUsuario.setEnabled(true);
-            nuevoUsuario.setLocked(false);
+            nuevoUsuario.setEnabled(false);
+            nuevoUsuario.setLocked(true);
+            nuevoUsuario.setEstadoCuenta(EstadoCuentaUsuario.PENDING);
             nuevoUsuario.setEmpleado(guardado);
             nuevoUsuario.setRoles(Set.of(rolEmpleado));
 
@@ -256,6 +266,35 @@ public class EmpleadoService {
         }
 
         return mapToResponseDTO(guardado);
+    }
+
+    private UsuarioModel obtenerUsuarioActual() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new BadRequestException("No se pudo identificar al usuario autenticado.");
+        }
+
+        return userRepository.findOneByEmail(authentication.getName())
+                .orElseThrow(() -> new BadRequestException("Usuario autenticado no encontrado."));
+    }
+
+    private boolean puedeEditarEmpleado(UsuarioModel usuarioActual, EmpleadoModel empleadoObjetivo) {
+        if (usuarioActual == null) {
+            return false;
+        }
+
+        boolean esAdmin = usuarioActual.getRoles().stream()
+                .map(RolModel::getName)
+                .anyMatch(rol -> "ADMIN".equals(rol));
+
+        if (esAdmin) {
+            return true;
+        }
+
+        EmpleadoModel empleadoPropio = usuarioActual.getEmpleado();
+        return empleadoPropio != null
+                && empleadoPropio.getId() != null
+                && empleadoPropio.getId().equals(empleadoObjetivo.getId());
     }
 
     // =====================================================

@@ -18,7 +18,7 @@ public class EmpleadoUpdateDTO {
     private String apellidoMaterno;
 
     @Pattern(
-        regexp = "^[0-9]{10}$",
+        regexp = "^$|^[0-9]{10}$",
         message = "El teléfono debe contener exactamente 10 dígitos numéricos"
     )
     private String telefono;

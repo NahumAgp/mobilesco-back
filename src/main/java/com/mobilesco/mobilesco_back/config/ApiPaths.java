@@ -15,6 +15,10 @@ public final class ApiPaths {
     // 🔹 DOMINIOS
     // =============================
     public static final String AUTH = API_VERSION + "/auth";
+    public static final String AUTH_REGISTER = AUTH + "/register";
+    public static final String AUTH_ROLES = AUTH + "/roles";
+    public static final String AUTH_INVITACIONES = AUTH + "/invitaciones";
+    public static final String AUTH_PENDIENTES = AUTH + "/usuarios-pendientes";
     public static final String EMPLEADOS = API_VERSION + "/empleados"; 
     public static final String PROVEEDORES = API_VERSION + "/proveedores";
     public static final String UNIDADES_MEDIDA = API_VERSION + "/unidades-medida";
@@ -37,6 +41,7 @@ public final class ApiPaths {
 
     public static final String COMPRAS = API_VERSION + "/compras";
     public static final String DETALLES_COMPRA = API_VERSION + "/detalles-compra";
+    public static final String SALIDAS_INSUMOS = API_VERSION + "/salidas-insumos";
     public static final String KARDEX = API_VERSION + "/kardex";
     
     public static final String PRODUCTOS = API_VERSION + "/productos";

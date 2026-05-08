@@ -1,6 +1,5 @@
 package com.mobilesco.mobilesco_back.dto.Insumo;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -8,11 +7,9 @@ import lombok.Data;
 @Data
 public class InsumoUpdateDTO {
     
-    @NotBlank(message= "El Codigo es obligatorio")
     @Size(max = 150, message = "El codigo no puede exceder 150 caracteres")
     private String codigo;
 
-    @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 150, message = "El nombre no puede exceder 150 caracteres")
     private String nombre;
     

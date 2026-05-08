@@ -33,7 +33,7 @@ public class EmpleadoMeFotoController {
      * POST /api/v1/empleados/me/foto
      * form-data: archivo (file)
      */
-    @PreAuthorize("hasAnyRole('ADMIN','EMPLOYEE')") // si quieres: solo EMPLEADO, deja ('EMPLEADO')
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/me/foto")
     @Operation(summary = "Subir/reemplazar mi foto (EMPLEADO)")
     public ResponseEntity<?> subirMiFoto(

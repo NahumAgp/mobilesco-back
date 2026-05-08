@@ -54,7 +54,7 @@ public class MovimientoInsumoModel {
     @Column(name = "costo_total", nullable = false)
     private Double costoTotal;
 
-    @Column(name = "documento", length = 50) // N° Factura, N° Orden, etc.
+    @Column(name = "documento", length = 100) // N° Factura, N° Orden, etc.
     private String documento;
 
     @Column(name = "referencia", length = 100) // ID de compra, ID de producción, etc.
