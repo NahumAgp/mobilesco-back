@@ -15,7 +15,13 @@ public class CorsConfig {
       public void addCorsMappings(CorsRegistry registry) {
         // Permite acceso desde el frontend en localhost:4200
         registry.addMapping("/**")  // Aplica para todas las rutas
-          .allowedOrigins("http://localhost:5173", "http://localhost:3000", "https://mobilesco.cloud") // URL de tu frontend
+          .allowedOrigins(
+              "http://localhost:5173",
+              "http://localhost:3000",
+              "http://localhost",
+              "https://mobilesco.cloud",
+              "https://www.mobilesco.cloud"
+          ) // URL de tu frontend
           .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
           .allowedHeaders("*")
           .allowCredentials(true);

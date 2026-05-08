@@ -26,7 +26,9 @@ public CorsConfigurationSource corsConfigurationSource() {
         "http://localhost",
         "http://localhost:8081",
         "http://localhost:5173",
-        "http://localhost:80"
+        "http://localhost:80",
+        "https://mobilesco.cloud",
+        "https://www.mobilesco.cloud"
     ));
 
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
