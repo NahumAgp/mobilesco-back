@@ -7,9 +7,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +18,6 @@ import com.mobilesco.mobilesco_back.dto.auth.UsuarioPendienteResponseDTO;
 import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.models.EstadoCuentaUsuario;
-import com.mobilesco.mobilesco_back.models.EstadoInvitacionUsuario;
 import com.mobilesco.mobilesco_back.models.EmpleadoModel;
 import com.mobilesco.mobilesco_back.models.InvitacionUsuarioModel;
 import com.mobilesco.mobilesco_back.models.RolModel;

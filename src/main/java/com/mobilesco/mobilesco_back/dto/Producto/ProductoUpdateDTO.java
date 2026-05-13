@@ -29,5 +29,72 @@ public class ProductoUpdateDTO {
     @JsonProperty("id_color")
     private Long colorId;
 
+    @JsonProperty("id_material")
+    private Long materialId;
+
     private Boolean activo;
+
+    public String getSku() {
+        return sku;
+    }
+
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public Long getModeloId() {
+        return modeloId;
+    }
+
+    public void setModeloId(Long modeloId) {
+        this.modeloId = modeloId;
+    }
+
+    public Long getNivelId() {
+        return nivelId;
+    }
+
+    public void setNivelId(Long nivelId) {
+        this.nivelId = nivelId;
+    }
+
+    public Long getColorId() {
+        return colorId;
+    }
+
+    public void setColorId(Long colorId) {
+        this.colorId = colorId;
+    }
+
+    public Long getMaterialId() {
+        return materialId;
+    }
+
+    public void setMaterialId(Long materialId) {
+        this.materialId = materialId;
+    }
+
+    public Boolean getActivo() {
+        return activo;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
+    }
 }

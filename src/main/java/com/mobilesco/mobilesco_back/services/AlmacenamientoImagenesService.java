@@ -40,9 +40,9 @@ public class AlmacenamientoImagenesService {
             throw new IllegalArgumentException("Tipo no permitido. Sube JPG, PNG o WEBP.");
         }
 
-        long maxBytes = 5L * 1024 * 1024;
+        long maxBytes = 20L * 1024 * 1024;
         if (archivo.getSize() > maxBytes) {
-            throw new IllegalArgumentException("La imagen supera el maximo permitido (5MB).");
+            throw new IllegalArgumentException("La imagen supera el maximo permitido (20MB).");
         }
     }
 

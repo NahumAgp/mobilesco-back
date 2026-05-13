@@ -72,6 +72,11 @@ public class ModeloController {
                 .body(excel);
     }
 
+    @GetMapping("/activos")
+    public ResponseEntity<List<ModeloResponseDTO>> obtenerActivos() {
+        return ResponseEntity.ok(modeloService.obtenerActivos());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ModeloResponseDTO> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(modeloService.obtenerPorId(id));

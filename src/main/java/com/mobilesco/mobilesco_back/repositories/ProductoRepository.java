@@ -33,17 +33,21 @@ public interface ProductoRepository extends JpaRepository<ProductoModel, Long> {
 
     boolean existsByColorId(Long colorId);
 
+    boolean existsByMaterialId(Long materialId);
+
     @Query("SELECT p FROM ProductoModel p WHERE " +
            "(:sku IS NULL OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :sku, '%'))) AND " +
            "(:nombre IS NULL OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) AND " +
            "(:modeloId IS NULL OR p.modelo.id = :modeloId) AND " +
            "(:nivelId IS NULL OR p.nivel.id = :nivelId) AND " +
-           "(:colorId IS NULL OR p.color.id = :colorId)")
+           "(:colorId IS NULL OR p.color.id = :colorId) AND " +
+           "(:materialId IS NULL OR p.material.id = :materialId)")
     List<ProductoModel> buscarConFiltros(
             @Param("sku") String sku,
             @Param("nombre") String nombre,
             @Param("modeloId") Long modeloId,
             @Param("nivelId") Long nivelId,
-            @Param("colorId") Long colorId
+            @Param("colorId") Long colorId,
+            @Param("materialId") Long materialId
     );
 }

@@ -8,12 +8,10 @@ import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionRespo
 import com.mobilesco.mobilesco_back.dto.imagen.ImagenResponseDTO;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductoResponseDTO {
@@ -46,6 +44,12 @@ public class ProductoResponseDTO {
     @JsonProperty("nombre_color")
     private String colorNombre;
 
+    @JsonProperty("id_material")
+    private Long materialId;
+
+    @JsonProperty("nombre_material")
+    private String materialNombre;
+
     private Boolean activo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -55,4 +59,100 @@ public class ProductoResponseDTO {
 
     private List<ProductoInsumoResponseDTO> insumos;
     private List<ProductoOperacionResponseDTO> operaciones;
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public void setModeloId(Long modeloId) {
+        this.modeloId = modeloId;
+    }
+
+    public void setModeloNombre(String modeloNombre) {
+        this.modeloNombre = modeloNombre;
+    }
+
+    public void setModeloUrlImagen(String modeloUrlImagen) {
+        this.modeloUrlImagen = modeloUrlImagen;
+    }
+
+    public void setFamiliaId(Long familiaId) {
+        this.familiaId = familiaId;
+    }
+
+    public void setFamiliaNombre(String familiaNombre) {
+        this.familiaNombre = familiaNombre;
+    }
+
+    public void setLineaId(Long lineaId) {
+        this.lineaId = lineaId;
+    }
+
+    public void setLineaNombre(String lineaNombre) {
+        this.lineaNombre = lineaNombre;
+    }
+
+    public void setNivelId(Long nivelId) {
+        this.nivelId = nivelId;
+    }
+
+    public void setNivelNombre(String nivelNombre) {
+        this.nivelNombre = nivelNombre;
+    }
+
+    public void setColorId(Long colorId) {
+        this.colorId = colorId;
+    }
+
+    public void setColorNombre(String colorNombre) {
+        this.colorNombre = colorNombre;
+    }
+
+    public void setMaterialId(Long materialId) {
+        this.materialId = materialId;
+    }
+
+    public void setMaterialNombre(String materialNombre) {
+        this.materialNombre = materialNombre;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void setImagenPrincipal(ImagenResponseDTO imagenPrincipal) {
+        this.imagenPrincipal = imagenPrincipal;
+    }
+
+    public void setImagenes(List<ImagenResponseDTO> imagenes) {
+        this.imagenes = imagenes;
+    }
+
+    public void setInsumos(List<ProductoInsumoResponseDTO> insumos) {
+        this.insumos = insumos;
+    }
+
+    public void setOperaciones(List<ProductoOperacionResponseDTO> operaciones) {
+        this.operaciones = operaciones;
+    }
 }

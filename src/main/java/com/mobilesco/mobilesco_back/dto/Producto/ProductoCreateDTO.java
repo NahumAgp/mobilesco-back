@@ -32,5 +32,9 @@ public class ProductoCreateDTO {
     @JsonProperty("id_color")
     private Long colorId;
 
+    @NotNull(message = "El id_material es obligatorio")
+    @JsonProperty("id_material")
+    private Long materialId;
+
     private Boolean activo;
 }

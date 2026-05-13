@@ -129,6 +129,10 @@ public class ModeloService {
         return mapToResponseDTOList(modeloRepository.findAll());
     }
 
+    public List<ModeloResponseDTO> obtenerActivos() {
+        return mapToResponseDTOList(modeloRepository.findByActivo(true));
+    }
+
     @Transactional(readOnly = true)
     public byte[] generarReporteExcel(Boolean activo, String busqueda, String familia, String sortBy, String direction) {
         List<ModeloResponseDTO> modelos = mapToResponseDTOList(

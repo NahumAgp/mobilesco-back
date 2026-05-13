@@ -82,6 +82,11 @@ public class FamiliaController {
     public ResponseEntity<List<FamiliaResponseDTO>> obtenerActivos() {
         return ResponseEntity.ok(familiaService.obtenerActivos());
     }
+
+    @GetMapping("/activas")
+    public ResponseEntity<List<FamiliaResponseDTO>> obtenerActivas() {
+        return ResponseEntity.ok(familiaService.obtenerActivos());
+    }
     
     @GetMapping("/{id}")
     public ResponseEntity<FamiliaResponseDTO> obtenerPorId(@PathVariable Long id) {

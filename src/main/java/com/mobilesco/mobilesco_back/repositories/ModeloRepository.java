@@ -17,6 +17,8 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
 
     List<ModeloModel> findByFamiliaId(Long familiaId);
 
+    List<ModeloModel> findByActivo(Boolean activo);
+
     boolean existsByFamiliaId(Long familiaId);
 
     boolean existsByCodigo(String codigo);
