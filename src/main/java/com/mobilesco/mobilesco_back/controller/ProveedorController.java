@@ -107,7 +107,7 @@ public class ProveedorController {  // ✅ Nombre correcto con 'e'
     // =====================================================
     // 🔹 CREAR
     // =====================================================
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')")
     @PostMapping
     public ResponseEntity<ProveedorResponseDTO> crear(
             @Valid @RequestBody ProveedorCreateDTO dto) {
