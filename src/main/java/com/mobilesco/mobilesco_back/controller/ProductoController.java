@@ -6,8 +6,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -107,9 +109,26 @@ public class ProductoController {
         return ResponseEntity.ok(productoService.actualizar(id, dto));
     }
 
-    @Operation(summary = "Eliminar producto")
+    @Operation(summary = "Desactivar producto")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        productoService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Activar producto")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL')")
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<Void> activar(@PathVariable Long id) {
+        productoService.activar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Eliminar producto definitivamente")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL')")
+    @DeleteMapping("/{id}/definitivo")
+    public ResponseEntity<Void> eliminarDefinitivo(@PathVariable Long id) {
         productoService.eliminarProducto(id);
         return ResponseEntity.noContent().build();
     }

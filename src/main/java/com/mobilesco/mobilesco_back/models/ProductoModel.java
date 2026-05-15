@@ -106,6 +106,14 @@ public class ProductoModel {
     @Builder.Default
     private List<ProductoInsumoModel> insumos = new ArrayList<>();
 
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProductoOperacionModel> operaciones = new ArrayList<>();
+
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ImagenModel> imagenes = new ArrayList<>();
+
     @PrePersist
     protected void prePersist() {
         LocalDateTime now = LocalDateTime.now();

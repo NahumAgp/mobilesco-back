@@ -219,6 +219,7 @@ public class ImagenService {
 
         ProductoModel productoGrupo = imagen.getProducto();
         boolean eraPrincipal = Boolean.TRUE.equals(imagen.getEsPrincipal());
+        eliminarArchivoImagen(imagen);
 
         imagenRepository.deleteById(id);
 
@@ -235,6 +236,30 @@ public class ImagenService {
     @Transactional
     public void eliminarTodasPorProducto(Long productoId) {
         List<ImagenModel> imagenes = obtenerImagenesDelGrupo(obtenerProducto(productoId));
+        imagenes.forEach(this::eliminarArchivoImagen);
         imagenRepository.deleteAll(imagenes);
+    }
+
+    public void eliminarArchivosFisicosPorProducto(Long productoId) {
+        List<ImagenModel> imagenes = imagenRepository.findByProductoId(productoId);
+        imagenes.forEach(this::eliminarArchivoImagen);
+
+        try {
+            almacenamientoImagenesService.eliminarCarpetaImagenesProducto(productoId);
+        } catch (IOException e) {
+            throw new BadRequestException("No se pudieron eliminar los archivos de imagen del producto.");
+        }
+    }
+
+    private void eliminarArchivoImagen(ImagenModel imagen) {
+        if (imagen == null || imagen.getUrl() == null || imagen.getUrl().isBlank()) {
+            return;
+        }
+
+        try {
+            almacenamientoImagenesService.eliminarImagenPublica(imagen.getUrl());
+        } catch (IOException e) {
+            throw new BadRequestException("No se pudo eliminar el archivo de imagen: " + imagen.getUrl());
+        }
     }
 }

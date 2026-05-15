@@ -367,6 +367,15 @@ public class ProductoService {
         productoRepository.save(producto);
     }
 
+    @Transactional
+    public void activar(Long id) {
+        ProductoModel producto = productoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+
+        producto.setActivo(true);
+        productoRepository.save(producto);
+    }
+
     @Transactional(readOnly = true)
     public Double calcularCostoProducto(Long productoId) {
         List<ProductoInsumoModel> insumos = productoInsumoRepository.findByProductoId(productoId);
@@ -510,11 +519,13 @@ public class ProductoService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public void eliminarProducto(Long id) {
-        if (!productoRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Producto no encontrado");
-        }
-        productoRepository.deleteById(id);
+        ProductoModel producto = productoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+
+        imagenService.eliminarArchivosFisicosPorProducto(id);
+        productoRepository.delete(producto);
     }
 
     private org.springframework.data.domain.Sort construirSortProductos(String sortBy, String direction) {

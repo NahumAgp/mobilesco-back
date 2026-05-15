@@ -2,9 +2,13 @@ package com.mobilesco.mobilesco_back.services;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -110,5 +114,78 @@ public class AlmacenamientoImagenesService {
                 .toFile(destinoJpg.toFile());
 
         return "/uploads/modelos/" + modeloId + "/" + destinoJpg.getFileName().toString();
+    }
+
+    public void eliminarImagenPublica(String urlPublica) throws IOException {
+        Path archivo = resolverRutaPublica(urlPublica);
+        if (archivo != null) {
+            Files.deleteIfExists(archivo);
+        }
+    }
+
+    public void eliminarCarpetaImagenesProducto(Long productoId) throws IOException {
+        if (productoId == null) {
+            return;
+        }
+
+        Path carpeta = uploadsRoot()
+                .resolve(Paths.get("productos", "catalogo", productoId.toString()))
+                .normalize();
+        validarRutaDentroDeUploads(carpeta);
+
+        if (!Files.exists(carpeta)) {
+            return;
+        }
+
+        try (var rutas = Files.walk(carpeta)) {
+            rutas.sorted(Comparator.reverseOrder())
+                    .forEach(ruta -> {
+                        try {
+                            Files.deleteIfExists(ruta);
+                        } catch (IOException e) {
+                            throw new RuntimeException("No se pudo eliminar la ruta: " + ruta, e);
+                        }
+                    });
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw e;
+        }
+    }
+
+    private Path resolverRutaPublica(String urlPublica) {
+        if (urlPublica == null || urlPublica.isBlank()) {
+            return null;
+        }
+
+        String path = urlPublica.trim();
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            path = URI.create(path).getPath();
+        }
+
+        String prefijo = "/uploads/";
+        if (path.startsWith(prefijo)) {
+            path = path.substring(prefijo.length());
+        } else if (path.startsWith("uploads/")) {
+            path = path.substring("uploads/".length());
+        } else {
+            return null;
+        }
+
+        String pathDecodificado = URLDecoder.decode(path, StandardCharsets.UTF_8);
+        Path archivo = uploadsRoot().resolve(pathDecodificado).normalize();
+        validarRutaDentroDeUploads(archivo);
+        return archivo;
+    }
+
+    private Path uploadsRoot() {
+        return Paths.get(uploadsDir).toAbsolutePath().normalize();
+    }
+
+    private void validarRutaDentroDeUploads(Path ruta) {
+        if (!ruta.startsWith(uploadsRoot())) {
+            throw new IllegalArgumentException("Ruta de imagen fuera del directorio de uploads.");
+        }
     }
 }
