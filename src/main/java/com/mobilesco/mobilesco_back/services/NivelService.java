@@ -28,7 +28,7 @@ import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.models.NivelModel;
 import com.mobilesco.mobilesco_back.repositories.NivelRepository;
-import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 
 @Service
 public class NivelService {

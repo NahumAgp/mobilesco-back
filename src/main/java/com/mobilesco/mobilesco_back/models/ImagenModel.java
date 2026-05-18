@@ -18,6 +18,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+
 @Entity
 @Getter
 @Setter

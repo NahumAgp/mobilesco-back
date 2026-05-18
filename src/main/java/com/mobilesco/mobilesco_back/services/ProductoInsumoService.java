@@ -7,16 +7,16 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.mobilesco.mobilesco_back.dto.Producto.ProductoInsumoCreateDTO;
-import com.mobilesco.mobilesco_back.dto.Producto.ProductoInsumoResponseDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoCreateDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.models.InsumoModel;
 import com.mobilesco.mobilesco_back.models.ProductoInsumoModel;
-import com.mobilesco.mobilesco_back.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.repositories.InsumoRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoInsumoRepository;
-import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

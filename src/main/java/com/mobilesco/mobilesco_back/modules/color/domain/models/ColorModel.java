@@ -1,0 +1,55 @@
+
+/*
+ * PATH (direccion): mobilesco-back/src/main/java/com/mobilesco/mobilesco_back/modules/color/domain/models/ColorModel.java
+ * AUTOR: Nahum Aguilar
+ * NOMBRE DE LA CLASE: ColorModel
+ * CONTEXTO: Entidad JPA del modulo Color para catalogo de colores.
+ * NOTAS: Conservar reglas de unicidad para codigo y nombre.
+ */
+package com.mobilesco.mobilesco_back.modules.color.domain.models;
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+
+@Entity
+@Getter
+@Setter
+@Table(name = "colores")
+public class ColorModel {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(unique = true, nullable = false, length = 10)
+    private String codigo;
+
+    @Column(unique = true, nullable = false, length = 30)
+    private String nombre;
+
+    @Column(length = 255)
+    private String descripcion;
+    
+    @Column(length = 7)
+    private String hex;
+    
+    @Column(name = "activo")
+    private Boolean activo = true;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+}

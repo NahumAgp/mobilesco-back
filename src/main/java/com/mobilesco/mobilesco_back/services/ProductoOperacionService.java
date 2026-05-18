@@ -11,11 +11,11 @@ import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionRespo
 import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.models.OperacionModel;
-import com.mobilesco.mobilesco_back.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.models.ProductoOperacionModel;
 import com.mobilesco.mobilesco_back.repositories.OperacionRepository;
 import com.mobilesco.mobilesco_back.repositories.ProductoOperacionRepository;
-import com.mobilesco.mobilesco_back.repositories.ProductoRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

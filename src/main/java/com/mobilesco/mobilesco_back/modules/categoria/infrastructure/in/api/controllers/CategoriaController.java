@@ -1,0 +1,110 @@
+/*
+ * PATH (direccion): mobilesco-back/src/main/java/com/mobilesco/mobilesco_back/modules/categoria/infrastructure/in/api/controllers/CategoriaController.java
+ * AUTOR: Nahum Aguilar
+ * NOMBRE DE LA CLASE: CategoriaController
+ * CONTEXTO: Adaptador de entrada HTTP: expone endpoints REST del modulo y delega en contratos de aplicacion.
+ * NOTAS: Mantener desacoplamiento por interfaces; evitar dependencias directas a implementaciones concretas.
+ */
+package com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.controllers;
+
+import java.util.List;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaCreateDTO;
+import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaResponseDTO;
+import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.categoria.application.usecases.CategoriaUseCase;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping(ApiPaths.CATEGORIA)
+@RequiredArgsConstructor
+public class CategoriaController {
+
+    private final CategoriaUseCase categoriaService;
+
+    @PostMapping
+    public ResponseEntity<CategoriaResponseDTO> crear(@Valid @RequestBody CategoriaCreateDTO dto) {
+        return new ResponseEntity<>(categoriaService.crear(dto), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CategoriaResponseDTO> actualizar(
+            @PathVariable Long id,
+            @Valid @RequestBody CategoriaUpdateDTO dto) {
+        return ResponseEntity.ok(categoriaService.actualizar(id, dto));
+    }
+
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<CategoriaResponseDTO> activar(@PathVariable Long id) {
+        return ResponseEntity.ok(categoriaService.activar(id));
+    }
+
+    @PatchMapping("/{id}/desactivar")
+    public ResponseEntity<CategoriaResponseDTO> desactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(categoriaService.desactivar(id));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoriaResponseDTO> obtener(@PathVariable Long id) {
+        return ResponseEntity.ok(categoriaService.obtenerPorId(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<CategoriaResponseDTO>> listar() {
+        return ResponseEntity.ok(categoriaService.listar());
+    }
+
+    @GetMapping("/reporte/excel")
+    public ResponseEntity<byte[]> exportarExcel(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        byte[] excel = categoriaService.generarReporteExcel(activo, busqueda, sortBy, direction);
+        String filename = "categorias.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
+    }
+
+    @GetMapping("/activos")
+    public ResponseEntity<List<CategoriaResponseDTO>> listarActivos() {
+        return ResponseEntity.ok(categoriaService.listarActivos());
+    }
+
+    @GetMapping("/buscar")
+    public ResponseEntity<List<CategoriaResponseDTO>> buscar(@RequestParam String nombre) {
+        return ResponseEntity.ok(categoriaService.buscar(nombre));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        categoriaService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+
+
+
+

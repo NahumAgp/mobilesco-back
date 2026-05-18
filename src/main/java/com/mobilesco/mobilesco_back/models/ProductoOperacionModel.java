@@ -20,6 +20,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+
 @Entity
 @Table(
     name = "producto_operacion",
