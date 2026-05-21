@@ -33,7 +33,6 @@ import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
 import com.mobilesco.mobilesco_back.modules.categoria.application.ports.CategoriaPersistencePort;
-import com.mobilesco.mobilesco_back.modules.categoria.application.usecases.CategoriaUseCase;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

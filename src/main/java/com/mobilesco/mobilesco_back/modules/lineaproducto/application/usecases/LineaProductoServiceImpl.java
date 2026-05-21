@@ -20,7 +20,6 @@ import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.lineaproducto.domain.models.LineaProductoModel;
 import com.mobilesco.mobilesco_back.modules.lineaproducto.application.ports.LineaProductoPersistencePort;
-import com.mobilesco.mobilesco_back.modules.lineaproducto.application.usecases.LineaProductoUseCase;
 
 import lombok.RequiredArgsConstructor;
 

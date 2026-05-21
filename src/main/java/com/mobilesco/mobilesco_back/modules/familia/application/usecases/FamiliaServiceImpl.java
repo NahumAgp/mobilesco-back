@@ -38,7 +38,6 @@ import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.familia.application.ports.FamiliaPersistencePort;
-import com.mobilesco.mobilesco_back.modules.familia.application.usecases.FamiliaUseCase;
 import com.mobilesco.mobilesco_back.modules.familia.application.ports.LineaLookupPort;
 import com.mobilesco.mobilesco_back.modules.familia.application.ports.ModeloFamiliaValidationPort;
 

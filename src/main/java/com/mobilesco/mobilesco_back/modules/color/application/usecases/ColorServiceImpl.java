@@ -19,7 +19,6 @@ import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
 import com.mobilesco.mobilesco_back.modules.color.application.ports.ColorPersistencePort;
-import com.mobilesco.mobilesco_back.modules.color.application.usecases.ColorUseCase;
 import com.mobilesco.mobilesco_back.modules.color.application.ports.ProductoColorValidationPort;
 
 @Service

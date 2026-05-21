@@ -35,8 +35,10 @@ import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
 import com.mobilesco.mobilesco_back.modules.lineaproducto.domain.models.LineaProductoModel;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
+import com.mobilesco.mobilesco_back.models.ImagenModel;
 import com.mobilesco.mobilesco_back.models.NivelModel;
 import com.mobilesco.mobilesco_back.models.ProductoInsumoModel;
+import com.mobilesco.mobilesco_back.models.ProductoOperacionModel;
 
 @Entity
 @Table(
