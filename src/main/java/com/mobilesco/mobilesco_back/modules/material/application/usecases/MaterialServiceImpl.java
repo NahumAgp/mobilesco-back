@@ -7,35 +7,26 @@
  */
 package com.mobilesco.mobilesco_back.modules.material.application.usecases;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
-import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
-import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.material.application.ports.MaterialPersistencePort;
 import com.mobilesco.mobilesco_back.modules.material.application.ports.ProductoValidationPort;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialCreateDTO;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialResponseDTO;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 
 @Service
@@ -172,49 +163,25 @@ public class MaterialServiceImpl implements MaterialUseCase {
                 .filter(material -> coincideBusqueda(material, busqueda))
                 .collect(Collectors.toList());
 
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Materiales");
+        String[] headers = {
+                "ID", "Codigo", "Nombre", "Descripcion", "Estado", "Fecha Registro", "Fecha Actualizacion"
+        };
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-
-            String[] headers = {
-                    "ID", "Codigo", "Nombre", "Descripcion", "Estado", "Fecha Registro", "Fecha Actualizacion"
-            };
-
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-
-            int rowIndex = 1;
-            for (MaterialResponseDTO material : filtrados) {
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(material.getId() != null ? material.getId() : 0L);
-                row.createCell(1).setCellValue(nvl(material.getCodigo()));
-                row.createCell(2).setCellValue(nvl(material.getNombre()));
-                row.createCell(3).setCellValue(nvl(material.getDescripcion()));
-                row.createCell(4).setCellValue(Boolean.TRUE.equals(material.getActivo()) ? "Activo" : "Inactivo");
-                row.createCell(5).setCellValue(
-                        material.getFechaRegistro() != null ? material.getFechaRegistro().toString() : "");
-                row.createCell(6).setCellValue(
-                        material.getFechaActualizacion() != null ? material.getFechaActualizacion().toString() : "");
-            }
-
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException("No se pudo generar el reporte de materiales", e);
-        }
+        return ExcelReportBuilder.generate(
+                "Materiales",
+                "Reporte de materiales",
+                headers,
+                filtrados.stream()
+                        .map(material -> new Object[] {
+                                material.getId() != null ? material.getId() : 0L,
+                                nvl(material.getCodigo()),
+                                nvl(material.getNombre()),
+                                nvl(material.getDescripcion()),
+                                Boolean.TRUE.equals(material.getActivo()) ? "Activo" : "Inactivo",
+                                material.getFechaRegistro() != null ? material.getFechaRegistro().toString() : "",
+                                material.getFechaActualizacion() != null ? material.getFechaActualizacion().toString() : ""
+                        })
+                        .collect(Collectors.toList()));
     }
 
     public List<MaterialResponseDTO> obtenerActivos() {

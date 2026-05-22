@@ -7,30 +7,21 @@
  */
 package com.mobilesco.mobilesco_back.modules.linea.application.usecases;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
-import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
-import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.linea.infrastructure.in.api.dtos.LineaCreateDTO;
@@ -141,47 +132,25 @@ public class LineaService {
                 .filter(linea -> coincideBusqueda(linea, busqueda))
                 .collect(Collectors.toList());
 
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Lineas");
+        String[] headers = {
+                "ID", "Codigo", "Nombre", "Descripcion", "Orden", "Estado", "Creada"
+        };
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-
-            String[] headers = {
-                    "ID", "Código", "Nombre", "Descripción", "Orden", "Estado", "Creada"
-            };
-
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-
-            int rowIndex = 1;
-            for (LineaResponseDTO linea : filtradas) {
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(linea.getId() != null ? linea.getId() : 0L);
-                row.createCell(1).setCellValue(nvl(linea.getCodigo()));
-                row.createCell(2).setCellValue(nvl(linea.getNombre()));
-                row.createCell(3).setCellValue(nvl(linea.getDescripcion()));
-                row.createCell(4).setCellValue(linea.getOrden() != null ? linea.getOrden() : 0);
-                row.createCell(5).setCellValue(Boolean.TRUE.equals(linea.getActivo()) ? "Activo" : "Inactivo");
-                row.createCell(6).setCellValue(linea.getCreatedAt() != null ? linea.getCreatedAt().toString() : "");
-            }
-
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException("No se pudo generar el reporte de lineas", e);
-        }
+        return ExcelReportBuilder.generate(
+                "Lineas",
+                "Reporte de lineas de producto",
+                headers,
+                filtradas.stream()
+                        .map(linea -> new Object[] {
+                                linea.getId() != null ? linea.getId() : 0L,
+                                nvl(linea.getCodigo()),
+                                nvl(linea.getNombre()),
+                                nvl(linea.getDescripcion()),
+                                linea.getOrden() != null ? linea.getOrden() : 0,
+                                Boolean.TRUE.equals(linea.getActivo()) ? "Activo" : "Inactivo",
+                                linea.getCreatedAt() != null ? linea.getCreatedAt().toString() : ""
+                        })
+                        .collect(Collectors.toList()));
     }
 
     private boolean coincideBusqueda(LineaResponseDTO linea, String busqueda) {

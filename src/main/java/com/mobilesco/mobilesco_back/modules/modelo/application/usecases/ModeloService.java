@@ -7,7 +7,6 @@
  */
 package com.mobilesco.mobilesco_back.modules.modelo.application.usecases;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -15,14 +14,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -31,8 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
-import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
-import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
@@ -41,7 +33,7 @@ import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.Mo
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
-import com.mobilesco.mobilesco_back.services.AlmacenamientoImagenesService;
+import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
 
 @Service
 public class ModeloService {
@@ -155,48 +147,26 @@ public class ModeloService {
                 .filter(modelo -> coincideBusqueda(modelo, busqueda))
                 .collect(Collectors.toList());
 
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Modelos");
+        String[] headers = {
+                "ID", "Codigo", "Nombre", "Descripcion", "Familia", "Estado", "Creado", "Actualizado"
+        };
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-
-            String[] headers = {
-                    "ID", "Codigo", "Nombre", "Descripcion", "Familia", "Estado", "Creado", "Actualizado"
-            };
-
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-
-            int rowIndex = 1;
-            for (ModeloResponseDTO modelo : filtrados) {
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(modelo.getId() != null ? modelo.getId() : 0L);
-                row.createCell(1).setCellValue(nvl(modelo.getCodigo()));
-                row.createCell(2).setCellValue(nvl(modelo.getNombre()));
-                row.createCell(3).setCellValue(nvl(modelo.getDescripcion()));
-                row.createCell(4).setCellValue(nvl(modelo.getFamiliaNombre()));
-                row.createCell(5).setCellValue(Boolean.TRUE.equals(modelo.getActivo()) ? "Activo" : "Inactivo");
-                row.createCell(6).setCellValue(modelo.getCreatedAt() != null ? modelo.getCreatedAt().toString() : "");
-                row.createCell(7).setCellValue(modelo.getUpdatedAt() != null ? modelo.getUpdatedAt().toString() : "");
-            }
-
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException("No se pudo generar el reporte de modelos", e);
-        }
+        return ExcelReportBuilder.generate(
+                "Modelos",
+                "Reporte de modelos",
+                headers,
+                filtrados.stream()
+                        .map(modelo -> new Object[] {
+                                modelo.getId() != null ? modelo.getId() : 0L,
+                                nvl(modelo.getCodigo()),
+                                nvl(modelo.getNombre()),
+                                nvl(modelo.getDescripcion()),
+                                nvl(modelo.getFamiliaNombre()),
+                                Boolean.TRUE.equals(modelo.getActivo()) ? "Activo" : "Inactivo",
+                                modelo.getCreatedAt() != null ? modelo.getCreatedAt().toString() : "",
+                                modelo.getUpdatedAt() != null ? modelo.getUpdatedAt().toString() : ""
+                        })
+                        .collect(Collectors.toList()));
     }
 
     public PageResponseDTO<ModeloResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {

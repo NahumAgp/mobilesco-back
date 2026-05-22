@@ -16,8 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mobilesco.mobilesco_back.modules.lineaproducto.infrastructure.in.api.dtos.LineaProductoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.lineaproducto.infrastructure.in.api.dtos.LineaProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.lineaproducto.infrastructure.in.api.dtos.LineaProductoUpdateDTO;
-import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
-import com.mobilesco.mobilesco_back.exceptions.ValidationException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.lineaproducto.domain.models.LineaProductoModel;
 import com.mobilesco.mobilesco_back.modules.lineaproducto.application.ports.LineaProductoPersistencePort;
 

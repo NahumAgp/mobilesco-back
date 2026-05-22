@@ -7,30 +7,21 @@
  */
 package com.mobilesco.mobilesco_back.modules.categoria.application.usecases;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaCreateDTO;
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaResponseDTO;
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaUpdateDTO;
-import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
-import com.mobilesco.mobilesco_back.exceptions.ValidationException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
 import com.mobilesco.mobilesco_back.modules.categoria.application.ports.CategoriaPersistencePort;
 
@@ -119,46 +110,24 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
                 .filter(categoria -> coincideBusqueda(categoria, busqueda))
                 .collect(Collectors.toList());
 
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Categorias");
+        String[] headers = {
+                "ID", "Nombre", "Descripcion", "Estado", "Registro", "Actualizacion"
+        };
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-
-            String[] headers = {
-                    "ID", "Nombre", "Descripcion", "Estado", "Registro", "Actualizacion"
-            };
-
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-
-            int rowIndex = 1;
-            for (CategoriaResponseDTO categoria : filtradas) {
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(categoria.getId() != null ? categoria.getId() : 0L);
-                row.createCell(1).setCellValue(nvl(categoria.getNombre()));
-                row.createCell(2).setCellValue(nvl(categoria.getDescripcion()));
-                row.createCell(3).setCellValue(Boolean.TRUE.equals(categoria.getActivo()) ? "Activo" : "Inactivo");
-                row.createCell(4).setCellValue(categoria.getFechaRegistro() != null ? categoria.getFechaRegistro().toString() : "");
-                row.createCell(5).setCellValue(categoria.getFechaActualizacion() != null ? categoria.getFechaActualizacion().toString() : "");
-            }
-
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException("No se pudo generar el reporte de categorias", e);
-        }
+        return ExcelReportBuilder.generate(
+                "Categorias",
+                "Reporte de categorias",
+                headers,
+                filtradas.stream()
+                        .map(categoria -> new Object[] {
+                                categoria.getId() != null ? categoria.getId() : 0L,
+                                nvl(categoria.getNombre()),
+                                nvl(categoria.getDescripcion()),
+                                Boolean.TRUE.equals(categoria.getActivo()) ? "Activo" : "Inactivo",
+                                categoria.getFechaRegistro() != null ? categoria.getFechaRegistro().toString() : "",
+                                categoria.getFechaActualizacion() != null ? categoria.getFechaActualizacion().toString() : ""
+                        })
+                        .collect(Collectors.toList()));
     }
 
     @Transactional(readOnly = true)

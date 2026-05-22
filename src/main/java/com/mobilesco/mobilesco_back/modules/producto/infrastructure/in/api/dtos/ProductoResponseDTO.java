@@ -11,8 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionResponseDTO;
-import com.mobilesco.mobilesco_back.dto.imagen.ImagenResponseDTO;
+import com.mobilesco.mobilesco_back.modules.imagen.infrastructure.in.api.dtos.ImagenResponseDTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

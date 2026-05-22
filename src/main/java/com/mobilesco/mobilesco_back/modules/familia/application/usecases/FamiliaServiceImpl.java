@@ -7,22 +7,12 @@
  */
 package com.mobilesco.mobilesco_back.modules.familia.application.usecases;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -33,8 +23,9 @@ import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.in.api.dtos.FamiliaCreateDTO;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.in.api.dtos.FamiliaResponseDTO;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.in.api.dtos.FamiliaUpdateDTO;
-import com.mobilesco.mobilesco_back.exceptions.BadRequestException;
-import com.mobilesco.mobilesco_back.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.familia.application.ports.FamiliaPersistencePort;
@@ -158,47 +149,25 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
                 .filter(familia -> coincideBusqueda(familia, busqueda))
                 .collect(Collectors.toList());
 
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Familias");
+        String[] headers = {
+                "ID", "Codigo", "Nombre", "Descripcion", "Linea", "Estado", "Creada"
+        };
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-
-            String[] headers = {
-                    "ID", "Codigo", "Nombre", "Descripcion", "Linea", "Estado", "Creada"
-            };
-
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-
-            int rowIndex = 1;
-            for (FamiliaResponseDTO familia : filtradas) {
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(familia.getId() != null ? familia.getId() : 0L);
-                row.createCell(1).setCellValue(nvl(familia.getCodigo()));
-                row.createCell(2).setCellValue(nvl(familia.getNombre()));
-                row.createCell(3).setCellValue(nvl(familia.getDescripcion()));
-                row.createCell(4).setCellValue(nvl(familia.getLineaNombre()));
-                row.createCell(5).setCellValue(Boolean.TRUE.equals(familia.getActivo()) ? "Activo" : "Inactivo");
-                row.createCell(6).setCellValue(familia.getCreatedAt() != null ? familia.getCreatedAt().toString() : "");
-            }
-
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException("No se pudo generar el reporte de familias", e);
-        }
+        return ExcelReportBuilder.generate(
+                "Familias",
+                "Reporte de familias",
+                headers,
+                filtradas.stream()
+                        .map(familia -> new Object[] {
+                                familia.getId() != null ? familia.getId() : 0L,
+                                nvl(familia.getCodigo()),
+                                nvl(familia.getNombre()),
+                                nvl(familia.getDescripcion()),
+                                nvl(familia.getLineaNombre()),
+                                Boolean.TRUE.equals(familia.getActivo()) ? "Activo" : "Inactivo",
+                                familia.getCreatedAt() != null ? familia.getCreatedAt().toString() : ""
+                        })
+                        .collect(Collectors.toList()));
     }
 
     public PageResponseDTO<FamiliaResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {

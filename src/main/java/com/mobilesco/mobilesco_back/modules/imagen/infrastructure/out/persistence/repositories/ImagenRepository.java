@@ -1,0 +1,47 @@
+// ============================================
+// RUTA: src/main/java/com/mobilesco/mobilesco_back/repositories/ImagenRepository.java
+// ============================================
+package com.mobilesco.mobilesco_back.modules.imagen.infrastructure.out.persistence.repositories;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.mobilesco.mobilesco_back.modules.imagen.domain.models.ImagenModel;
+
+@Repository
+public interface ImagenRepository extends JpaRepository<ImagenModel, Long> {
+    
+    List<ImagenModel> findByProductoId(Long productoId);
+    
+    List<ImagenModel> findByProductoIdOrderByOrdenAsc(Long productoId);
+    
+    Optional<ImagenModel> findByProductoIdAndEsPrincipalTrue(Long productoId);
+
+    @Query("SELECT i FROM ImagenModel i WHERE i.producto.modelo.id = :modeloId AND i.producto.color.id = :colorId ORDER BY i.orden ASC, i.id ASC")
+    List<ImagenModel> findByModeloIdAndColorIdOrderByOrdenAsc(@Param("modeloId") Long modeloId, @Param("colorId") Long colorId);
+
+    @Query("SELECT i FROM ImagenModel i WHERE i.producto.modelo.id = :modeloId AND i.producto.color.id = :colorId AND i.esPrincipal = true ORDER BY i.orden ASC, i.id ASC")
+    List<ImagenModel> findPrincipalesByModeloIdAndColorId(@Param("modeloId") Long modeloId, @Param("colorId") Long colorId);
+    
+    @Modifying
+    @Transactional
+    @Query("UPDATE ImagenModel i SET i.esPrincipal = false WHERE i.producto.id = :productoId")
+    void resetPrincipalFlag(@Param("productoId") Long productoId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE ImagenModel i SET i.esPrincipal = false WHERE i.producto.modelo.id = :modeloId AND i.producto.color.id = :colorId")
+    void resetPrincipalFlagByModeloIdAndColorId(@Param("modeloId") Long modeloId, @Param("colorId") Long colorId);
+    
+    long countByProductoId(Long productoId);
+
+    @Query("SELECT COUNT(i) FROM ImagenModel i WHERE i.producto.modelo.id = :modeloId AND i.producto.color.id = :colorId")
+    long countByModeloIdAndColorId(@Param("modeloId") Long modeloId, @Param("colorId") Long colorId);
+}

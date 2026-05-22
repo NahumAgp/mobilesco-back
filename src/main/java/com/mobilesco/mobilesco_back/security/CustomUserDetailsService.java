@@ -10,9 +10,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.mobilesco.mobilesco_back.models.UsuarioModel;
-import com.mobilesco.mobilesco_back.models.EstadoCuentaUsuario;
-import com.mobilesco.mobilesco_back.repositories.UsuarioRepository;
+import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
+import com.mobilesco.mobilesco_back.modules.auth.domain.models.EstadoCuentaUsuario;
+import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {

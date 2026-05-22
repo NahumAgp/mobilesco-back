@@ -20,12 +20,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
-import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionCreateDTO;
-import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionResponseDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionCreateDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoResponseDTO;
-import com.mobilesco.mobilesco_back.services.ProductoInsumoService;
-import com.mobilesco.mobilesco_back.services.ProductoOperacionService;
+import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoInsumoService;
+import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoOperacionService;
 
 import jakarta.validation.Valid;
 

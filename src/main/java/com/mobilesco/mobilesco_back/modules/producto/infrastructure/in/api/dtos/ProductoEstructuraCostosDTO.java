@@ -9,8 +9,6 @@ package com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos
 
 import java.util.List;
 
-import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionResponseDTO;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

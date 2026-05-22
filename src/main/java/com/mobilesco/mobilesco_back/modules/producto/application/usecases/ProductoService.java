@@ -7,35 +7,25 @@
  */
 package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.mobilesco.mobilesco_back.dto.imagen.ImagenResponseDTO;
-import com.mobilesco.mobilesco_back.dto.ProductoOperacion.ProductoOperacionResponseDTO;
-import com.mobilesco.mobilesco_back.exceptions.ResourceNotFoundException;
-import com.mobilesco.mobilesco_back.exceptions.ValidationException;
+import com.mobilesco.mobilesco_back.modules.imagen.infrastructure.in.api.dtos.ImagenResponseDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
-import com.mobilesco.mobilesco_back.models.NivelModel;
-import com.mobilesco.mobilesco_back.models.ProductoInsumoModel;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.out.persistence.repositories.ColorRepository;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persistence.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
@@ -47,11 +37,12 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
-import com.mobilesco.mobilesco_back.repositories.NivelRepository;
-import com.mobilesco.mobilesco_back.repositories.ProductoInsumoRepository;
-import com.mobilesco.mobilesco_back.repositories.ProductoOperacionRepository;
-import com.mobilesco.mobilesco_back.services.ImagenService;
-import com.mobilesco.mobilesco_back.services.KardexService;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoOperacionRepository;
+import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.ImagenService;
+import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
 
 @Service
 public class ProductoService {
@@ -131,57 +122,35 @@ public class ProductoService {
                 .filter(producto -> coincideBusqueda(producto, busqueda))
                 .collect(Collectors.toList());
 
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Productos");
+        String[] headers = {
+                "ID", "SKU", "Nombre", "Descripcion", "Modelo", "Familia", "Linea", "Nivel", "Material", "Color", "Estado", "Creado", "Actualizado"
+        };
 
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-
-            String[] headers = {
-                    "ID", "SKU", "Nombre", "Descripcion", "Modelo", "Familia", "Linea", "Nivel", "Material", "Color", "Estado", "Creado", "Actualizado"
-            };
-
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-
-            int rowIndex = 1;
-            for (ProductoModel producto : filtrados) {
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(producto.getId() != null ? producto.getId().doubleValue() : 0.0);
-                row.createCell(1).setCellValue(nvl(producto.getSku()));
-                row.createCell(2).setCellValue(nvl(producto.getNombre()));
-                row.createCell(3).setCellValue(nvl(producto.getDescripcion()));
-                row.createCell(4).setCellValue(producto.getModelo() != null ? nvl(producto.getModelo().getNombre()) : "");
-                row.createCell(5).setCellValue(producto.getModelo() != null && producto.getModelo().getFamilia() != null
-                        ? nvl(producto.getModelo().getFamilia().getNombre()) : "");
-                row.createCell(6).setCellValue(producto.getModelo() != null
-                        && producto.getModelo().getFamilia() != null
-                        && producto.getModelo().getFamilia().getLinea() != null
-                        ? nvl(producto.getModelo().getFamilia().getLinea().getNombre()) : "");
-                row.createCell(7).setCellValue(producto.getNivel() != null ? nvl(producto.getNivel().getNombre()) : "");
-                row.createCell(8).setCellValue(producto.getMaterial() != null ? nvl(producto.getMaterial().getNombre()) : "");
-                row.createCell(9).setCellValue(producto.getColor() != null ? nvl(producto.getColor().getNombre()) : "");
-                row.createCell(10).setCellValue(Boolean.TRUE.equals(producto.getActivo()) ? "Activo" : "Inactivo");
-                row.createCell(11).setCellValue(producto.getCreatedAt() != null ? producto.getCreatedAt().toString() : "");
-                row.createCell(12).setCellValue(producto.getUpdatedAt() != null ? producto.getUpdatedAt().toString() : "");
-            }
-
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(out);
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException("No se pudo generar el reporte de productos", e);
-        }
+        return ExcelReportBuilder.generate(
+                "Productos",
+                "Reporte de productos",
+                headers,
+                filtrados.stream()
+                        .map(producto -> new Object[] {
+                                producto.getId() != null ? producto.getId() : 0L,
+                                nvl(producto.getSku()),
+                                nvl(producto.getNombre()),
+                                nvl(producto.getDescripcion()),
+                                producto.getModelo() != null ? nvl(producto.getModelo().getNombre()) : "",
+                                producto.getModelo() != null && producto.getModelo().getFamilia() != null
+                                        ? nvl(producto.getModelo().getFamilia().getNombre()) : "",
+                                producto.getModelo() != null
+                                        && producto.getModelo().getFamilia() != null
+                                        && producto.getModelo().getFamilia().getLinea() != null
+                                        ? nvl(producto.getModelo().getFamilia().getLinea().getNombre()) : "",
+                                producto.getNivel() != null ? nvl(producto.getNivel().getNombre()) : "",
+                                producto.getMaterial() != null ? nvl(producto.getMaterial().getNombre()) : "",
+                                producto.getColor() != null ? nvl(producto.getColor().getNombre()) : "",
+                                Boolean.TRUE.equals(producto.getActivo()) ? "Activo" : "Inactivo",
+                                producto.getCreatedAt() != null ? producto.getCreatedAt().toString() : "",
+                                producto.getUpdatedAt() != null ? producto.getUpdatedAt().toString() : ""
+                        })
+                        .collect(Collectors.toList()));
     }
 
     @Transactional

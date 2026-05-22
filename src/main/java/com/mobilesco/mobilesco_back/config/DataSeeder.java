@@ -9,12 +9,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.mobilesco.mobilesco_back.models.EmpleadoModel;
-import com.mobilesco.mobilesco_back.models.RolModel;
-import com.mobilesco.mobilesco_back.models.UsuarioModel;
-import com.mobilesco.mobilesco_back.repositories.EmpleadoRepository;
-import com.mobilesco.mobilesco_back.repositories.RolRepository;
-import com.mobilesco.mobilesco_back.repositories.UsuarioRepository;
+import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
+import com.mobilesco.mobilesco_back.modules.auth.domain.models.RolModel;
+import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
+import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.out.persistence.repositories.EmpleadoRepository;
+import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.RolRepository;
+import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
 
 @Configuration
 public class DataSeeder {
@@ -106,7 +106,7 @@ public class DataSeeder {
 
                 u.setEnabled(true);
                 u.setLocked(false);
-                u.setEstadoCuenta(com.mobilesco.mobilesco_back.models.EstadoCuentaUsuario.ACTIVE);
+                u.setEstadoCuenta(com.mobilesco.mobilesco_back.modules.auth.domain.models.EstadoCuentaUsuario.ACTIVE);
 
                 // relación con empleado
                 u.setEmpleado(empleado);
@@ -122,7 +122,7 @@ public class DataSeeder {
 
                 userRepo.findByEmail(email).ifPresent(u -> {
                     if (u.getEstadoCuenta() == null) {
-                        u.setEstadoCuenta(com.mobilesco.mobilesco_back.models.EstadoCuentaUsuario.ACTIVE);
+                        u.setEstadoCuenta(com.mobilesco.mobilesco_back.modules.auth.domain.models.EstadoCuentaUsuario.ACTIVE);
                         u.setEnabled(true);
                         u.setLocked(false);
                         userRepo.save(u);
