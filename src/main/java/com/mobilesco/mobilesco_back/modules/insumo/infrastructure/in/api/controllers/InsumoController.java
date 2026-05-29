@@ -23,6 +23,7 @@ import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCostoCotizacionUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCostoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCreateDTO;
+import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoEstadoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.application.usecases.InsumoService;
@@ -38,16 +39,21 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InsumoController {
 
+    private static final String ROLES_GESTION_INSUMOS =
+            "hasAnyRole('ADMIN','SUPER_ADMIN','JEFE_ALMACEN','ALMACEN','SUBDIRECCION_ADMINISTRATIVA')";
+
     private final InsumoService insumoService;
 
     @Operation(summary = "Crear insumo", description = "Crea un nuevo insumo")
     @PostMapping
+    @PreAuthorize(ROLES_GESTION_INSUMOS)
     public ResponseEntity<InsumoResponseDTO> crear(@Valid @RequestBody InsumoCreateDTO dto) {
         return new ResponseEntity<>(insumoService.crear(dto), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Actualizar insumo", description = "Actualiza un insumo existente")
     @PutMapping("/{id}")
+    @PreAuthorize(ROLES_GESTION_INSUMOS)
     public ResponseEntity<InsumoResponseDTO> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody InsumoUpdateDTO dto) {
@@ -93,6 +99,15 @@ public class InsumoController {
         return ResponseEntity.ok(insumoService.actualizarCostoCotizacion(id, dto.getCostoCotizacion()));
     }
 
+    @Operation(summary = "Actualizar estado del insumo")
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize(ROLES_GESTION_INSUMOS)
+    public ResponseEntity<InsumoResponseDTO> actualizarEstado(
+            @PathVariable Long id,
+            @Valid @RequestBody InsumoEstadoUpdateDTO dto) {
+        return ResponseEntity.ok(insumoService.actualizarEstado(id, dto.getActivo()));
+    }
+
     @Operation(summary = "Exportar insumos a Excel")
     @GetMapping("/reporte/excel")
     public ResponseEntity<byte[]> exportarExcel(
@@ -136,6 +151,7 @@ public class InsumoController {
 
     @Operation(summary = "Ajustar stock manualmente", description = "Entrada o salida de stock con motivo")
     @PostMapping("/{id}/ajustar-stock")
+    @PreAuthorize(ROLES_GESTION_INSUMOS)
     public ResponseEntity<InsumoResponseDTO> ajustarStock(
             @PathVariable Long id,
             @RequestParam Double cantidad,
@@ -144,8 +160,9 @@ public class InsumoController {
         return ResponseEntity.ok(insumoService.ajustarStock(id, cantidad, tipo, motivo));
     }
 
-    @Operation(summary = "Eliminar insumo", description = "Desactiva un insumo (soft delete)")
+    @Operation(summary = "Eliminar insumo", description = "Elimina definitivamente un insumo sin asociaciones")
     @DeleteMapping("/{id}")
+    @PreAuthorize(ROLES_GESTION_INSUMOS)
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         insumoService.eliminar(id);
         return ResponseEntity.noContent().build();

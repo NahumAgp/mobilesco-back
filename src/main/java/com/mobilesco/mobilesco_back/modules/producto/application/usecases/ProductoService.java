@@ -17,7 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.modules.imagen.infrastructure.in.api.dtos.ImagenResponseDTO;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.application.usecases.CostoIndirectoService;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CifResumenDTO;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CostoIndirectoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCostoIndirectoDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
@@ -56,6 +60,7 @@ public class ProductoService {
     private final ProductoInsumoRepository productoInsumoRepository;
     private final ProductoOperacionRepository productoOperacionRepository;
     private final ImagenService imagenService;
+    private final CostoIndirectoService costoIndirectoService;
 
     public ProductoService(
             ProductoRepository productoRepository,
@@ -65,7 +70,8 @@ public class ProductoService {
             MaterialRepository materialRepository,
             ProductoInsumoRepository productoInsumoRepository,
             ProductoOperacionRepository productoOperacionRepository,
-            ImagenService imagenService) {
+            ImagenService imagenService,
+            CostoIndirectoService costoIndirectoService) {
         this.productoRepository = productoRepository;
         this.modeloRepository = modeloRepository;
         this.nivelRepository = nivelRepository;
@@ -74,6 +80,7 @@ public class ProductoService {
         this.productoInsumoRepository = productoInsumoRepository;
         this.productoOperacionRepository = productoOperacionRepository;
         this.imagenService = imagenService;
+        this.costoIndirectoService = costoIndirectoService;
     }
 
     @Transactional
@@ -290,9 +297,19 @@ public class ProductoService {
                 .sum();
 
         double costoOperacionesSeguro = nz(productoOperacionRepository.sumarCostoTotalByProducto(productoId));
+        double tiempoOperacionesMinutos = operaciones.stream()
+                .mapToDouble(item -> nz(item.getTiempoTotal()))
+                .sum();
+        CifResumenDTO resumenCif = costoIndirectoService.obtenerResumen();
+        double totalMensualCif = nz(resumenCif.getTotalMensual());
+        double tasaCifMinuto = nz(resumenCif.getCostoMinuto());
+        double costoCif = tiempoOperacionesMinutos * tasaCifMinuto;
+        List<ProductoCostoIndirectoDTO> costosIndirectos = construirDetalleCif(
+                tiempoOperacionesMinutos,
+                totalMensualCif,
+                nz(resumenCif.getMinutosProductivosMes()));
 
         double costoPrimo = costoInsumosConDesperdicio + costoOperacionesSeguro;
-        double costoCif = 0.0;
         double costoTotal = costoPrimo + costoCif;
 
         return ProductoEstructuraCostosDTO.builder()
@@ -305,10 +322,15 @@ public class ProductoService {
                 .costoPrimo(costoPrimo)
                 .costoCif(costoCif)
                 .costoTotal(costoTotal)
+                .tiempoOperacionesMinutos(tiempoOperacionesMinutos)
+                .tasaCifMinuto(tasaCifMinuto)
+                .cifMensual(totalMensualCif)
+                .minutosProductivosMes(nz(resumenCif.getMinutosProductivosMes()))
                 .anioCif(null)
                 .mesCif(null)
                 .insumos(insumos)
                 .operaciones(operaciones)
+                .costosIndirectos(costosIndirectos)
                 .build();
     }
 
@@ -602,6 +624,35 @@ public class ProductoService {
 
     private double nz(Double value) {
         return value == null ? 0.0 : value;
+    }
+
+    private List<ProductoCostoIndirectoDTO> construirDetalleCif(
+            double tiempoOperacionesMinutos,
+            double totalMensualCif,
+            double minutosProductivosMes) {
+        return costoIndirectoService.listarActivos()
+                .stream()
+                .map(costo -> {
+                    double montoMensual = nz(costo.getMontoMensualEquivalente());
+                    double costoMinuto = minutosProductivosMes > 0 ? montoMensual / minutosProductivosMes : 0.0;
+                    double montoAsignado = costoMinuto * tiempoOperacionesMinutos;
+                    double participacion = totalMensualCif > 0 ? (montoMensual / totalMensualCif) * 100.0 : 0.0;
+
+                    return ProductoCostoIndirectoDTO.builder()
+                            .id(costo.getId())
+                            .costoIndirectoCodigo(costo.getCodigo())
+                            .costoIndirectoNombre(costo.getNombre())
+                            .tipo(costo.getTipo() != null ? costo.getTipo().name() : null)
+                            .periodicidad(costo.getPeriodicidad() != null ? costo.getPeriodicidad().name() : null)
+                            .monto(nz(costo.getMonto()))
+                            .montoMensual(montoMensual)
+                            .costoMinuto(costoMinuto)
+                            .porcentajeParticipacion(participacion)
+                            .baseCalculo(String.format(Locale.ROOT, "%.2f min x %.4f/min", tiempoOperacionesMinutos, costoMinuto))
+                            .montoAsignado(montoAsignado)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 
     private String generarSkuProducto(ModeloModel modelo, NivelModel nivel, MaterialModel material, ColorModel color) {

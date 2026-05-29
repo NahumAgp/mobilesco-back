@@ -1,9 +1,9 @@
 package com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos;
 
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.BaseDistribucion;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.PeriodicidadCostoIndirecto;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.TipoCostoIndirecto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -11,11 +11,9 @@ import lombok.Data;
 @Data
 public class CostoIndirectoUpdateDTO {
     
-    @NotBlank(message = "El código es obligatorio")
     @Size(max = 20, message = "El código no puede exceder 20 caracteres")
     private String codigo;
     
-    @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
     private String nombre;
     
@@ -27,6 +25,7 @@ public class CostoIndirectoUpdateDTO {
     
     @Positive(message = "El monto mensual debe ser mayor a 0")
     private Double montoMensual;
+    private PeriodicidadCostoIndirecto periodicidad;
     
     @Positive(message = "El porcentaje debe ser mayor a 0")
     private Double porcentajeAsignado;

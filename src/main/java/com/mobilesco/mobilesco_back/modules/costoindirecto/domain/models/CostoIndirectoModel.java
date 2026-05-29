@@ -3,6 +3,7 @@ package com.mobilesco.mobilesco_back.modules.costoindirecto.domain.models;
 import java.time.LocalDateTime;
 
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.BaseDistribucion;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.PeriodicidadCostoIndirecto;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.TipoCostoIndirecto;
 
 import jakarta.persistence.Column;
@@ -58,7 +59,12 @@ public class CostoIndirectoModel {
     private BaseDistribucion baseDistribucion;  // HORAS_MOD, HORAS_MAQUINA, PESO, UNIDADES
 
     @Column(name = "monto_mensual")
-    private Double montoMensual;        // $50,000 mensuales (para costos fijos)
+    private Double montoMensual;        // Monto capturado segun periodicidad.
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "periodicidad")
+    @Builder.Default
+    private PeriodicidadCostoIndirecto periodicidad = PeriodicidadCostoIndirecto.MENSUAL;
 
     @Column(name = "porcentaje_asignado")
     private Double porcentajeAsignado;   // 30% (para costos fijos por producto)

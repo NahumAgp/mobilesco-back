@@ -32,6 +32,8 @@ public interface KardexRepository extends JpaRepository<MovimientoInsumoModel, L
     
     // Movimientos relacionados con una compra
     List<MovimientoInsumoModel> findByCompraId(Long compraId);
+
+    boolean existsByInsumoId(Long insumoId);
     
     // Último movimiento de un insumo (para conocer el costo actual)
     @Query("SELECT m FROM MovimientoInsumoModel m WHERE m.insumo.id = :insumoId ORDER BY m.fecha DESC LIMIT 1")

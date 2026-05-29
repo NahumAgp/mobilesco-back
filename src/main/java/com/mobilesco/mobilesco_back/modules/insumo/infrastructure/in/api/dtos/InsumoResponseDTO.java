@@ -36,6 +36,7 @@ public class InsumoResponseDTO {
     private Double ultimoCostoCompra;
     private Double costoPromedio;
     private Double costoCotizacion;
+    private Boolean puedeEliminar;
 
     @JsonProperty("costo_cotizar")
     public Double getCostoCotizar() {

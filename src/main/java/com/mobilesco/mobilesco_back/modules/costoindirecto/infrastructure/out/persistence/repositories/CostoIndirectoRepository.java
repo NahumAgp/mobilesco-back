@@ -20,6 +20,7 @@ public interface CostoIndirectoRepository extends JpaRepository<CostoIndirectoMo
     boolean existsByCodigoIgnoreCase(String codigo);
     
     List<CostoIndirectoModel> findByActivoTrue();
+    long countByActivoTrue();
     
     List<CostoIndirectoModel> findByTipo(TipoCostoIndirecto tipo);
     

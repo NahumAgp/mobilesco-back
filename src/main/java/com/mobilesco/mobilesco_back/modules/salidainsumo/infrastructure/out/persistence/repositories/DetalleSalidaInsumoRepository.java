@@ -10,4 +10,6 @@ import com.mobilesco.mobilesco_back.modules.salidainsumo.domain.models.DetalleSa
 @Repository
 public interface DetalleSalidaInsumoRepository extends JpaRepository<DetalleSalidaInsumoModel, Long> {
     List<DetalleSalidaInsumoModel> findBySalidaInsumoIdOrderByIdAsc(Long salidaInsumoId);
+
+    boolean existsByInsumoId(Long insumoId);
 }

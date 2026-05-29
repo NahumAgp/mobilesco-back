@@ -38,6 +38,7 @@ public final class ApiPaths {
     public static final String CENTRO_TRABAJO = API_VERSION + "/centros-trabajo";
 
     public static final String OPERACION = API_VERSION + "/operaciones";
+    public static final String CIF = API_VERSION + "/cif";
     public static final String PRODUCTO_OPERACION = API_VERSION + "producto-operaciones";
 
     public static final String COMPRAS = API_VERSION + "/compras";

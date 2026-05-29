@@ -13,6 +13,8 @@ public interface ProductoInsumoRepository extends JpaRepository<ProductoInsumoMo
     List<ProductoInsumoModel> findByProductoId(Long productoId);
     
     List<ProductoInsumoModel> findByInsumoId(Long insumoId);
+
+    boolean existsByInsumoId(Long insumoId);
     
     void deleteByProductoId(Long productoId);
 }

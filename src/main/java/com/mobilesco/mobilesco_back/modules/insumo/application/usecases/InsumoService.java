@@ -23,6 +23,9 @@ import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.In
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
+import com.mobilesco.mobilesco_back.modules.kardex.infrastructure.out.persistence.repositories.KardexRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
+import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.out.persistence.repositories.DetalleSalidaInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
@@ -45,17 +48,28 @@ public class InsumoService {
             "ROLE_SUPER_ADMIN",
             "ROLE_SUBDIRECCION_ADMINISTRATIVA"
     );
+    private static final List<String> ROLES_GESTION_INSUMOS = List.of(
+            "ROLE_ADMIN",
+            "ROLE_SUPER_ADMIN",
+            "ROLE_JEFE_ALMACEN",
+            "ROLE_ALMACEN",
+            "ROLE_SUBDIRECCION_ADMINISTRATIVA"
+    );
 
     private final InsumoRepository insumoRepository;
     private final UnidadMedidaRepository unidadMedidaRepository;
     private final KardexService kardexService;
     private final DetalleCompraRepository detalleCompraRepository;
+    private final ProductoInsumoRepository productoInsumoRepository;
+    private final KardexRepository kardexRepository;
+    private final DetalleSalidaInsumoRepository detalleSalidaInsumoRepository;
 
     /**
      * ACTUALIZAR un insumo existente
      */
     @Transactional
     public InsumoResponseDTO actualizar(Long id, InsumoUpdateDTO dto) {
+        validarPermisoGestionInsumos();
         log.info("Actualizando insumo ID: {}", id);
         
         InsumoModel insumo = insumoRepository.findById(id)
@@ -128,6 +142,7 @@ public class InsumoService {
  */
 @Transactional
 public InsumoResponseDTO crear(InsumoCreateDTO dto) {
+    validarPermisoGestionInsumos();
     log.info("Creando nuevo insumo: {}", dto.getNombre());
     
     // Validar nombre único
@@ -256,6 +271,16 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         return mapToCostoResponseDTO(insumoRepository.save(insumo));
     }
 
+    @Transactional
+    public InsumoResponseDTO actualizarEstado(Long id, Boolean activo) {
+        validarPermisoGestionInsumos();
+        InsumoModel insumo = insumoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
+
+        insumo.setActivo(activo);
+        return mapToResponseDTO(insumoRepository.save(insumo));
+    }
+
     private Sort construirSortInsumos(String sortBy, String direction) {
         Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction)
                 ? Sort.Direction.DESC
@@ -379,6 +404,12 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         }
     }
 
+    private void validarPermisoGestionInsumos() {
+        if (!puedeGestionarInsumos()) {
+            throw new ValidationException("No tienes permisos para gestionar insumos");
+        }
+    }
+
     private boolean puedeGestionarCostos() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -387,6 +418,16 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
         return authentication.getAuthorities().stream()
                 .anyMatch(authority -> ROLES_COSTOS.contains(authority.getAuthority()));
+    }
+
+    private boolean puedeGestionarInsumos() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> ROLES_GESTION_INSUMOS.contains(authority.getAuthority()));
     }
 
     private String generarCodigoBarras(Long id) {
@@ -489,19 +530,22 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     }
 
     /**
-     * ELIMINAR (desactivar) insumo
+     * ELIMINAR definitivamente un insumo sin asociaciones
      */
     @Transactional
     public void eliminar(Long id) {
-        log.info("Eliminando (desactivando) insumo ID: {}", id);
+        validarPermisoGestionInsumos();
+        log.info("Eliminando definitivamente insumo ID: {}", id);
         
         InsumoModel insumo = insumoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
-        
-        insumo.setActivo(false);
-        insumoRepository.save(insumo);
-        
-        log.info("Insumo desactivado correctamente");
+
+        if (!puedeEliminarDefinitivo(insumo.getId())) {
+            throw new ValidationException("No se puede eliminar el insumo porque tiene compras, movimientos, salidas o productos asociados");
+        }
+
+        insumoRepository.delete(insumo);
+        log.info("Insumo eliminado definitivamente");
     }
 
     /**
@@ -525,6 +569,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 .ultimoCostoCompra(obtenerUltimoCostoCompra(insumo.getId()))
                 .costoPromedio(kardexService.calcularCostoPromedio(insumo.getId()))
                 .costoCotizacion(insumo.getCostoCotizacion())
+                .puedeEliminar(puedeEliminarDefinitivo(insumo.getId()))
                 .activo(insumo.getActivo())
                 .fechaRegistro(insumo.getFechaRegistro())
                 .fechaActualizacion(insumo.getFechaActualizacion())
@@ -558,5 +603,12 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
         Double costo = ultimasCompras.get(0).getCostoPorUnidadConsumo();
         return costo != null ? costo : 0.0;
+    }
+
+    private boolean puedeEliminarDefinitivo(Long insumoId) {
+        return !detalleCompraRepository.existsByInsumoId(insumoId)
+                && !productoInsumoRepository.existsByInsumoId(insumoId)
+                && !kardexRepository.existsByInsumoId(insumoId)
+                && !detalleSalidaInsumoRepository.existsByInsumoId(insumoId);
     }
 }

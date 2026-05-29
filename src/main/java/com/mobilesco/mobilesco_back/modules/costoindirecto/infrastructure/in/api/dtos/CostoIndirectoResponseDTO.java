@@ -3,6 +3,7 @@ package com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.ap
 import java.time.LocalDateTime;
 
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.BaseDistribucion;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.PeriodicidadCostoIndirecto;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.TipoCostoIndirecto;
 
 import lombok.AllArgsConstructor;
@@ -22,6 +23,10 @@ public class CostoIndirectoResponseDTO {
     private TipoCostoIndirecto tipo;
     private BaseDistribucion baseDistribucion;
     private Double montoMensual;
+    private Double monto;
+    private Double montoMensualEquivalente;
+    private Double costoMinuto;
+    private PeriodicidadCostoIndirecto periodicidad;
     private Double porcentajeAsignado;
     private Double tasaVariable;
     private Boolean activo;

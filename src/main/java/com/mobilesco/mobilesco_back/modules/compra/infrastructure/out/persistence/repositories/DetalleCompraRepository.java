@@ -16,6 +16,8 @@ public interface DetalleCompraRepository extends JpaRepository<DetalleCompraMode
     List<DetalleCompraModel> findByCompraId(Long compraId);
     
     List<DetalleCompraModel> findByInsumoId(Long insumoId);
+
+    boolean existsByInsumoId(Long insumoId);
     
     @Query("SELECT d FROM DetalleCompraModel d WHERE d.insumo.id = :insumoId ORDER BY d.compra.fechaCompra DESC")
     List<DetalleCompraModel> findUltimasComprasByInsumo(@Param("insumoId") Long insumoId);

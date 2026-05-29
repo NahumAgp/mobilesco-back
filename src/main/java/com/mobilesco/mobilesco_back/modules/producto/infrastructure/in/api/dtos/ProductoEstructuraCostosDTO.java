@@ -29,10 +29,15 @@ public class ProductoEstructuraCostosDTO {
     private Double costoPrimo;
     private Double costoCif;
     private Double costoTotal;
+    private Double tiempoOperacionesMinutos;
+    private Double tasaCifMinuto;
+    private Double cifMensual;
+    private Double minutosProductivosMes;
 
     private Integer anioCif;
     private Integer mesCif;
 
     private List<ProductoInsumoResponseDTO> insumos;
     private List<ProductoOperacionResponseDTO> operaciones;
+    private List<ProductoCostoIndirectoDTO> costosIndirectos;
 }
