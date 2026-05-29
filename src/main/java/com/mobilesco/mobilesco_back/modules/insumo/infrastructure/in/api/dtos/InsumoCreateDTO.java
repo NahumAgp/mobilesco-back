@@ -1,6 +1,9 @@
 package com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -19,7 +22,9 @@ public class InsumoCreateDTO {
     @NotNull(message = "La unidad de medida es obligatoria")
     private Long unidadMedidaId;  // Unidad de CONSUMO
 
-    private Double costo_cotizar;
+    @JsonAlias("costo_cotizar")
+    @PositiveOrZero(message = "El costo de cotizacion no puede ser negativo")
+    private Double costoCotizacion;
 
     //Ubicacion del insumo
     private String ubicacion;

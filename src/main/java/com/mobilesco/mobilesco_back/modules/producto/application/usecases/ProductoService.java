@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.modules.imagen.infrastructure.in.api.dtos.ImagenResponseDTO;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
@@ -42,7 +43,6 @@ import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoOperacionRepository;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.ImagenService;
-import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
 
 @Service
 public class ProductoService {
@@ -55,7 +55,6 @@ public class ProductoService {
     private final MaterialRepository materialRepository;
     private final ProductoInsumoRepository productoInsumoRepository;
     private final ProductoOperacionRepository productoOperacionRepository;
-    private final KardexService kardexService;
     private final ImagenService imagenService;
 
     public ProductoService(
@@ -66,7 +65,6 @@ public class ProductoService {
             MaterialRepository materialRepository,
             ProductoInsumoRepository productoInsumoRepository,
             ProductoOperacionRepository productoOperacionRepository,
-            KardexService kardexService,
             ImagenService imagenService) {
         this.productoRepository = productoRepository;
         this.modeloRepository = modeloRepository;
@@ -75,7 +73,6 @@ public class ProductoService {
         this.materialRepository = materialRepository;
         this.productoInsumoRepository = productoInsumoRepository;
         this.productoOperacionRepository = productoOperacionRepository;
-        this.kardexService = kardexService;
         this.imagenService = imagenService;
     }
 
@@ -226,10 +223,13 @@ public class ProductoService {
         ProductoModel producto = productoRepository.findById(productoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
-        List<ProductoInsumoResponseDTO> insumos = productoInsumoRepository.findByProductoId(productoId)
+        List<ProductoInsumoModel> productoInsumos = productoInsumoRepository.findByProductoId(productoId);
+        validarCostosCotizacion(productoInsumos);
+
+        List<ProductoInsumoResponseDTO> insumos = productoInsumos
                 .stream()
                 .map(pi -> {
-                    double costoUnitarioSeguro = nz(kardexService.calcularCostoPromedio(pi.getInsumo().getId()));
+                    double costoUnitarioSeguro = obtenerCostoCotizacionValido(pi.getInsumo());
                     double cantidad = nz(pi.getCantidad());
                     double desperdicio = nz(pi.getDesperdicioPorcentaje());
                     double cantidadConDesperdicio = cantidad * (1 + desperdicio / 100);
@@ -357,10 +357,11 @@ public class ProductoService {
     @Transactional(readOnly = true)
     public Double calcularCostoProducto(Long productoId) {
         List<ProductoInsumoModel> insumos = productoInsumoRepository.findByProductoId(productoId);
+        validarCostosCotizacion(insumos);
         
         return insumos.stream()
                 .mapToDouble(pi -> {
-                    double costoUnitario = nz(kardexService.calcularCostoPromedio(pi.getInsumo().getId()));
+                    double costoUnitario = obtenerCostoCotizacionValido(pi.getInsumo());
                     return nz(pi.getCantidad()) * costoUnitario;
                 })
                 .sum();
@@ -369,10 +370,11 @@ public class ProductoService {
     @Transactional(readOnly = true)
     public Double calcularCostoProductoConDesperdicio(Long productoId) {
         List<ProductoInsumoModel> insumos = productoInsumoRepository.findByProductoId(productoId);
+        validarCostosCotizacion(insumos);
         
         return insumos.stream()
                 .mapToDouble(pi -> {
-                    double costoUnitario = nz(kardexService.calcularCostoPromedio(pi.getInsumo().getId()));
+                    double costoUnitario = obtenerCostoCotizacionValido(pi.getInsumo());
                     double cantidadConDesperdicio = nz(pi.getCantidad()) * (1 + nz(pi.getDesperdicioPorcentaje()) / 100);
                     return cantidadConDesperdicio * costoUnitario;
                 })
@@ -383,7 +385,7 @@ public class ProductoService {
         List<ProductoInsumoResponseDTO> insumos = productoInsumoRepository.findByProductoId(producto.getId())
             .stream()
             .map(pi -> {
-                double costoUnitario = nz(kardexService.calcularCostoPromedio(pi.getInsumo().getId()));
+                double costoUnitario = obtenerCostoCotizacionOpcional(pi.getInsumo());
                 double cantidadConDesperdicio = nz(pi.getCantidad()) * (1 + nz(pi.getDesperdicioPorcentaje()) / 100);
 
                 return ProductoInsumoResponseDTO.builder()
@@ -569,6 +571,33 @@ public class ProductoService {
 
     private String nvl(String value) {
         return value == null ? "" : value;
+    }
+
+    private void validarCostosCotizacion(List<ProductoInsumoModel> insumos) {
+        List<String> faltantes = insumos.stream()
+                .map(ProductoInsumoModel::getInsumo)
+                .filter(insumo -> obtenerCostoCotizacionOpcional(insumo) <= 0)
+                .map(InsumoModel::getNombre)
+                .filter(nombre -> nombre != null && !nombre.isBlank())
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (!faltantes.isEmpty()) {
+            throw new ValidationException("Faltan costos de cotizacion para: " + String.join(", ", faltantes));
+        }
+    }
+
+    private double obtenerCostoCotizacionValido(InsumoModel insumo) {
+        double costoCotizacion = obtenerCostoCotizacionOpcional(insumo);
+        if (costoCotizacion <= 0) {
+            String nombre = insumo != null && insumo.getNombre() != null ? insumo.getNombre() : "insumo sin nombre";
+            throw new ValidationException("Faltan costos de cotizacion para: " + nombre);
+        }
+        return costoCotizacion;
+    }
+
+    private double obtenerCostoCotizacionOpcional(InsumoModel insumo) {
+        return insumo != null && insumo.getCostoCotizacion() != null ? insumo.getCostoCotizacion() : 0.0;
     }
 
     private double nz(Double value) {

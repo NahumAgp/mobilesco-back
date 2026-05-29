@@ -12,7 +12,6 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
-import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
@@ -30,7 +29,6 @@ public class ProductoInsumoService {
     private final ProductoInsumoRepository productoInsumoRepository;
     private final ProductoRepository productoRepository;
     private final InsumoRepository insumoRepository;
-    private final KardexService kardexService;
 
     @Transactional
     public ProductoInsumoResponseDTO agregarInsumoAProducto(
@@ -198,7 +196,7 @@ public class ProductoInsumoService {
     
     private ProductoInsumoResponseDTO mapToResponseDTO(ProductoInsumoModel pi) {
     // 🔴 Obtener costo del Kardex
-    Double costoUnitario = kardexService.calcularCostoPromedio(pi.getInsumo().getId());
+    Double costoUnitario = obtenerCostoCotizacionOpcional(pi.getInsumo());
     
     // Calcular cantidad con desperdicio
     Double cantidadConDesperdicio = pi.getCantidad() * (1 + (pi.getDesperdicioPorcentaje() != null ? pi.getDesperdicioPorcentaje() : 0) / 100);
@@ -220,5 +218,9 @@ public class ProductoInsumoService {
             .fechaRegistro(pi.getFechaRegistro())
             .fechaActualizacion(pi.getFechaActualizacion())
             .build();
+}
+
+private Double obtenerCostoCotizacionOpcional(InsumoModel insumo) {
+    return insumo != null && insumo.getCostoCotizacion() != null ? insumo.getCostoCotizacion() : 0.0;
 }
 }

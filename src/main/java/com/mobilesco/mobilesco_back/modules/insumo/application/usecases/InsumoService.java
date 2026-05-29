@@ -10,13 +10,19 @@ import java.util.stream.Stream;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
+import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraModel;
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
+import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCostoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
@@ -34,9 +40,16 @@ import lombok.extern.slf4j.Slf4j;
 public class InsumoService {
 
     private static final int PAGE_SIZE = 10;
+    private static final List<String> ROLES_COSTOS = List.of(
+            "ROLE_ADMIN",
+            "ROLE_SUPER_ADMIN",
+            "ROLE_SUBDIRECCION_ADMINISTRATIVA"
+    );
 
     private final InsumoRepository insumoRepository;
     private final UnidadMedidaRepository unidadMedidaRepository;
+    private final KardexService kardexService;
+    private final DetalleCompraRepository detalleCompraRepository;
 
     /**
      * ACTUALIZAR un insumo existente
@@ -84,6 +97,10 @@ public class InsumoService {
         insumo.setUbicacion(dto.getUbicacion());
         insumo.setFila(dto.getFila());
         insumo.setColumna(dto.getColumna());
+        if (dto.getCostoCotizacion() != null && !Objects.equals(insumo.getCostoCotizacion(), dto.getCostoCotizacion())) {
+            validarPermisoGestionCostos();
+            insumo.setCostoCotizacion(dto.getCostoCotizacion());
+        }
         
         if (dto.getStockMinimo() != null) {
             insumo.setStockMinimo(dto.getStockMinimo());
@@ -142,6 +159,10 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         codigoInicial = generarCodigoTemporal();
     }
 
+    if (dto.getCostoCotizacion() != null) {
+        validarPermisoGestionCostos();
+    }
+
     // Crear entidad
     InsumoModel insumo = InsumoModel.builder()
             .codigo(codigoInicial.trim())
@@ -150,6 +171,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
             .ubicacion(dto.getUbicacion())
             .fila(dto.getFila())
             .columna(dto.getColumna())
+            .costoCotizacion(dto.getCostoCotizacion())
             .unidadMedida(unidadMedida)
             .stockMinimo(stockMinimo)  // ✅ Ya es Double, no hay unboxing
             .stockActual(stockActual)
@@ -203,6 +225,37 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         );
     }
 
+    @Transactional(readOnly = true)
+    public PageResponseDTO<InsumoCostoResponseDTO> listarCostosPaginado(int page, Integer size, String sortBy, String direction) {
+        int pageNumber = Math.max(page, 0);
+        int pageSize = size == null || size <= 0 ? PAGE_SIZE : Math.min(size, 100);
+        PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortInsumos(sortBy, direction));
+
+        Page<InsumoCostoResponseDTO> result = insumoRepository.findAll(pageable).map(this::mapToCostoResponseDTO);
+
+        return new PageResponseDTO<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+    }
+
+    @Transactional
+    public InsumoCostoResponseDTO actualizarCostoCotizacion(Long id, Double costoCotizacion) {
+        InsumoModel insumo = insumoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
+
+        if (costoCotizacion == null || costoCotizacion <= 0) {
+            throw new ValidationException("El costo de cotizacion debe ser mayor a 0");
+        }
+
+        validarPermisoGestionCostos();
+        insumo.setCostoCotizacion(costoCotizacion);
+        return mapToCostoResponseDTO(insumoRepository.save(insumo));
+    }
+
     private Sort construirSortInsumos(String sortBy, String direction) {
         Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction)
                 ? Sort.Direction.DESC
@@ -229,6 +282,10 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
             case "stockminimo":
             case "stock_minimo":
                 return Sort.by(sortDirection, "stockMinimo").and(Sort.by(Sort.Direction.ASC, "id"));
+            case "costocotizacion":
+            case "costo_cotizar":
+            case "costo_cotizacion":
+                return Sort.by(sortDirection, "costoCotizacion").and(Sort.by(Sort.Direction.ASC, "id"));
             case "activo":
                 return Sort.by(sortDirection, "activo").and(Sort.by(Sort.Direction.ASC, "id"));
             case "fecharegistro":
@@ -254,7 +311,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
         String[] headers = {
                 "ID", "Codigo", "Codigo barras", "Nombre", "Descripcion", "Ubicacion", "Fila", "Columna",
-                "Unidad", "Stock actual", "Stock minimo", "Estado", "Fecha registro"
+                "Unidad", "Stock actual", "Stock minimo", "Costo cotizacion", "Estado", "Fecha registro"
         };
 
         return ExcelReportBuilder.generate(
@@ -274,6 +331,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                                 nvl(insumo.getUnidadMedidaSimbolo()),
                                 insumo.getStockActual() != null ? insumo.getStockActual() : 0.0,
                                 insumo.getStockMinimo() != null ? insumo.getStockMinimo() : 0.0,
+                                insumo.getCostoCotizacion() != null ? insumo.getCostoCotizacion() : 0.0,
                                 Boolean.TRUE.equals(insumo.getActivo()) ? "Activo" : "Inactivo",
                                 insumo.getFechaRegistro() != null ? insumo.getFechaRegistro().toString() : ""
                         })
@@ -297,6 +355,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                         insumo.getColumna(),
                         insumo.getUnidadMedidaNombre(),
                         insumo.getUnidadMedidaSimbolo(),
+                        insumo.getCostoCotizacion() != null ? String.valueOf(insumo.getCostoCotizacion()) : null,
                         insumo.getActivo() != null ? (insumo.getActivo() ? "activo" : "inactivo") : null,
                         insumo.getFechaRegistro() != null ? insumo.getFechaRegistro().toString() : null)
                 .filter(valor -> valor != null && !valor.isBlank())
@@ -312,6 +371,22 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
     private String nvl(String value) {
         return value == null ? "" : value;
+    }
+
+    private void validarPermisoGestionCostos() {
+        if (!puedeGestionarCostos()) {
+            throw new ValidationException("No tienes permisos para modificar costos de cotizacion");
+        }
+    }
+
+    private boolean puedeGestionarCostos() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> ROLES_COSTOS.contains(authority.getAuthority()));
     }
 
     private String generarCodigoBarras(Long id) {
@@ -447,9 +522,41 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 .unidadMedidaSimbolo(insumo.getUnidadMedida().getSimbolo())
                 .stockActual(insumo.getStockActual())
                 .stockMinimo(insumo.getStockMinimo())
+                .ultimoCostoCompra(obtenerUltimoCostoCompra(insumo.getId()))
+                .costoPromedio(kardexService.calcularCostoPromedio(insumo.getId()))
+                .costoCotizacion(insumo.getCostoCotizacion())
                 .activo(insumo.getActivo())
                 .fechaRegistro(insumo.getFechaRegistro())
                 .fechaActualizacion(insumo.getFechaActualizacion())
                 .build();
+    }
+
+    private InsumoCostoResponseDTO mapToCostoResponseDTO(InsumoModel insumo) {
+        return InsumoCostoResponseDTO.builder()
+                .id(insumo.getId())
+                .codigo(insumo.getCodigo())
+                .codigoBarras(insumo.getCodigoBarras())
+                .nombre(insumo.getNombre())
+                .unidadMedidaId(insumo.getUnidadMedida().getId())
+                .unidadMedidaNombre(insumo.getUnidadMedida().getNombre())
+                .unidadMedidaSimbolo(insumo.getUnidadMedida().getSimbolo())
+                .ultimoCostoCompra(obtenerUltimoCostoCompra(insumo.getId()))
+                .costoPromedio(kardexService.calcularCostoPromedio(insumo.getId()))
+                .costoCotizacion(insumo.getCostoCotizacion())
+                .activo(insumo.getActivo())
+                .fechaActualizacion(insumo.getFechaActualizacion())
+                .build();
+    }
+
+    private Double obtenerUltimoCostoCompra(Long insumoId) {
+        List<DetalleCompraModel> ultimasCompras = detalleCompraRepository
+                .findUltimasComprasRecibidasByInsumo(insumoId, PageRequest.of(0, 1));
+
+        if (ultimasCompras.isEmpty()) {
+            return 0.0;
+        }
+
+        Double costo = ultimasCompras.get(0).getCostoPorUnidadConsumo();
+        return costo != null ? costo : 0.0;
     }
 }

@@ -13,29 +13,19 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InsumoResponseDTO {
+public class InsumoCostoResponseDTO {
     private Long id;
     private String codigo;
     private String codigoBarras;
     private String nombre;
-    private String descripcion;
-
     private Long unidadMedidaId;
     private String unidadMedidaNombre;
     private String unidadMedidaSimbolo;
-
-    private Double stockActual;
-    private Double stockMinimo;
-    private Boolean activo;
-    private LocalDateTime fechaRegistro;
-    private LocalDateTime fechaActualizacion;
-
-    private String ubicacion;
-    private String fila;
-    private String columna;
     private Double ultimoCostoCompra;
     private Double costoPromedio;
     private Double costoCotizacion;
+    private Boolean activo;
+    private LocalDateTime fechaActualizacion;
 
     @JsonProperty("costo_cotizar")
     public Double getCostoCotizar() {

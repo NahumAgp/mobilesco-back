@@ -57,8 +57,8 @@ public class InsumoModel {
     private String fila;
     private String columna;
 
-    //Costo actualizable para
-    private Double costo_cotizar;
+    @Column(name = "costo_cotizar")
+    private Double costoCotizacion;
 
 
     // Unidad de Medida
