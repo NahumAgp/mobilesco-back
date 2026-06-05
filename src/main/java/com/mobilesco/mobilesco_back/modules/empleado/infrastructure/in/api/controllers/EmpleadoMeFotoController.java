@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,5 +43,13 @@ public class EmpleadoMeFotoController {
     ) {
         String rutaPublica = empleadoFotoService.subirFotoDelEmpleadoActual(auth, archivo);
         return ResponseEntity.ok(Map.of("fotoUrl", rutaPublica));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/me/foto")
+    @Operation(summary = "Eliminar mi foto de perfil")
+    public ResponseEntity<?> eliminarMiFoto(Authentication auth) {
+        empleadoFotoService.eliminarFotoDelEmpleadoActual(auth);
+        return ResponseEntity.ok(Map.of("fotoUrl", ""));
     }
 }

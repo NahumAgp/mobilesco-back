@@ -6,12 +6,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
+import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
+import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.out.persistence.repositories.EmpleadoRepository;
+import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
-import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
-import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
-import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.out.persistence.repositories.EmpleadoRepository;
-import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
 
 @Service
 public class EmpleadoFotoService {
@@ -49,15 +49,51 @@ public class EmpleadoFotoService {
         return guardarYActualizarFoto(usuario.getEmpleado(), archivo);
     }
 
+    public void eliminarFotoDelEmpleado(Long empleadoId) {
+        EmpleadoModel empleado = empleadoRepository.findById(empleadoId)
+                .orElseThrow(() -> new NotFoundException("Empleado no encontrado"));
+
+        eliminarYLimpiarFoto(empleado);
+    }
+
+    public void eliminarFotoDelEmpleadoActual(Authentication auth) {
+        String email = auth.getName();
+        var usuario = usuarioRepository.findOneByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        if (usuario.getEmpleado() == null) {
+            throw new BadRequestException("Tu usuario no tiene un empleado asociado");
+        }
+
+        eliminarYLimpiarFoto(usuario.getEmpleado());
+    }
+
     private String guardarYActualizarFoto(EmpleadoModel empleado, MultipartFile archivo) {
         try {
+            String fotoAnterior = empleado.getFotoUrl();
             String fotoUrl = almacenamientoImagenesService.guardarFotoPerfilEmpleado(empleado.getId(), archivo);
             empleado.setFotoUrl(fotoUrl);
             empleadoRepository.save(empleado);
+            eliminarArchivoSiExiste(fotoAnterior);
 
             return fotoUrl;
         } catch (IOException e) {
-            throw new BadRequestException("No se pudo guardar la imagen. Verifica que sea válida.");
+            throw new BadRequestException("No se pudo guardar la imagen. Verifica que sea valida.");
+        }
+    }
+
+    private void eliminarYLimpiarFoto(EmpleadoModel empleado) {
+        String fotoAnterior = empleado.getFotoUrl();
+        empleado.setFotoUrl(null);
+        empleadoRepository.save(empleado);
+        eliminarArchivoSiExiste(fotoAnterior);
+    }
+
+    private void eliminarArchivoSiExiste(String fotoUrl) {
+        try {
+            almacenamientoImagenesService.eliminarImagenPublica(fotoUrl);
+        } catch (IOException | IllegalArgumentException e) {
+            throw new BadRequestException("No se pudo eliminar la foto de perfil.");
         }
     }
 }

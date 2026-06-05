@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,5 +38,13 @@ public class EmpleadoFotoController {
     ) {
         String rutaPublica = empleadoFotoService.subirFotoDelEmpleado(id, archivo);
         return ResponseEntity.ok(Map.of("fotoUrl", rutaPublica));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @DeleteMapping("/{id}/foto")
+    @Operation(summary = "Eliminar foto de un empleado")
+    public ResponseEntity<?> eliminarFotoEmpleado(@PathVariable Long id) {
+        empleadoFotoService.eliminarFotoDelEmpleado(id);
+        return ResponseEntity.ok(Map.of("fotoUrl", ""));
     }
 }
