@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
@@ -22,6 +23,7 @@ import com.mobilesco.mobilesco_back.modules.tipoinsumo.infrastructure.out.persis
 public class DataSeeder {
 
     @Bean
+    @Order(1)
     @SuppressWarnings("unused")
     CommandLineRunner initData(
             RolRepository roleRepo,

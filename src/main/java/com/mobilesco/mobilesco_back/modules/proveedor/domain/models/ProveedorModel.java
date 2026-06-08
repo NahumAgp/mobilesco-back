@@ -51,6 +51,7 @@ public class ProveedorModel {
     @JoinColumn(
         name = "tipo_insumo",
         referencedColumnName = "codigo",
+        columnDefinition = "VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
         foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
     )
     private TipoInsumoModel tipoInsumo;

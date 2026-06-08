@@ -25,16 +25,31 @@ public class TipoInsumoModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 80)
+    @Column(
+        nullable = false,
+        unique = true,
+        length = 80,
+        columnDefinition = "VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+    )
     private String codigo;
 
-    @Column(nullable = false, length = 120)
+    @Column(
+        nullable = false,
+        length = 120,
+        columnDefinition = "VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+    )
     private String nombre;
 
-    @Column(name = "nombre_normalizado", nullable = false, unique = true, length = 120)
+    @Column(
+        name = "nombre_normalizado",
+        nullable = false,
+        unique = true,
+        length = 120,
+        columnDefinition = "VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+    )
     private String nombreNormalizado;
 
-    @Column(length = 255)
+    @Column(length = 255, columnDefinition = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String descripcion;
 
     @Column(nullable = false)

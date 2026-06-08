@@ -47,6 +47,11 @@ Endpoints principales:
 - Ahora se relaciona con el catalogo de tipos por codigo.
 - El response del modulo devuelve `tipoInsumo` y `tipoInsumoNombre`.
 
+### Compatibilidad MySQL
+
+- Al arrancar, el backend alinea la collation de `proveedor.tipo_insumo` y `tipo_insumo_catalogo` a `utf8mb4_unicode_ci`.
+- Esto evita errores de MySQL por mezcla de collations en instalaciones existentes.
+
 ## Nota de compatibilidad
 
 - Al editar un tipo de insumo se conserva el codigo actual para no romper relaciones existentes.
