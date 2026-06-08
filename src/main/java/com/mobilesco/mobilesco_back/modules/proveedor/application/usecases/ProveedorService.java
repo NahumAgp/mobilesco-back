@@ -6,24 +6,31 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorCreateDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorResponseDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorUpdateDTO;
-import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.proveedor.domain.models.ProveedorModel;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.out.persistence.repositories.ProveedorRepository;
+import com.mobilesco.mobilesco_back.modules.tipoinsumo.domain.models.TipoInsumoModel;
+import com.mobilesco.mobilesco_back.modules.tipoinsumo.infrastructure.out.persistence.repositories.TipoInsumoRepository;
 
 @Service
 public class ProveedorService {
 
     private final ProveedorRepository proveedorRepository;
+    private final TipoInsumoRepository tipoInsumoRepository;
 
-    public ProveedorService(ProveedorRepository proveedorRepository) {
+    public ProveedorService(
+            ProveedorRepository proveedorRepository,
+            TipoInsumoRepository tipoInsumoRepository
+    ) {
         this.proveedorRepository = proveedorRepository;
+        this.tipoInsumoRepository = tipoInsumoRepository;
     }
 
     // =====================================================
@@ -53,7 +60,8 @@ public class ProveedorService {
         dto.setNumeroInterior(proveedor.getNumeroInterior());
         dto.setCodigoPostal(proveedor.getCodigoPostal());
 
-        dto.setTipoInsumo(proveedor.getTipoInsumo());
+        dto.setTipoInsumo(proveedor.getTipoInsumo() != null ? proveedor.getTipoInsumo().getCodigo() : null);
+        dto.setTipoInsumoNombre(proveedor.getTipoInsumo() != null ? proveedor.getTipoInsumo().getNombre() : null);
 
         // CONTACTO
         dto.setTelefono(proveedor.getTelefono());
@@ -108,7 +116,7 @@ public class ProveedorService {
         proveedor.setNumeroExterior(dto.getNumeroExterior());
         proveedor.setNumeroInterior(dto.getNumeroInterior());
         proveedor.setCodigoPostal(dto.getCodigoPostal());
-        proveedor.setTipoInsumo(dto.getTipoInsumo());
+        proveedor.setTipoInsumo(resolverTipoInsumo(dto.getTipoInsumo()));
 
         // CONTACTO
         proveedor.setTelefono(dto.getTelefono());
@@ -147,8 +155,8 @@ public class ProveedorService {
     // 🔹 READ - Por tipo de insumo (NUEVO)
     // =====================================================
     
-    public List<ProveedorResponseDTO> getProveedoresPorTipo(TipoInsumo tipo) {
-        List<ProveedorModel> proveedores = proveedorRepository.findByTipoInsumo(tipo);
+    public List<ProveedorResponseDTO> getProveedoresPorTipo(String tipo) {
+        List<ProveedorModel> proveedores = proveedorRepository.findByTipoInsumo_CodigoIgnoreCase(tipo);
         return mapToResponseDTOList(proveedores);
     }
 
@@ -156,7 +164,7 @@ public class ProveedorService {
     // 🔹 READ - Filtros unificados
     // =====================================================
 
-    public List<ProveedorResponseDTO> buscarFiltrado(Boolean activo, TipoInsumo tipoInsumo, String busqueda) {
+    public List<ProveedorResponseDTO> buscarFiltrado(Boolean activo, String tipoInsumo, String busqueda) {
         boolean tieneBusqueda = busqueda != null && !busqueda.isBlank();
 
         if (activo == null && tipoInsumo == null && !tieneBusqueda) {
@@ -169,7 +177,7 @@ public class ProveedorService {
 
     public Page<ProveedorResponseDTO> buscarFiltradoPaginado(
             Boolean activo,
-            TipoInsumo tipoInsumo,
+            String tipoInsumo,
             String busqueda,
             Pageable pageable
     ) {
@@ -182,7 +190,7 @@ public class ProveedorService {
         return page.map(this::mapToResponseDTO);
     }
 
-    public byte[] generarReporteExcel(Boolean activo, TipoInsumo tipoInsumo, String busqueda) {
+    public byte[] generarReporteExcel(Boolean activo, String tipoInsumo, String busqueda) {
         List<ProveedorResponseDTO> proveedores = buscarFiltrado(activo, tipoInsumo, busqueda);
 
         String[] headers = {
@@ -200,7 +208,7 @@ public class ProveedorService {
                                 nvl(proveedor.getRazonSocial()),
                                 nvl(proveedor.getRfc()),
                                 construirContacto(proveedor),
-                                proveedor.getTipoInsumo() != null ? proveedor.getTipoInsumo().name() : "",
+                                nvl(proveedor.getTipoInsumoNombre()),
                                 nvl(proveedor.getCorreo()),
                                 nvl(proveedor.getTelefono()),
                                 nvl(proveedor.getEstado()),
@@ -292,14 +300,6 @@ public class ProveedorService {
     }
 
     // =====================================================
-    // 🔹 Tipos de insumo (UTILIDAD)
-    // =====================================================
-
-    public TipoInsumo[] getTodosLosTipos() {
-        return TipoInsumo.values();
-    }
-
-    // =====================================================
     // 🔹 UPDATE
     // =====================================================
 
@@ -337,7 +337,7 @@ public class ProveedorService {
         existente.setNumeroInterior(dto.getNumeroInterior());
         existente.setCodigoPostal(dto.getCodigoPostal());
 
-        existente.setTipoInsumo(dto.getTipoInsumo());
+        existente.setTipoInsumo(resolverTipoInsumo(dto.getTipoInsumo()));
 
         // CONTACTO
         existente.setTelefono(dto.getTelefono());
@@ -362,5 +362,14 @@ public class ProveedorService {
         }
 
         proveedorRepository.deleteById(id);
+    }
+
+    private TipoInsumoModel resolverTipoInsumo(String codigo) {
+        if (!StringUtils.hasText(codigo)) {
+            throw new BadRequestException("Selecciona un tipo de insumo");
+        }
+
+        return tipoInsumoRepository.findByCodigoIgnoreCase(codigo.trim())
+                .orElseThrow(() -> new BadRequestException("El tipo de insumo seleccionado no existe"));
     }
 }

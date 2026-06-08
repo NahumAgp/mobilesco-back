@@ -1,7 +1,5 @@
 package com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos;
 
-import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -31,7 +29,8 @@ public class ProveedorUpdateDTO {
     private String numeroInterior;
     private String codigoPostal;
 
-    private TipoInsumo tipoInsumo;
+    @NotBlank(message = "Selecciona un tipo de insumo")
+    private String tipoInsumo;
 
     // CONTACTO
     @NotBlank(message = "El teléfono es obligatorio")
@@ -170,11 +169,11 @@ public class ProveedorUpdateDTO {
         this.activo = activo;
     }
 
-    public TipoInsumo getTipoInsumo() {
+    public String getTipoInsumo() {
         return tipoInsumo;
     }
 
-    public void setTipoInsumo(TipoInsumo tipoInsumo) {
+    public void setTipoInsumo(String tipoInsumo) {
         this.tipoInsumo = tipoInsumo;
     }
     

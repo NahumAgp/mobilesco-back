@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
 import com.mobilesco.mobilesco_back.modules.proveedor.domain.models.ProveedorModel;
 
 @Repository
@@ -28,13 +27,14 @@ public interface ProveedorRepository extends JpaRepository<ProveedorModel, Long>
 
     Optional<ProveedorModel> findByRazonSocialIgnoreCase(String razonSocial);
 
-    List<ProveedorModel> findByTipoInsumo(TipoInsumo tipoInsumo);
+    List<ProveedorModel> findByTipoInsumo_CodigoIgnoreCase(String tipoInsumo);
 
     @Query("""
         SELECT p
         FROM ProveedorModel p
+        LEFT JOIN p.tipoInsumo ti
         WHERE (:activo IS NULL OR p.activo = :activo)
-          AND (:tipoInsumo IS NULL OR p.tipoInsumo = :tipoInsumo)
+          AND (:tipoInsumo IS NULL OR LOWER(COALESCE(ti.codigo, '')) = LOWER(:tipoInsumo))
           AND (
                 :busqueda IS NULL OR :busqueda = '' OR
                 LOWER(COALESCE(p.razonSocial, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
@@ -52,20 +52,22 @@ public interface ProveedorRepository extends JpaRepository<ProveedorModel, Long>
                     )
                 ) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
                 LOWER(COALESCE(p.correo, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
-                LOWER(COALESCE(p.telefono, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                LOWER(COALESCE(p.telefono, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
+                LOWER(COALESCE(ti.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
           )
         """)
     Page<ProveedorModel> buscarFiltradoPaginado(
             @Param("activo") Boolean activo,
-            @Param("tipoInsumo") TipoInsumo tipoInsumo,
+            @Param("tipoInsumo") String tipoInsumo,
             @Param("busqueda") String busqueda,
             Pageable pageable);
 
     @Query("""
         SELECT p
         FROM ProveedorModel p
+        LEFT JOIN p.tipoInsumo ti
         WHERE (:activo IS NULL OR p.activo = :activo)
-          AND (:tipoInsumo IS NULL OR p.tipoInsumo = :tipoInsumo)
+          AND (:tipoInsumo IS NULL OR LOWER(COALESCE(ti.codigo, '')) = LOWER(:tipoInsumo))
           AND (
                 :busqueda IS NULL OR :busqueda = '' OR
                 LOWER(COALESCE(p.razonSocial, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
@@ -83,12 +85,13 @@ public interface ProveedorRepository extends JpaRepository<ProveedorModel, Long>
                     )
                 ) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
                 LOWER(COALESCE(p.correo, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
-                LOWER(COALESCE(p.telefono, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                LOWER(COALESCE(p.telefono, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
+                LOWER(COALESCE(ti.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
           )
         """)
     List<ProveedorModel> buscarFiltrado(
             @Param("activo") Boolean activo,
-            @Param("tipoInsumo") TipoInsumo tipoInsumo,
+            @Param("tipoInsumo") String tipoInsumo,
             @Param("busqueda") String busqueda);
      
 

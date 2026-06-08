@@ -2,8 +2,6 @@ package com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dto
 
 import java.time.LocalDate;
 
-import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
-
 public class ProveedorResponseDTO {
     
     private Long id;
@@ -23,7 +21,8 @@ public class ProveedorResponseDTO {
     private String numeroInterior;
     private String codigoPostal;
 
-    private TipoInsumo tipoInsumo;
+    private String tipoInsumo;
+    private String tipoInsumoNombre;
     // CONTACTO
     private String telefono;
     private String correo;
@@ -179,13 +178,20 @@ public class ProveedorResponseDTO {
         this.activo = activo;
     }
 
-    public TipoInsumo getTipoInsumo() {
+    public String getTipoInsumo() {
         return tipoInsumo;
     }
 
-    public void setTipoInsumo(TipoInsumo tipoInsumo) {
+    public void setTipoInsumo(String tipoInsumo) {
         this.tipoInsumo = tipoInsumo;
     }
 
+    public String getTipoInsumoNombre() {
+        return tipoInsumoNombre;
+    }
+
+    public void setTipoInsumoNombre(String tipoInsumoNombre) {
+        this.tipoInsumoNombre = tipoInsumoNombre;
+    }
 
 }

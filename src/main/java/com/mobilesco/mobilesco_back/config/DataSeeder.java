@@ -15,6 +15,8 @@ import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.out.persistence.repositories.EmpleadoRepository;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.RolRepository;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
+import com.mobilesco.mobilesco_back.modules.tipoinsumo.domain.models.TipoInsumoModel;
+import com.mobilesco.mobilesco_back.modules.tipoinsumo.infrastructure.out.persistence.repositories.TipoInsumoRepository;
 
 @Configuration
 public class DataSeeder {
@@ -25,6 +27,7 @@ public class DataSeeder {
             RolRepository roleRepo,
             UsuarioRepository userRepo,
             EmpleadoRepository empleadoRepo,
+            TipoInsumoRepository tipoInsumoRepository,
             PasswordEncoder passwordEncoder) {
 
         return args -> {
@@ -132,6 +135,20 @@ public class DataSeeder {
                 System.out.println("ℹ️ Usuario ya existe: " + email);
 
             }
+
+            List.of(
+                    new String[] {"HERRAJES", "Herrajes"},
+                    new String[] {"PLASTICOS", "Plasticos"},
+                    new String[] {"CARPINTERIA", "Carpinteria"},
+                    new String[] {"PINTURA", "Pintura"},
+                    new String[] {"TAPICERIA", "Tapiceria"}
+            ).forEach(tipo -> tipoInsumoRepository.findByCodigoIgnoreCase(tipo[0]).orElseGet(() -> {
+                TipoInsumoModel model = new TipoInsumoModel();
+                model.setCodigo(tipo[0]);
+                model.setNombre(tipo[1]);
+                model.setActivo(true);
+                return tipoInsumoRepository.save(model);
+            }));
         };
     }
 }
