@@ -17,6 +17,7 @@ import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.Col
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
 import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
 import com.mobilesco.mobilesco_back.modules.color.application.ports.ColorPersistencePort;
 import com.mobilesco.mobilesco_back.modules.color.application.ports.ProductoColorValidationPort;
@@ -54,18 +55,13 @@ public class ColorServiceImpl implements ColorUseCase {
 
     // ========== CREATE ==========
 
-    public ColorResponseDTO crear(ColorCreateDTO dto) {
-
-        if (colorRepository.existsByCodigo(dto.getCodigo())) {
-            throw new BadRequestException("Ya existe un color con el codigo: " + dto.getCodigo());
-        }
-
+    public synchronized ColorResponseDTO crear(ColorCreateDTO dto) {
         if (colorRepository.existsByNombre(dto.getNombre())) {
             throw new BadRequestException("Ya existe un color con el nombre: " + dto.getNombre());
         }
 
         ColorModel color = new ColorModel();
-        color.setCodigo(dto.getCodigo());
+        color.setCodigo(sugerirCodigo(dto.getHex()));
         color.setNombre(dto.getNombre());
         color.setDescripcion(dto.getDescripcion());
         color.setHex(dto.getHex());
@@ -73,6 +69,12 @@ public class ColorServiceImpl implements ColorUseCase {
 
         ColorModel guardado = colorRepository.save(color);
         return mapToResponseDTO(guardado);
+    }
+
+    public String sugerirCodigo(String hex) {
+        return CatalogCodeGenerator.generate(hex, colorRepository.findAll().stream()
+                .map(ColorModel::getCodigo)
+                .toList());
     }
 
     // ========== READ ==========

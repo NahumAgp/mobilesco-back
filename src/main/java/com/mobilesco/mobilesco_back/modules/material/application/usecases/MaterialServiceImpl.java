@@ -27,6 +27,7 @@ import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialResponseDTO;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 
 @Service
@@ -107,17 +108,23 @@ public class MaterialServiceImpl implements MaterialUseCase {
         return value == null ? "" : value;
     }
 
-    public MaterialResponseDTO crear(MaterialCreateDTO dto) {
-        validarDuplicados(dto.getCodigo(), dto.getNombre(), null);
+    public synchronized MaterialResponseDTO crear(MaterialCreateDTO dto) {
+        validarNombreDuplicado(dto.getNombre(), null);
 
         MaterialModel material = MaterialModel.builder()
-                .codigo(dto.getCodigo().trim().toUpperCase(Locale.ROOT))
+                .codigo(sugerirCodigo(dto.getNombre()))
                 .nombre(dto.getNombre().trim())
                 .descripcion(dto.getDescripcion())
                 .activo(true)
                 .build();
 
         return mapToResponseDTO(materialRepository.save(material));
+    }
+
+    public String sugerirCodigo(String nombre) {
+        return CatalogCodeGenerator.generate(nombre, materialRepository.findAll().stream()
+                .map(MaterialModel::getCodigo)
+                .toList());
     }
 
     public MaterialResponseDTO actualizar(Long id, MaterialUpdateDTO dto) {
@@ -230,6 +237,15 @@ public class MaterialServiceImpl implements MaterialUseCase {
                     throw new BadRequestException("Ya existe un material con el codigo: " + codigo);
                 });
 
+        materialRepository.findByNombre(nombreNormalizado)
+                .filter(material -> !Objects.equals(material.getId(), idActual))
+                .ifPresent(material -> {
+                    throw new BadRequestException("Ya existe un material con el nombre: " + nombre);
+                });
+    }
+
+    private void validarNombreDuplicado(String nombre, Long idActual) {
+        String nombreNormalizado = nombre.trim();
         materialRepository.findByNombre(nombreNormalizado)
                 .filter(material -> !Objects.equals(material.getId(), idActual))
                 .ifPresent(material -> {

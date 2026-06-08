@@ -13,8 +13,7 @@ import jakarta.validation.constraints.Size;
 
 public class ColorCreateDTO {
 
-    @NotBlank(message = "El codigo es obligatorio")
-    @Pattern(regexp = "^[A-Z0-9]{1,10}$", message = "El codigo solo puede contener mayusculas y numeros (maximo 10)")
+    // Se conserva por compatibilidad; el servidor genera el codigo.
     private String codigo;
 
     @NotBlank(message = "El nombre es obligatorio")

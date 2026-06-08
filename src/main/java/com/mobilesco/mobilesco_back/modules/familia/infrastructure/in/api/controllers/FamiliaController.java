@@ -8,6 +8,7 @@
 package com.mobilesco.mobilesco_back.modules.familia.infrastructure.in.api.controllers;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -85,6 +86,11 @@ public class FamiliaController {
     @GetMapping("/activos")
     public ResponseEntity<List<FamiliaResponseDTO>> obtenerActivos() {
         return ResponseEntity.ok(familiaService.obtenerActivos());
+    }
+
+    @GetMapping("/codigo-sugerido")
+    public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String nombre) {
+        return ResponseEntity.ok(Map.of("codigo", familiaService.sugerirCodigo(nombre)));
     }
 
     @GetMapping("/activas")

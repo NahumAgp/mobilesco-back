@@ -25,6 +25,7 @@ import com.mobilesco.mobilesco_back.modules.familia.infrastructure.in.api.dtos.F
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.in.api.dtos.FamiliaUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
@@ -77,12 +78,7 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
 
     // ========== CREATE ==========
 
-    public FamiliaResponseDTO crear(FamiliaCreateDTO dto) {
-
-        if (familiaRepository.existsByCodigo(dto.getCodigo())) {
-            throw new BadRequestException("Ya existe una familia con el codigo: " + dto.getCodigo());
-        }
-
+    public synchronized FamiliaResponseDTO crear(FamiliaCreateDTO dto) {
         if (familiaRepository.existsByNombre(dto.getNombre())) {
             throw new BadRequestException("Ya existe una familia con el nombre: " + dto.getNombre());
         }
@@ -91,7 +87,7 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
                 .orElseThrow(() -> new NotFoundException("Linea no encontrada con ID: " + dto.getLineaId()));
 
         FamiliaModel familia = new FamiliaModel();
-        familia.setCodigo(dto.getCodigo());
+        familia.setCodigo(sugerirCodigo(dto.getNombre()));
         familia.setNombre(dto.getNombre());
         familia.setDescripcion(dto.getDescripcion());
         familia.setLinea(linea);
@@ -99,6 +95,12 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
 
         FamiliaModel guardado = familiaRepository.save(familia);
         return mapToResponseDTO(guardado);
+    }
+
+    public String sugerirCodigo(String nombre) {
+        return CatalogCodeGenerator.generate(nombre, familiaRepository.findAll().stream()
+                .map(FamiliaModel::getCodigo)
+                .toList());
     }
 
     // ========== READ ==========

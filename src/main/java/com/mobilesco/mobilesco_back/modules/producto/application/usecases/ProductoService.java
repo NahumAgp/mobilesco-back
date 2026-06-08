@@ -90,6 +90,7 @@ public class ProductoService {
 
         NivelModel nivel = nivelRepository.findById(dto.getNivelId())
                 .orElseThrow(() -> new ResourceNotFoundException("Nivel no encontrado"));
+        validarNivelDelModelo(modelo, nivel);
 
         ColorModel color = colorRepository.findById(dto.getColorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Color no encontrado"));
@@ -168,21 +169,17 @@ public class ProductoService {
             throw new ValidationException("Ya existe un producto con SKU: " + skuGenerado);
         }
 
-        if (dto.getModeloId() != null) {
-            ModeloModel modelo = modeloRepository.findById(dto.getModeloId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Modelo no encontrado"));
-            producto.setModelo(modelo);
-        } else {
-            producto.setModelo(null);
-        }
-
-        if (dto.getNivelId() != null) {
-            NivelModel nivel = nivelRepository.findById(dto.getNivelId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Nivel no encontrado"));
-            producto.setNivel(nivel);
-        } else {
-            producto.setNivel(null);
-        }
+        ModeloModel modelo = dto.getModeloId() != null
+                ? modeloRepository.findById(dto.getModeloId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Modelo no encontrado"))
+                : null;
+        NivelModel nivel = dto.getNivelId() != null
+                ? nivelRepository.findById(dto.getNivelId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Nivel no encontrado"))
+                : null;
+        validarNivelDelModelo(modelo, nivel);
+        producto.setModelo(modelo);
+        producto.setNivel(nivel);
 
         if (dto.getColorId() != null) {
             ColorModel color = colorRepository.findById(dto.getColorId())
@@ -673,6 +670,13 @@ public class ProductoService {
         }
 
         return (lineaCodigo + familiaCodigo + modeloCodigo + "-" + nivelCodigo + "-" + materialCodigo + "-" + colorCodigo).toUpperCase();
+    }
+
+    private void validarNivelDelModelo(ModeloModel modelo, NivelModel nivel) {
+        if (modelo == null || nivel == null || nivel.getModelo() == null
+                || !Objects.equals(modelo.getId(), nivel.getModelo().getId())) {
+            throw new ValidationException("La categoria seleccionada no pertenece al modelo");
+        }
     }
 
     private boolean esProductoVisible(ProductoModel producto) {

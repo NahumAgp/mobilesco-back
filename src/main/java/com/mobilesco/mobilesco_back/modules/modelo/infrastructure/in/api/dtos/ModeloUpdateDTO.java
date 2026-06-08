@@ -10,7 +10,10 @@
  */
 package com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 public class ModeloUpdateDTO {
@@ -32,6 +35,10 @@ public class ModeloUpdateDTO {
     private Long familiaId;
 
     private Boolean activo;
+
+    @Valid
+    @Size(min = 1, message = "El modelo debe tener al menos una categoria")
+    private List<ModeloCategoriaDTO> categorias;
 
     public String getCodigo() {
         return codigo;
@@ -79,5 +86,13 @@ public class ModeloUpdateDTO {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public List<ModeloCategoriaDTO> getCategorias() {
+        return categorias;
+    }
+
+    public void setCategorias(List<ModeloCategoriaDTO> categorias) {
+        this.categorias = categorias;
     }
 }

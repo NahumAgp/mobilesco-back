@@ -18,6 +18,8 @@ public interface MaterialUseCase {
 
     MaterialResponseDTO crear(MaterialCreateDTO dto);
 
+    String sugerirCodigo(String nombre);
+
     List<MaterialResponseDTO> obtenerTodos();
 
     PageResponseDTO<MaterialResponseDTO> obtenerPaginado(int page, String sortBy, String direction);

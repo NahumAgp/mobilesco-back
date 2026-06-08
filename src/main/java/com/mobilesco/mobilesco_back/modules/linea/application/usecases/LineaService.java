@@ -22,6 +22,7 @@ import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.linea.infrastructure.in.api.dtos.LineaCreateDTO;
@@ -33,7 +34,6 @@ import com.mobilesco.mobilesco_back.modules.linea.infrastructure.out.persistence
 public class LineaService {
 
     private static final int PAGE_SIZE = 10;
-
     private final LineaRepository lineaRepository;
     private final FamiliaRepository familiaRepository;
 
@@ -64,18 +64,13 @@ public class LineaService {
 
     // ========== CREATE ==========
 
-    public LineaResponseDTO crear(LineaCreateDTO dto) {
-
-        if (lineaRepository.existsByCodigo(dto.getCodigo())) {
-            throw new BadRequestException("Ya existe una linea con el codigo: " + dto.getCodigo());
-        }
-
+    public synchronized LineaResponseDTO crear(LineaCreateDTO dto) {
         if (lineaRepository.existsByNombre(dto.getNombre())) {
             throw new BadRequestException("Ya existe una linea con el nombre: " + dto.getNombre());
         }
 
         LineaModel linea = new LineaModel();
-        linea.setCodigo(dto.getCodigo());
+        linea.setCodigo(generarCodigoDisponible(dto.getNombre()));
         linea.setNombre(dto.getNombre());
         linea.setDescripcion(dto.getDescripcion());
         linea.setOrden(Objects.requireNonNullElse(dto.getOrden(), 0));
@@ -83,6 +78,14 @@ public class LineaService {
 
         LineaModel guardado = lineaRepository.save(linea);
         return mapToResponseDTO(guardado);
+    }
+
+    public String sugerirCodigo(String nombre) {
+        return generarCodigoDisponible(nombre);
+    }
+
+    private String generarCodigoDisponible(String nombre) {
+        return CatalogCodeGenerator.generate(nombre, lineaRepository.findAllCodigos());
     }
 
     // ========== READ ==========

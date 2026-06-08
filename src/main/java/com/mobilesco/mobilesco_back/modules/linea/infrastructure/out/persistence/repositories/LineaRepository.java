@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
@@ -27,4 +28,7 @@ public interface LineaRepository extends JpaRepository<LineaModel, Long> {
     boolean existsByCodigo(String codigo);
     
     boolean existsByNombre(String nombre);
+
+    @Query("SELECT l.codigo FROM LineaModel l")
+    List<String> findAllCodigos();
 }

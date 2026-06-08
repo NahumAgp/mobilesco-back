@@ -11,6 +11,7 @@
 package com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class ModeloResponseDTO {
 
@@ -25,6 +26,7 @@ public class ModeloResponseDTO {
 
     private Long familiaId;
     private String familiaNombre;
+    private List<ModeloCategoriaDTO> categorias;
 
     public Long getId() {
         return id;
@@ -104,5 +106,13 @@ public class ModeloResponseDTO {
 
     public void setFamiliaNombre(String familiaNombre) {
         this.familiaNombre = familiaNombre;
+    }
+
+    public List<ModeloCategoriaDTO> getCategorias() {
+        return categorias;
+    }
+
+    public void setCategorias(List<ModeloCategoriaDTO> categorias) {
+        this.categorias = categorias;
     }
 }

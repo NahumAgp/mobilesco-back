@@ -8,6 +8,7 @@
 package com.mobilesco.mobilesco_back.modules.linea.infrastructure.in.api.controllers;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -84,6 +85,11 @@ public class LineaController {
     @GetMapping("/activos")
     public ResponseEntity<List<LineaResponseDTO>> obtenerActivos() {
         return ResponseEntity.ok(lineaService.obtenerActivos());
+    }
+
+    @GetMapping("/codigo-sugerido")
+    public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String nombre) {
+        return ResponseEntity.ok(Map.of("codigo", lineaService.sugerirCodigo(nombre)));
     }
     
     @GetMapping("/{id}")

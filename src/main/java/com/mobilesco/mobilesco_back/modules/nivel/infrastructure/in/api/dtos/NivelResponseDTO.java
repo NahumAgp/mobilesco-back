@@ -11,6 +11,8 @@ public class NivelResponseDTO {
     private String descripcion;
     private Boolean activo;
     private LocalDateTime createdAt;
+    private Long modeloId;
+    private String modeloNombre;
     
     // Getters y Setters
     public Long getId() {
@@ -28,7 +30,7 @@ public class NivelResponseDTO {
     public void setCodigo(String codigo) {
         this.codigo = codigo;
     }
-    
+
     public String getNombre() {
         return nombre;
     }
@@ -59,5 +61,21 @@ public class NivelResponseDTO {
     
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Long getModeloId() {
+        return modeloId;
+    }
+
+    public void setModeloId(Long modeloId) {
+        this.modeloId = modeloId;
+    }
+
+    public String getModeloNombre() {
+        return modeloNombre;
+    }
+
+    public void setModeloNombre(String modeloNombre) {
+        this.modeloNombre = modeloNombre;
     }
 }

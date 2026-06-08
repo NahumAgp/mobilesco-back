@@ -27,7 +27,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoService;
+import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoCreacionCompletaService;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreateDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoEstructuraCostosDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoUpdateDTO;
@@ -44,11 +47,19 @@ import lombok.RequiredArgsConstructor;
 public class ProductoController {
 
     private final ProductoService productoService;
+    private final ProductoCreacionCompletaService productoCreacionCompletaService;
 
     @Operation(summary = "Crear producto")
     @PostMapping
     public ResponseEntity<ProductoResponseDTO> crear(@Valid @RequestBody ProductoCreateDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productoService.crear(dto));
+    }
+
+    @Operation(summary = "Crear producto y catalogos relacionados en una sola transaccion")
+    @PostMapping("/creacion-completa")
+    public ResponseEntity<ProductoCreacionCompletaResponseDTO> crearCompleto(
+            @Valid @RequestBody ProductoCreacionCompletaDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(productoCreacionCompletaService.crear(dto));
     }
 
     @Operation(summary = "Listar productos con imagenes")

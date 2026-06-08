@@ -18,6 +18,8 @@ public interface FamiliaUseCase {
 
     FamiliaResponseDTO crear(FamiliaCreateDTO dto);
 
+    String sugerirCodigo(String nombre);
+
     byte[] generarReporteExcel(Boolean activo, String busqueda, Long lineaId, String sortBy, String direction);
 
     List<FamiliaResponseDTO> obtenerTodos();

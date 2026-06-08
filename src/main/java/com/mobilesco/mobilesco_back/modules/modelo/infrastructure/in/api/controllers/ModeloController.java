@@ -8,6 +8,7 @@
 package com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.controllers;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -82,6 +83,11 @@ public class ModeloController {
     @GetMapping("/activos")
     public ResponseEntity<List<ModeloResponseDTO>> obtenerActivos() {
         return ResponseEntity.ok(modeloService.obtenerActivos());
+    }
+
+    @GetMapping("/codigo-sugerido")
+    public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String nombre) {
+        return ResponseEntity.ok(Map.of("codigo", modeloService.sugerirCodigo(nombre)));
     }
 
     @GetMapping("/{id}")

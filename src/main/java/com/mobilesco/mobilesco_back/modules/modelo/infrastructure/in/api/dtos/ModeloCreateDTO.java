@@ -10,15 +10,17 @@
  */
 package com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class ModeloCreateDTO {
 
-    @NotBlank(message = "El codigo es obligatorio")
-    @Size(max = 30, message = "El codigo no puede exceder 30 caracteres")
+    // Se conserva por compatibilidad; el servidor genera el codigo.
     private String codigo;
 
     @NotBlank(message = "El nombre es obligatorio")
@@ -37,6 +39,11 @@ public class ModeloCreateDTO {
     private Long familiaId;
 
     private Boolean activo;
+
+    @Valid
+    @NotNull(message = "Las categorias del modelo son obligatorias")
+    @Size(min = 1, message = "El modelo debe tener al menos una categoria")
+    private List<ModeloCategoriaDTO> categorias;
 
     public String getCodigo() {
         return codigo;
@@ -84,5 +91,13 @@ public class ModeloCreateDTO {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public List<ModeloCategoriaDTO> getCategorias() {
+        return categorias;
+    }
+
+    public void setCategorias(List<ModeloCategoriaDTO> categorias) {
+        this.categorias = categorias;
     }
 }

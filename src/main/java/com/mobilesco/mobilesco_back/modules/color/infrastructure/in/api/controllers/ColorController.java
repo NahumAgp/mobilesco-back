@@ -8,6 +8,7 @@
 package com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.controllers;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorCreateDTO;
@@ -57,6 +59,11 @@ public class ColorController {
     @GetMapping("/activos")
     public ResponseEntity<List<ColorResponseDTO>> obtenerActivos() {
         return ResponseEntity.ok(colorService.obtenerActivos());
+    }
+
+    @GetMapping("/codigo-sugerido")
+    public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String hex) {
+        return ResponseEntity.ok(Map.of("codigo", colorService.sugerirCodigo(hex)));
     }
     
     @GetMapping("/{id}")

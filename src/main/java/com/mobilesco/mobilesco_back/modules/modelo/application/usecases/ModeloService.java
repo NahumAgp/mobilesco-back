@@ -8,9 +8,12 @@
 package com.mobilesco.mobilesco_back.modules.modelo.application.usecases;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,13 +28,17 @@ import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCreateDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCategoriaDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
 
@@ -43,15 +50,18 @@ public class ModeloService {
     private final ModeloRepository modeloRepository;
     private final FamiliaRepository familiaRepository;
     private final ProductoRepository productoRepository;
+    private final NivelRepository nivelRepository;
     private final AlmacenamientoImagenesService almacenamientoImagenesService;
 
     public ModeloService(ModeloRepository modeloRepository,
                          FamiliaRepository familiaRepository,
                          ProductoRepository productoRepository,
+                         NivelRepository nivelRepository,
                          AlmacenamientoImagenesService almacenamientoImagenesService) {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
         this.productoRepository = productoRepository;
+        this.nivelRepository = nivelRepository;
         this.almacenamientoImagenesService = almacenamientoImagenesService;
     }
 
@@ -70,6 +80,9 @@ public class ModeloService {
             dto.setFamiliaId(modelo.getFamilia().getId());
             dto.setFamiliaNombre(modelo.getFamilia().getNombre());
         }
+        dto.setCategorias(nivelRepository.findByModeloIdOrderByNombreAsc(modelo.getId()).stream()
+                .map(this::mapCategoria)
+                .toList());
 
         return dto;
     }
@@ -104,17 +117,17 @@ public class ModeloService {
         };
     }
 
-    public ModeloResponseDTO crear(ModeloCreateDTO dto) {
-
-        if (modeloRepository.existsByCodigo(dto.getCodigo())) {
-            throw new BadRequestException("Ya existe un modelo con el codigo: " + dto.getCodigo());
-        }
-
+    @Transactional
+    public synchronized ModeloResponseDTO crear(ModeloCreateDTO dto) {
         FamiliaModel familia = familiaRepository.findById(dto.getFamiliaId())
                 .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + dto.getFamiliaId()));
+        if (modeloRepository.findAll().stream()
+                .anyMatch(item -> item.getNombre().equalsIgnoreCase(dto.getNombre().trim()))) {
+            throw new BadRequestException("Ya existe un modelo con el nombre: " + dto.getNombre());
+        }
 
         ModeloModel modelo = new ModeloModel();
-        modelo.setCodigo(dto.getCodigo());
+        modelo.setCodigo(sugerirCodigo(dto.getNombre()));
         modelo.setNombre(dto.getNombre());
         modelo.setDescripcion(dto.getDescripcion());
         modelo.setUrlImagen(dto.getUrlImagen());
@@ -122,7 +135,14 @@ public class ModeloService {
         modelo.setFamilia(familia);
 
         ModeloModel guardado = modeloRepository.save(modelo);
+        sincronizarCategorias(guardado, dto.getCategorias());
         return mapToResponseDTO(guardado);
+    }
+
+    public String sugerirCodigo(String nombre) {
+        return CatalogCodeGenerator.generate(nombre, modeloRepository.findAll().stream()
+                .map(ModeloModel::getCodigo)
+                .toList());
     }
 
     public List<ModeloResponseDTO> obtenerTodos() {
@@ -226,6 +246,7 @@ public class ModeloService {
         return value == null ? "" : value;
     }
 
+    @Transactional
     public ModeloResponseDTO actualizar(Long id, ModeloUpdateDTO dto) {
 
         ModeloModel existente = modeloRepository.findById(id)
@@ -261,6 +282,9 @@ public class ModeloService {
         }
 
         ModeloModel actualizado = modeloRepository.save(existente);
+        if (dto.getCategorias() != null) {
+            sincronizarCategorias(actualizado, dto.getCategorias());
+        }
         return mapToResponseDTO(actualizado);
     }
 
@@ -305,6 +329,7 @@ public class ModeloService {
         return mapToResponseDTO(modeloRepository.save(existente));
     }
 
+    @Transactional
     public void eliminar(Long id) {
         if (!modeloRepository.existsById(id)) {
             throw new NotFoundException("Modelo no encontrado con ID: " + id);
@@ -314,6 +339,91 @@ public class ModeloService {
             throw new BadRequestException("No se puede eliminar el modelo porque tiene productos asociados");
         }
 
+        nivelRepository.deleteByModeloId(id);
         modeloRepository.deleteById(id);
+    }
+
+    private ModeloCategoriaDTO mapCategoria(NivelModel nivel) {
+        ModeloCategoriaDTO dto = new ModeloCategoriaDTO();
+        dto.setId(nivel.getId());
+        dto.setCodigo(nivel.getCodigo());
+        dto.setNombre(nivel.getNombre());
+        dto.setDescripcion(nivel.getDescripcion());
+        dto.setActivo(nivel.getActivo());
+        return dto;
+    }
+
+    private void sincronizarCategorias(ModeloModel modelo, List<ModeloCategoriaDTO> categorias) {
+        if (categorias == null || categorias.isEmpty()) {
+            throw new BadRequestException("El modelo debe tener al menos una categoria");
+        }
+
+        List<NivelModel> existentes = nivelRepository.findByModeloIdOrderByNombreAsc(modelo.getId());
+        Set<Long> idsConservados = new HashSet<>();
+        Set<String> nombres = new HashSet<>();
+        Set<String> codigos = new HashSet<>();
+        List<String> codigosUsados = nivelRepository.findAll().stream()
+                .map(NivelModel::getCodigo)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        for (ModeloCategoriaDTO categoria : categorias) {
+            String nombre = categoria.getNombre() == null ? "" : categoria.getNombre().trim();
+            if (nombre.isBlank()) {
+                throw new BadRequestException("Todas las categorias deben tener nombre");
+            }
+            if (!nombres.add(nombre.toLowerCase(Locale.ROOT))) {
+                throw new BadRequestException("No se pueden repetir categorias dentro del mismo modelo: " + nombre);
+            }
+
+            NivelModel nivel;
+            if (categoria.getId() != null) {
+                nivel = existentes.stream()
+                        .filter(item -> item.getId().equals(categoria.getId()))
+                        .findFirst()
+                        .orElseThrow(() -> new BadRequestException("La categoria no pertenece al modelo"));
+                idsConservados.add(nivel.getId());
+            } else {
+                nivel = new NivelModel();
+                nivel.setModelo(modelo);
+            }
+            boolean nombreOcupado = nivelRepository.findByNombre(nombre)
+                    .filter(item -> nivel.getId() == null || !item.getId().equals(nivel.getId()))
+                    .isPresent();
+            if (nombreOcupado) {
+                throw new BadRequestException("Ya existe una categoria con el nombre: " + nombre);
+            }
+
+            String codigo = categoria.getCodigo() == null ? "" : categoria.getCodigo().trim().toUpperCase(Locale.ROOT);
+            if (codigo.isBlank()) {
+                codigo = CatalogCodeGenerator.generate(nombre, codigosUsados);
+            }
+            if (!codigos.add(codigo)) {
+                throw new BadRequestException("No se pueden repetir codigos de categoria dentro del mismo modelo: " + codigo);
+            }
+            boolean codigoOcupado = nivelRepository.existsByCodigo(codigo)
+                    && (nivel.getId() == null || !codigo.equalsIgnoreCase(nivel.getCodigo()));
+            if (codigoOcupado) {
+                throw new BadRequestException("Ya existe una categoria con el codigo: " + codigo);
+            }
+            codigosUsados.add(codigo);
+
+            nivel.setCodigo(codigo);
+            nivel.setNombre(nombre);
+            nivel.setDescripcion(categoria.getDescripcion());
+            nivel.setActivo(categoria.getActivo() == null || Boolean.TRUE.equals(categoria.getActivo()));
+            NivelModel guardado = nivelRepository.save(nivel);
+            idsConservados.add(guardado.getId());
+        }
+
+        for (NivelModel existente : existentes) {
+            if (idsConservados.contains(existente.getId())) {
+                continue;
+            }
+            if (productoRepository.existsByNivelId(existente.getId())) {
+                throw new BadRequestException(
+                        "No se puede eliminar la categoria " + existente.getNombre() + " porque tiene productos asociados");
+            }
+            nivelRepository.delete(existente);
+        }
     }
 }

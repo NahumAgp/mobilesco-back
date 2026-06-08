@@ -8,15 +8,13 @@
 package com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class MaterialCreateDTO {
 
-    @NotBlank(message = "El codigo es obligatorio")
-    @Pattern(regexp = "^[A-Z0-9]{1,10}$", message = "El codigo solo puede contener mayusculas y numeros (maximo 10)")
+    // Se conserva por compatibilidad; el servidor genera el codigo.
     private String codigo;
 
     @NotBlank(message = "El nombre es obligatorio")

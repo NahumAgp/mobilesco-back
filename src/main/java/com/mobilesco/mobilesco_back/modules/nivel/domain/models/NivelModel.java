@@ -8,26 +8,40 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+
+import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 
 @Entity
 @Getter
 @Setter
-@Table(name = "niveles")
+@Table(
+    name = "niveles",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_nivel_modelo_nombre", columnNames = {"producto_base_id", "nombre"})
+    }
+)
 public class NivelModel {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(unique = true, nullable = false, length = 2)
+    @Column(unique = true, nullable = false, length = 3)
     private String codigo;
     
     @Column(nullable = false, length = 50)
     private String nombre;
+
+    @ManyToOne
+    @JoinColumn(name = "producto_base_id")
+    private ModeloModel modelo;
     
     @Column(length = 255)
     private String descripcion;

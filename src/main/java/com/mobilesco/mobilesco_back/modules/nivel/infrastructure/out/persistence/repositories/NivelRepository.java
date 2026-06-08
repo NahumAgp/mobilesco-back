@@ -17,8 +17,26 @@ public interface NivelRepository extends JpaRepository<NivelModel, Long> {
     Optional<NivelModel> findByNombre(String nombre);
     
     List<NivelModel> findByActivo(Boolean activo);
+
+    List<NivelModel> findByModeloIdOrderByNombreAsc(Long modeloId);
+
+    List<NivelModel> findByModeloIdAndActivoTrueOrderByNombreAsc(Long modeloId);
+
+    long countByModeloId(Long modeloId);
+
+    long countByModeloIdAndActivoTrue(Long modeloId);
+
+    void deleteByModeloId(Long modeloId);
     
     boolean existsByCodigo(String codigo);
     
     boolean existsByNombre(String nombre);
+
+    boolean existsByModeloIdAndCodigoIgnoreCase(Long modeloId, String codigo);
+
+    boolean existsByModeloIdAndNombreIgnoreCase(Long modeloId, String nombre);
+
+    boolean existsByModeloIdAndCodigoIgnoreCaseAndIdNot(Long modeloId, String codigo, Long id);
+
+    boolean existsByModeloIdAndNombreIgnoreCaseAndIdNot(Long modeloId, String nombre, Long id);
 }

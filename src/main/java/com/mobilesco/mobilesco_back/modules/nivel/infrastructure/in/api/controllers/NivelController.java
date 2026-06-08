@@ -4,6 +4,7 @@
 package com.mobilesco.mobilesco_back.modules.nivel.infrastructure.in.api.controllers;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -56,6 +57,20 @@ public class NivelController {
     @GetMapping("/activos")
     public ResponseEntity<List<NivelResponseDTO>> obtenerActivos() {
         return ResponseEntity.ok(nivelService.obtenerActivos());
+    }
+
+    @GetMapping("/codigo-sugerido")
+    public ResponseEntity<Map<String, String>> sugerirCodigo(
+            @RequestParam String nombre,
+            @RequestParam Long modeloId) {
+        return ResponseEntity.ok(Map.of("codigo", nivelService.sugerirCodigo(nombre, modeloId)));
+    }
+
+    @GetMapping("/por-modelo/{modeloId}")
+    public ResponseEntity<List<NivelResponseDTO>> obtenerPorModelo(
+            @PathVariable Long modeloId,
+            @RequestParam(required = false, defaultValue = "false") boolean soloActivos) {
+        return ResponseEntity.ok(nivelService.obtenerPorModelo(modeloId, soloActivos));
     }
     
     @GetMapping("/{id}")
