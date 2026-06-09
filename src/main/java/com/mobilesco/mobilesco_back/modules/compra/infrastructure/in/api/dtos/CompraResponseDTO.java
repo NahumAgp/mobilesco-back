@@ -24,6 +24,7 @@ public class CompraResponseDTO {
     private String proveedorRazonSocial;
     private String proveedorRfc;
     private String proveedorNombreCompleto;  // nombre + apellidos
+    private String entregadoPor;
     
     private String tipoDocumento;
     private String numeroDocumento;

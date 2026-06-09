@@ -51,6 +51,7 @@ public class InsumoService {
     private static final List<String> ROLES_GESTION_INSUMOS = List.of(
             "ROLE_ADMIN",
             "ROLE_SUPER_ADMIN",
+            "ROLE_DIRECTOR_GENERAL",
             "ROLE_JEFE_ALMACEN",
             "ROLE_ALMACEN",
             "ROLE_SUBDIRECCION_ADMINISTRATIVA"

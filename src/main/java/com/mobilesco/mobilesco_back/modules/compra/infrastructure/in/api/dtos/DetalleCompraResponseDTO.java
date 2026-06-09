@@ -35,6 +35,7 @@ public class DetalleCompraResponseDTO {
     private Double factorConversion;        // 1 unidad compra = X unidad consumo
     private Double cantidadRecibida;        // en unidad de compra
     private Double cantidadEnUnidadConsumo; // calculado: (cantidadRecibida * factor)
+    private Double cantidadPendiente;       // calculado: cantidad - cantidadRecibida
     
     // Precios
     private Double precioUnitario;          // por unidad de compra
@@ -42,6 +43,7 @@ public class DetalleCompraResponseDTO {
     private Double subtotal;                 // cantidad * precioUnitario
     
     private String observaciones;
+    private String motivoNoRecepcion;
     private LocalDateTime fechaRegistro;
     private LocalDateTime fechaActualizacion;
 }

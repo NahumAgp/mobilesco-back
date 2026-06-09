@@ -40,7 +40,7 @@ import lombok.RequiredArgsConstructor;
 public class InsumoController {
 
     private static final String ROLES_GESTION_INSUMOS =
-            "hasAnyRole('ADMIN','SUPER_ADMIN','JEFE_ALMACEN','ALMACEN','SUBDIRECCION_ADMINISTRATIVA')";
+            "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','JEFE_ALMACEN','ALMACEN','SUBDIRECCION_ADMINISTRATIVA')";
 
     private final InsumoService insumoService;
 

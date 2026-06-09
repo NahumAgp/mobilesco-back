@@ -72,6 +72,9 @@ public class CompraModel {
     @Column(name = "observaciones", length = 500)
     private String observaciones;
 
+    @Column(name = "entregado_por", length = 150)
+    private String entregadoPor;
+
     @Column(name = "estado", length = 20)
     @Builder.Default
     private String estado = "PENDIENTE";

@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -59,10 +60,13 @@ public class DetalleCompraController {
 
     @Operation(summary = "Registrar recepción parcial")
     @PatchMapping("/{id}/recibir")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')")
     public ResponseEntity<DetalleCompraResponseDTO> recibirParcial(
             @PathVariable Long id,
-            @RequestParam Double cantidadRecibida) {
-        return ResponseEntity.ok(detalleCompraService.recibirParcial(id, cantidadRecibida));
+            @RequestParam Double cantidadRecibida,
+            @RequestParam(required = false) String entregadoPor,
+            @RequestParam(required = false) String motivoNoRecepcion) {
+        return ResponseEntity.ok(detalleCompraService.recibirParcial(id, cantidadRecibida, entregadoPor, motivoNoRecepcion));
     }
 
     @Operation(summary = "Eliminar detalle")

@@ -73,6 +73,9 @@ public class DetalleCompraModel {
     @Column(length = 255)
     private String observaciones;
 
+    @Column(name = "motivo_no_recepcion", length = 255)
+    private String motivoNoRecepcion;
+
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private LocalDateTime fechaRegistro;
 
@@ -100,6 +103,13 @@ public class DetalleCompraModel {
             return cantidad * precioUnitario;
         }
         return 0.0;
+    }
+
+    @Transient
+    public Double getCantidadPendiente() {
+        double recibida = cantidadRecibida != null ? cantidadRecibida : 0.0;
+        double comprada = cantidad != null ? cantidad : 0.0;
+        return Math.max(comprada - recibida, 0.0);
     }
 
     @PrePersist

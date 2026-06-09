@@ -136,7 +136,7 @@ public class CompraService {
             throw new ValidationException("No se puede actualizar una compra cancelada");
         }
         
-        if ("RECIBIDA".equals(compra.getEstado()) && dto.getEstado() == null) {
+        if (("RECIBIDA".equals(compra.getEstado()) || "RECIBIDA_PARCIAL".equals(compra.getEstado())) && dto.getEstado() == null) {
             throw new ValidationException("No se puede actualizar una compra ya recibida");
         }
         
@@ -203,7 +203,13 @@ public class CompraService {
         for (DetalleCompraModel detalle : detalles) {
             InsumoModel insumo = detalle.getInsumo();
             
-            double cantidadEnUnidadConsumo = detalle.getCantidadEnUnidadConsumo();
+            double cantidadRecibidaAnterior = detalle.getCantidadRecibida() != null ? detalle.getCantidadRecibida() : 0.0;
+            double cantidadPendiente = Math.max((detalle.getCantidad() != null ? detalle.getCantidad() : 0.0) - cantidadRecibidaAnterior, 0.0);
+            if (cantidadPendiente <= 0) {
+                continue;
+            }
+
+            double cantidadEnUnidadConsumo = cantidadPendiente * detalle.getFactorConversion();
             double stockAnterior = insumo.getStockActual();
             
             insumo.setStockActual(stockAnterior + cantidadEnUnidadConsumo);
@@ -215,13 +221,17 @@ public class CompraService {
             
             // Aquí deberías registrar en Kardex
             kardexService.registrarEntradaCompra(
-            insumo.getId(),
-            cantidadEnUnidadConsumo,
-            detalle.getCostoPorUnidadConsumo(),
-            compra.getNumeroDocumento(),
-            compra.getId(),
-            "Entrada por compra: " + compra.getFolio()
-        );
+                    insumo.getId(),
+                    cantidadEnUnidadConsumo,
+                    detalle.getCostoPorUnidadConsumo(),
+                    compra.getNumeroDocumento(),
+                    compra.getId(),
+                    "Entrada por compra: " + compra.getFolio()
+            );
+
+            detalle.setCantidadRecibida(detalle.getCantidad());
+            detalle.setMotivoNoRecepcion(null);
+            detalleCompraRepository.save(detalle);
         }
         
         compra.setEstado("RECIBIDA");
@@ -243,7 +253,7 @@ public class CompraService {
         CompraModel compra = compraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con id: " + id));
         
-        if ("RECIBIDA".equals(compra.getEstado())) {
+        if ("RECIBIDA".equals(compra.getEstado()) || "RECIBIDA_PARCIAL".equals(compra.getEstado())) {
             throw new ValidationException("No se puede cancelar una compra ya recibida");
         }
         
@@ -331,7 +341,7 @@ public class CompraService {
         CompraModel compra = compraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con id: " + id));
         
-        if ("RECIBIDA".equals(compra.getEstado())) {
+        if ("RECIBIDA".equals(compra.getEstado()) || "RECIBIDA_PARCIAL".equals(compra.getEstado())) {
             throw new ValidationException("No se puede eliminar una compra recibida");
         }
         
@@ -365,7 +375,9 @@ public class CompraService {
                         .insumoNombre(d.getInsumo().getNombre())
                         .cantidad(d.getCantidad())
                         .factorConversion(d.getFactorConversion())
+                        .cantidadRecibida(d.getCantidadRecibida())
                         .cantidadEnUnidadConsumo(d.getCantidadEnUnidadConsumo())
+                        .cantidadPendiente(d.getCantidadPendiente())
                         .unidadCompraId(d.getUnidadCompra().getId())
                         .unidadCompraSimbolo(d.getUnidadCompra().getSimbolo())
                         .unidadConsumoId(d.getInsumo().getUnidadMedida().getId())
@@ -373,6 +385,8 @@ public class CompraService {
                         .precioUnitario(d.getPrecioUnitario())
                         .costoPorUnidadConsumo(d.getCostoPorUnidadConsumo())
                         .subtotal(d.getSubtotal())
+                        .observaciones(d.getObservaciones())
+                        .motivoNoRecepcion(d.getMotivoNoRecepcion())
                         .build())
                 .collect(Collectors.toList());
         
@@ -387,6 +401,7 @@ public class CompraService {
                 .proveedorRazonSocial(p.getRazonSocial())
                 .proveedorRfc(p.getRfc())
                 .proveedorNombreCompleto(nombreCompleto.trim())
+                .entregadoPor(compra.getEntregadoPor())
                 
                 .tipoDocumento(compra.getTipoDocumento())
                 .numeroDocumento(compra.getNumeroDocumento())

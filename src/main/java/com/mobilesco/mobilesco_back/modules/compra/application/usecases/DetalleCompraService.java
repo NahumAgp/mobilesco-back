@@ -6,10 +6,12 @@ import com.mobilesco.mobilesco_back.modules.compra.infrastructure.in.api.dtos.De
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.CompraModel;
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraModel;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
+import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
 import com.mobilesco.mobilesco_back.modules.unidadmedida.domain.models.UnidadMedidaModel;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
+import com.mobilesco.mobilesco_back.modules.kardex.infrastructure.out.persistence.repositories.KardexRepository;
 import com.mobilesco.mobilesco_back.modules.unidadmedida.infrastructure.out.persistence.repositories.UnidadMedidaRepository;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
@@ -30,6 +32,8 @@ public class DetalleCompraService {
     private final CompraRepository compraRepository;
     private final InsumoRepository insumoRepository;
     private final UnidadMedidaRepository unidadMedidaRepository;
+    private final KardexService kardexService;
+    private final KardexRepository kardexRepository;
 
     /**
      * CREAR un detalle de compra (normalmente se crean desde CompraService)
@@ -168,21 +172,62 @@ public class DetalleCompraService {
      * RECIBIR parcialmente una compra (actualizar cantidad recibida)
      */
     @Transactional
-    public DetalleCompraResponseDTO recibirParcial(Long id, Double cantidadRecibida) {
+    public DetalleCompraResponseDTO recibirParcial(Long id, Double cantidadRecibida, String entregadoPor, String motivoNoRecepcion) {
         log.info("Registrando recepción parcial para detalle ID: {}, cantidad: {}", id, cantidadRecibida);
         
         DetalleCompraModel detalle = detalleCompraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Detalle no encontrado con id: " + id));
         
-        if (cantidadRecibida > detalle.getCantidad()) {
+        if (cantidadRecibida == null || cantidadRecibida <= 0) {
+            throw new ValidationException("La cantidad recibida debe ser mayor a 0");
+        }
+
+        double cantidadPendiente = detalle.getCantidadPendiente();
+        if (cantidadRecibida > cantidadPendiente) {
             throw new ValidationException("La cantidad recibida no puede ser mayor a la cantidad comprada");
         }
         
-        detalle.setCantidadRecibida(cantidadRecibida);
+        double cantidadRecibidaAnterior = detalle.getCantidadRecibida() != null ? detalle.getCantidadRecibida() : 0.0;
+        double nuevaCantidadRecibida = cantidadRecibidaAnterior + cantidadRecibida;
+        double cantidadConsumoDelta = cantidadRecibida * detalle.getFactorConversion();
+
+        InsumoModel insumo = detalle.getInsumo();
+        double stockAnterior = insumo.getStockActual() != null ? insumo.getStockActual() : 0.0;
+        double stockNuevo = stockAnterior + cantidadConsumoDelta;
+
+        insumo.setStockActual(stockNuevo);
+        insumoRepository.save(insumo);
+
+        detalle.setCantidadRecibida(nuevaCantidadRecibida);
+        detalle.setMotivoNoRecepcion(
+                nuevaCantidadRecibida < detalle.getCantidad()
+                        ? motivoNoRecepcion
+                        : null
+        );
         DetalleCompraModel updated = detalleCompraRepository.save(detalle);
-        
-        // Aquí se debería actualizar el stock del insumo
-        // insumoService.actualizarStock(detalle.getInsumo().getId(), cantidadRecibida * detalle.getFactorConversion(), "ENTRADA");
+
+        kardexService.registrarEntradaCompra(
+                insumo.getId(),
+                cantidadConsumoDelta,
+                detalle.getCostoPorUnidadConsumo(),
+                detalle.getCompra().getNumeroDocumento(),
+                detalle.getCompra().getId(),
+                "Entrada por recepción de compra: " + detalle.getCompra().getFolio()
+        );
+
+        CompraModel compra = detalle.getCompra();
+        boolean compraCompleta = detalleCompraRepository.findByCompraId(compra.getId())
+                .stream()
+                .allMatch(det -> {
+                    double recibida = det.getCantidadRecibida() != null ? det.getCantidadRecibida() : 0.0;
+                    double comprada = det.getCantidad() != null ? det.getCantidad() : 0.0;
+                    return recibida >= comprada;
+                });
+
+        compra.setEntregadoPor(entregadoPor != null ? entregadoPor.trim() : compra.getEntregadoPor());
+        compra.setEstado(compraCompleta ? "RECIBIDA" : "RECIBIDA_PARCIAL");
+        compra.setFechaRecepcion(java.time.LocalDate.now());
+        compraRepository.save(compra);
         
         return mapToResponseDTO(updated);
     }
@@ -198,7 +243,7 @@ public class DetalleCompraService {
                 .orElseThrow(() -> new ResourceNotFoundException("Detalle no encontrado con id: " + id));
         
         // Validar que la compra no esté recibida
-        if ("RECIBIDA".equals(detalle.getCompra().getEstado())) {
+        if ("RECIBIDA".equals(detalle.getCompra().getEstado()) || "RECIBIDA_PARCIAL".equals(detalle.getCompra().getEstado())) {
             throw new ValidationException("No se puede eliminar un detalle de una compra ya recibida");
         }
         
@@ -234,6 +279,7 @@ public class DetalleCompraService {
                 .factorConversion(detalle.getFactorConversion())
                 .cantidadRecibida(detalle.getCantidadRecibida())
                 .cantidadEnUnidadConsumo(detalle.getCantidadEnUnidadConsumo())
+                .cantidadPendiente(detalle.getCantidadPendiente())
                 
                 // Precios
                 .precioUnitario(detalle.getPrecioUnitario())
@@ -241,6 +287,7 @@ public class DetalleCompraService {
                 .subtotal(detalle.getSubtotal())
                 
                 .observaciones(detalle.getObservaciones())
+                .motivoNoRecepcion(detalle.getMotivoNoRecepcion())
                 .fechaRegistro(detalle.getFechaRegistro())
                 .fechaActualizacion(detalle.getFechaActualizacion())
                 .build();

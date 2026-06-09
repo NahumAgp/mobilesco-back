@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,12 +52,14 @@ public class CompraController {
 
     @Operation(summary = "Recibir compra (actualiza stock)")
     @PostMapping("/{id}/recibir")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')")
     public ResponseEntity<CompraResponseDTO> recibirCompra(@PathVariable Long id) {
         return ResponseEntity.ok(compraService.recibirCompra(id));
     }
 
     @Operation(summary = "Cancelar compra")
     @PostMapping("/{id}/cancelar")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')")
     public ResponseEntity<CompraResponseDTO> cancelarCompra(
             @PathVariable Long id,
             @RequestParam String motivo) {
