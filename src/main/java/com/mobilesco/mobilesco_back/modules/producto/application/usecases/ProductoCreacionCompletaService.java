@@ -127,6 +127,11 @@ public class ProductoCreacionCompletaService {
             ProductoCreateDTO payload = new ProductoCreateDTO();
             payload.setNombre(borrador.getNombre());
             payload.setDescripcion(borrador.getDescripcion());
+            payload.setDescripcionCorta(borrador.getDescripcionCorta());
+            payload.setPesoVolumetrico(borrador.getPesoVolumetrico());
+            payload.setAncho(borrador.getAncho());
+            payload.setAlto(borrador.getAlto());
+            payload.setFondo(borrador.getFondo());
             payload.setActivo(borrador.getActivo());
             payload.setModeloId(resolverId(borrador.getModeloId(), borrador.getModeloRef(), modelos, "modelo"));
             payload.setNivelId(resolverId(borrador.getCategoriaId(), borrador.getCategoriaRef(), categorias, "categoria"));

@@ -25,6 +25,11 @@ public class ProductoResponseDTO {
     private String sku;
     private String nombre;
     private String descripcion;
+    private String descripcionCorta;
+    private Double pesoVolumetrico;
+    private Double ancho;
+    private Double alto;
+    private Double fondo;
 
     @JsonProperty("id_modelo")
     private Long modeloId;
@@ -80,6 +85,26 @@ public class ProductoResponseDTO {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public void setDescripcionCorta(String descripcionCorta) {
+        this.descripcionCorta = descripcionCorta;
+    }
+
+    public void setPesoVolumetrico(Double pesoVolumetrico) {
+        this.pesoVolumetrico = pesoVolumetrico;
+    }
+
+    public void setAncho(Double ancho) {
+        this.ancho = ancho;
+    }
+
+    public void setAlto(Double alto) {
+        this.alto = alto;
+    }
+
+    public void setFondo(Double fondo) {
+        this.fondo = fondo;
     }
 
     public void setModeloId(Long modeloId) {

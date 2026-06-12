@@ -79,7 +79,7 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
     // ========== CREATE ==========
 
     public synchronized FamiliaResponseDTO crear(FamiliaCreateDTO dto) {
-        if (familiaRepository.existsByNombre(dto.getNombre())) {
+        if (familiaRepository.existsByNombreIgnoreCase(dto.getNombre())) {
             throw new BadRequestException("Ya existe una familia con el nombre: " + dto.getNombre());
         }
 
@@ -240,14 +240,14 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
                 .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + id));
 
         if (dto.getCodigo() != null && !dto.getCodigo().equals(existente.getCodigo())) {
-            if (familiaRepository.existsByCodigo(dto.getCodigo())) {
+            if (familiaRepository.existsByCodigoIgnoreCaseAndIdNot(dto.getCodigo(), id)) {
                 throw new BadRequestException("Ya existe una familia con el codigo: " + dto.getCodigo());
             }
             existente.setCodigo(dto.getCodigo());
         }
 
         if (dto.getNombre() != null && !dto.getNombre().equals(existente.getNombre())) {
-            if (familiaRepository.existsByNombre(dto.getNombre())) {
+            if (familiaRepository.existsByNombreIgnoreCaseAndIdNot(dto.getNombre(), id)) {
                 throw new BadRequestException("Ya existe una familia con el nombre: " + dto.getNombre());
             }
             existente.setNombre(dto.getNombre());

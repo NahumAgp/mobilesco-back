@@ -52,6 +52,9 @@ public class SalidaInsumoModel {
     @Column(name = "usuario", length = 100)
     private String usuario;
 
+    @Column(name = "responsable", length = 150)
+    private String responsable;
+
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private LocalDateTime fechaRegistro;
 

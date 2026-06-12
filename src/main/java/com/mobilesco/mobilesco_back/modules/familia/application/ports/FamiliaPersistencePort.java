@@ -36,7 +36,15 @@ public interface FamiliaPersistencePort {
 
     boolean existsByCodigo(String codigo);
 
+    boolean existsByCodigoIgnoreCase(String codigo);
+
+    boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id);
+
     boolean existsByNombre(String nombre);
+
+    boolean existsByNombreIgnoreCase(String nombre);
+
+    boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
 
     FamiliaModel save(FamiliaModel familia);
 

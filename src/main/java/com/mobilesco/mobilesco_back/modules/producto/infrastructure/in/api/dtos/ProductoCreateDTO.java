@@ -27,6 +27,17 @@ public class ProductoCreateDTO {
     @Size(max = 500, message = "La descripcion no puede exceder 500 caracteres")
     private String descripcion;
 
+    @Size(max = 250, message = "La descripcion corta no puede exceder 250 caracteres")
+    private String descripcionCorta;
+
+    private Double pesoVolumetrico;
+
+    private Double ancho;
+
+    private Double alto;
+
+    private Double fondo;
+
     @NotNull(message = "El id_modelo es obligatorio")
     @JsonProperty("id_modelo")
     private Long modeloId;

@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mobilesco.mobilesco_back.modules.imagen.infrastructure.in.api.dtos.ImagenResponseDTO;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.application.usecases.CostoIndirectoService;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CifResumenDTO;
-import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CostoIndirectoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCostoIndirectoDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
@@ -107,6 +106,11 @@ public class ProductoService {
                 .sku(skuGenerado)
                 .nombre(dto.getNombre())
                 .descripcion(dto.getDescripcion())
+                .descripcionCorta(dto.getDescripcionCorta())
+                .pesoVolumetrico(dto.getPesoVolumetrico())
+                .ancho(dto.getAncho())
+                .alto(dto.getAlto())
+                .fondo(dto.getFondo())
                 .modelo(modelo)
                 .nivel(nivel)
                 .material(material)
@@ -128,7 +132,7 @@ public class ProductoService {
                 .collect(Collectors.toList());
 
         String[] headers = {
-                "ID", "SKU", "Nombre", "Descripcion", "Modelo", "Familia", "Linea", "Nivel", "Material", "Color", "Estado", "Creado", "Actualizado"
+                "ID", "SKU", "Nombre", "Descripcion", "Descripcion corta", "Peso volumetrico", "Ancho", "Alto", "Fondo", "Modelo", "Familia", "Linea", "Nivel", "Material", "Color", "Estado", "Creado", "Actualizado"
         };
 
         return ExcelReportBuilder.generate(
@@ -141,6 +145,11 @@ public class ProductoService {
                                 nvl(producto.getSku()),
                                 nvl(producto.getNombre()),
                                 nvl(producto.getDescripcion()),
+                                nvl(producto.getDescripcionCorta()),
+                                producto.getPesoVolumetrico() != null ? producto.getPesoVolumetrico() : "",
+                                producto.getAncho() != null ? producto.getAncho() : "",
+                                producto.getAlto() != null ? producto.getAlto() : "",
+                                producto.getFondo() != null ? producto.getFondo() : "",
                                 producto.getModelo() != null ? nvl(producto.getModelo().getNombre()) : "",
                                 producto.getModelo() != null && producto.getModelo().getFamilia() != null
                                         ? nvl(producto.getModelo().getFamilia().getNombre()) : "",
@@ -200,6 +209,11 @@ public class ProductoService {
         producto.setSku(skuGenerado);
         producto.setNombre(dto.getNombre());
         producto.setDescripcion(dto.getDescripcion());
+        producto.setDescripcionCorta(dto.getDescripcionCorta());
+        producto.setPesoVolumetrico(dto.getPesoVolumetrico());
+        producto.setAncho(dto.getAncho());
+        producto.setAlto(dto.getAlto());
+        producto.setFondo(dto.getFondo());
         if (dto.getActivo() != null) {
             producto.setActivo(dto.getActivo());
         }
@@ -455,6 +469,11 @@ public class ProductoService {
         response.setSku(producto.getSku());
         response.setNombre(producto.getNombre());
         response.setDescripcion(producto.getDescripcion());
+        response.setDescripcionCorta(producto.getDescripcionCorta());
+        response.setPesoVolumetrico(producto.getPesoVolumetrico());
+        response.setAncho(producto.getAncho());
+        response.setAlto(producto.getAlto());
+        response.setFondo(producto.getFondo());
         response.setModeloId(modelo != null ? modelo.getId() : null);
         response.setModeloNombre(modelo != null ? modelo.getNombre() : null);
         response.setModeloUrlImagen(modelo != null ? modelo.getUrlImagen() : null);
@@ -568,6 +587,11 @@ public class ProductoService {
                         producto.getSku(),
                         producto.getNombre(),
                         producto.getDescripcion(),
+                        producto.getDescripcionCorta(),
+                        producto.getPesoVolumetrico() != null ? String.valueOf(producto.getPesoVolumetrico()) : null,
+                        producto.getAncho() != null ? String.valueOf(producto.getAncho()) : null,
+                        producto.getAlto() != null ? String.valueOf(producto.getAlto()) : null,
+                        producto.getFondo() != null ? String.valueOf(producto.getFondo()) : null,
                         producto.getCaracteristicas(),
                         producto.getDimensiones(),
                         producto.getModelo() != null ? producto.getModelo().getCodigo() : null,

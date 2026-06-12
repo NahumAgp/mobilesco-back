@@ -65,6 +65,9 @@ public class ProductoModel {
     @Column(name = "descripcion", length = 500)
     private String descripcion;
 
+    @Column(name = "descripcion_corta", length = 250)
+    private String descripcionCorta;
+
     // Relaciones con catálogos
     
 
@@ -95,6 +98,18 @@ public class ProductoModel {
 
     @Column(name = "dimensiones", length = 100)
     private String dimensiones;  // "1.20 X .40 X .65 MTS."
+
+    @Column(name = "peso_volumetrico")
+    private Double pesoVolumetrico;
+
+    @Column(name = "ancho")
+    private Double ancho;
+
+    @Column(name = "alto")
+    private Double alto;
+
+    @Column(name = "fondo")
+    private Double fondo;
 
     @Column(name = "peso_kg")
     private Double pesoKg;

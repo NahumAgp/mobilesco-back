@@ -17,6 +17,7 @@ public class SalidaInsumoResponseDTO {
     private String ordenProduccion;
     private LocalDateTime fechaSalida;
     private String observaciones;
+    private String responsable;
     private Double cantidadTotal;
     private Boolean activo;
     private String usuario;

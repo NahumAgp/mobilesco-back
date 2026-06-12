@@ -65,7 +65,7 @@ public class LineaService {
     // ========== CREATE ==========
 
     public synchronized LineaResponseDTO crear(LineaCreateDTO dto) {
-        if (lineaRepository.existsByNombre(dto.getNombre())) {
+        if (lineaRepository.existsByNombreIgnoreCase(dto.getNombre())) {
             throw new BadRequestException("Ya existe una linea con el nombre: " + dto.getNombre());
         }
 
@@ -220,14 +220,14 @@ public class LineaService {
                 .orElseThrow(() -> new NotFoundException("Linea no encontrada con ID: " + id));
 
         if (dto.getCodigo() != null && !dto.getCodigo().equals(existente.getCodigo())) {
-            if (lineaRepository.existsByCodigo(dto.getCodigo())) {
+            if (lineaRepository.existsByCodigoIgnoreCaseAndIdNot(dto.getCodigo(), id)) {
                 throw new BadRequestException("Ya existe una linea con el codigo: " + dto.getCodigo());
             }
             existente.setCodigo(dto.getCodigo());
         }
 
         if (dto.getNombre() != null && !dto.getNombre().equals(existente.getNombre())) {
-            if (lineaRepository.existsByNombre(dto.getNombre())) {
+            if (lineaRepository.existsByNombreIgnoreCaseAndIdNot(dto.getNombre(), id)) {
                 throw new BadRequestException("Ya existe una linea con el nombre: " + dto.getNombre());
             }
             existente.setNombre(dto.getNombre());

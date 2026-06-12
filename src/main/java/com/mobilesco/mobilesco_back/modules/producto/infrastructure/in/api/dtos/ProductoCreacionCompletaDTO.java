@@ -103,6 +103,11 @@ public class ProductoCreacionCompletaDTO {
         @NotBlank(message = "El nombre del producto es obligatorio")
         private String nombre;
         private String descripcion;
+        private String descripcionCorta;
+        private Double pesoVolumetrico;
+        private Double ancho;
+        private Double alto;
+        private Double fondo;
         private Boolean activo = true;
         private Long modeloId;
         private String modeloRef;

@@ -20,6 +20,10 @@ public class SalidaInsumoCreateDTO {
     @Size(max = 500, message = "Las observaciones no pueden exceder 500 caracteres")
     private String observaciones;
 
+    @NotBlank(message = "La persona responsable es obligatoria")
+    @Size(max = 150, message = "La persona responsable no puede exceder 150 caracteres")
+    private String responsable;
+
     @NotNull(message = "Debe incluir al menos un detalle")
     private List<DetalleSalidaInsumoCreateDTO> detalles;
 }

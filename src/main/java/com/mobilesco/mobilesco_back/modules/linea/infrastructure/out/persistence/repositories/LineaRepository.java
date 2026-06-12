@@ -26,8 +26,16 @@ public interface LineaRepository extends JpaRepository<LineaModel, Long> {
     List<LineaModel> findByActivo(Boolean activo);
     
     boolean existsByCodigo(String codigo);
+
+    boolean existsByCodigoIgnoreCase(String codigo);
+
+    boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id);
     
     boolean existsByNombre(String nombre);
+
+    boolean existsByNombreIgnoreCase(String nombre);
+
+    boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
 
     @Query("SELECT l.codigo FROM LineaModel l")
     List<String> findAllCodigos();

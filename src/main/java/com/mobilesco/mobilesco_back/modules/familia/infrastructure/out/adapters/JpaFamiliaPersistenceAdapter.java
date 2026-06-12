@@ -74,8 +74,28 @@ public class JpaFamiliaPersistenceAdapter implements FamiliaPersistencePort {
     }
 
     @Override
+    public boolean existsByCodigoIgnoreCase(String codigo) {
+        return familiaRepository.existsByCodigoIgnoreCase(codigo);
+    }
+
+    @Override
+    public boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id) {
+        return familiaRepository.existsByCodigoIgnoreCaseAndIdNot(codigo, id);
+    }
+
+    @Override
     public boolean existsByNombre(String nombre) {
         return familiaRepository.existsByNombre(nombre);
+    }
+
+    @Override
+    public boolean existsByNombreIgnoreCase(String nombre) {
+        return familiaRepository.existsByNombreIgnoreCase(nombre);
+    }
+
+    @Override
+    public boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id) {
+        return familiaRepository.existsByNombreIgnoreCaseAndIdNot(nombre, id);
     }
 
     @Override
