@@ -132,6 +132,8 @@ public class ProductoCreacionCompletaService {
             payload.setAncho(borrador.getAncho());
             payload.setAlto(borrador.getAlto());
             payload.setFondo(borrador.getFondo());
+            payload.setDimensiones(borrador.getDimensiones());
+            payload.setPesoKg(borrador.getPesoKg());
             payload.setActivo(borrador.getActivo());
             payload.setModeloId(resolverId(borrador.getModeloId(), borrador.getModeloRef(), modelos, "modelo"));
             payload.setNivelId(resolverId(borrador.getCategoriaId(), borrador.getCategoriaRef(), categorias, "categoria"));

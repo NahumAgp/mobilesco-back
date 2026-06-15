@@ -30,6 +30,8 @@ public class ProductoResponseDTO {
     private Double ancho;
     private Double alto;
     private Double fondo;
+    private String dimensiones;
+    private Double pesoKg;
 
     @JsonProperty("id_modelo")
     private Long modeloId;
@@ -105,6 +107,14 @@ public class ProductoResponseDTO {
 
     public void setFondo(Double fondo) {
         this.fondo = fondo;
+    }
+
+    public void setDimensiones(String dimensiones) {
+        this.dimensiones = dimensiones;
+    }
+
+    public void setPesoKg(Double pesoKg) {
+        this.pesoKg = pesoKg;
     }
 
     public void setModeloId(Long modeloId) {

@@ -108,6 +108,8 @@ public class ProductoCreacionCompletaDTO {
         private Double ancho;
         private Double alto;
         private Double fondo;
+        private String dimensiones;
+        private Double pesoKg;
         private Boolean activo = true;
         private Long modeloId;
         private String modeloRef;

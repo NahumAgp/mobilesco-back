@@ -9,6 +9,7 @@ package com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -37,6 +38,11 @@ public class ProductoCreateDTO {
     private Double alto;
 
     private Double fondo;
+    @Size(max = 100, message = "Las dimensiones no pueden exceder 100 caracteres")
+    private String dimensiones;
+
+    @DecimalMin(value = "0.0", inclusive = true, message = "El peso volumetrico no puede ser negativo")
+    private Double pesoKg;
 
     @NotNull(message = "El id_modelo es obligatorio")
     @JsonProperty("id_modelo")

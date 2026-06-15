@@ -33,6 +33,7 @@ public class ProductoEstructuraCostosDTO {
     private Double tasaCifMinuto;
     private Double cifMensual;
     private Double minutosProductivosMes;
+    private Long configuracionCifId;
 
     private Integer anioCif;
     private Integer mesCif;

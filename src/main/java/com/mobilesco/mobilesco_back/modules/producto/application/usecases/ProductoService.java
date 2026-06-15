@@ -42,6 +42,7 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoOperacionRepository;
@@ -111,6 +112,8 @@ public class ProductoService {
                 .ancho(dto.getAncho())
                 .alto(dto.getAlto())
                 .fondo(dto.getFondo())
+                .dimensiones(dto.getDimensiones())
+                .pesoKg(dto.getPesoKg())
                 .modelo(modelo)
                 .nivel(nivel)
                 .material(material)
@@ -214,6 +217,8 @@ public class ProductoService {
         producto.setAncho(dto.getAncho());
         producto.setAlto(dto.getAlto());
         producto.setFondo(dto.getFondo());
+        producto.setDimensiones(dto.getDimensiones());
+        producto.setPesoKg(dto.getPesoKg());
         if (dto.getActivo() != null) {
             producto.setActivo(dto.getActivo());
         }
@@ -337,6 +342,7 @@ public class ProductoService {
                 .tasaCifMinuto(tasaCifMinuto)
                 .cifMensual(totalMensualCif)
                 .minutosProductivosMes(nz(resumenCif.getMinutosProductivosMes()))
+                .configuracionCifId(resumenCif.getConfiguracionId())
                 .anioCif(null)
                 .mesCif(null)
                 .insumos(insumos)
@@ -474,6 +480,8 @@ public class ProductoService {
         response.setAncho(producto.getAncho());
         response.setAlto(producto.getAlto());
         response.setFondo(producto.getFondo());
+        response.setDimensiones(producto.getDimensiones());
+        response.setPesoKg(producto.getPesoKg());
         response.setModeloId(modelo != null ? modelo.getId() : null);
         response.setModeloNombre(modelo != null ? modelo.getNombre() : null);
         response.setModeloUrlImagen(modelo != null ? modelo.getUrlImagen() : null);
@@ -552,27 +560,33 @@ public class ProductoService {
                 : org.springframework.data.domain.Sort.Direction.ASC;
 
         if (sortBy == null || sortBy.isBlank()) {
-            return org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "sku")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            return TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getSku, ProductoModel::getId);
         }
 
         String campo = sortBy.trim().toLowerCase(Locale.ROOT);
         return switch (campo) {
-            case "id" -> org.springframework.data.domain.Sort.by(sortDirection, "id");
-            case "sku" -> org.springframework.data.domain.Sort.by(sortDirection, "sku")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "nombre" -> org.springframework.data.domain.Sort.by(sortDirection, "nombre")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "descripcion" -> org.springframework.data.domain.Sort.by(sortDirection, "descripcion")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "activo" -> org.springframework.data.domain.Sort.by(sortDirection, "activo")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "createdat", "created_at" -> org.springframework.data.domain.Sort.by(sortDirection, "createdAt")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "updatedat", "updated_at" -> org.springframework.data.domain.Sort.by(sortDirection, "updatedAt")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            default -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "sku")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            case "id" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descById(ProductoModel.class, ProductoModel::getId)
+                    : TypeSafeSorts.ascById(ProductoModel.class, ProductoModel::getId);
+            case "sku" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getSku, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getSku, ProductoModel::getId);
+            case "nombre" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getNombre, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getNombre, ProductoModel::getId);
+            case "descripcion" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getDescripcion, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getDescripcion, ProductoModel::getId);
+            case "activo" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getActivo, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getActivo, ProductoModel::getId);
+            case "createdat", "created_at" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getCreatedAt, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getCreatedAt, ProductoModel::getId);
+            case "updatedat", "updated_at" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getUpdatedAt, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getUpdatedAt, ProductoModel::getId);
+            default -> TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getSku, ProductoModel::getId);
         };
     }
 
