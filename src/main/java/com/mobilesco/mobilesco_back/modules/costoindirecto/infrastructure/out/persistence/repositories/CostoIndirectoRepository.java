@@ -6,13 +6,11 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.BaseDistribucion;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.TipoCostoIndirecto;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.models.CostoIndirectoModel;
 
-@Repository
 public interface CostoIndirectoRepository extends JpaRepository<CostoIndirectoModel, Long> {
     
     Optional<CostoIndirectoModel> findByCodigo(String codigo);

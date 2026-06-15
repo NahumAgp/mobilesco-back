@@ -7,11 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoOperacionModel;
 
-@Repository
 public interface ProductoOperacionRepository extends JpaRepository<ProductoOperacionModel, Long> {
     
     List<ProductoOperacionModel> findByProductoIdOrderByOrdenAsc(Long productoId);

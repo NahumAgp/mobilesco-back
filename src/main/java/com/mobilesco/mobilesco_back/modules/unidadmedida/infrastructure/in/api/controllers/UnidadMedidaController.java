@@ -1,6 +1,5 @@
 package com.mobilesco.mobilesco_back.modules.unidadmedida.infrastructure.in.api.controllers;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,9 +29,12 @@ import jakarta.validation.Valid;
 @RequestMapping(ApiPaths.UNIDADES_MEDIDA)
 public class UnidadMedidaController {
 
-    
-    @Autowired
-    private UnidadMedidaService unidadMedidaService;
+    private final UnidadMedidaService unidadMedidaService;
+
+    public UnidadMedidaController(UnidadMedidaService unidadMedidaService) {
+        this.unidadMedidaService = unidadMedidaService;
+    }
+
     //OBTENER todas las unidades de medida
     //GET /unidadMedida
     @GetMapping

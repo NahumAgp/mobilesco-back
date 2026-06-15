@@ -6,11 +6,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraModel;
 
-@Repository
 public interface DetalleCompraRepository extends JpaRepository<DetalleCompraModel, Long> {
     
     List<DetalleCompraModel> findByCompraId(Long compraId);

@@ -23,6 +23,7 @@ import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadReq
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.linea.infrastructure.in.api.dtos.LineaCreateDTO;
@@ -96,29 +97,43 @@ public class LineaService {
                 : Sort.Direction.ASC;
 
         if (sortBy == null || sortBy.isBlank()) {
-            return Sort.by(Sort.Direction.ASC, "orden").and(Sort.by(Sort.Direction.ASC, "id"));
+            return TypeSafeSorts.ascWithId(LineaModel.class, LineaModel::getOrden, LineaModel::getId);
         }
 
         String campoNormalizado = sortBy.trim().toLowerCase(Locale.ROOT);
 
         switch (campoNormalizado) {
             case "id":
-                return Sort.by(sortDirection, "id");
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descById(LineaModel.class, LineaModel::getId)
+                        : TypeSafeSorts.ascById(LineaModel.class, LineaModel::getId);
             case "codigo":
-                return Sort.by(sortDirection, "codigo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(LineaModel.class, LineaModel::getCodigo, LineaModel::getId)
+                        : TypeSafeSorts.ascWithId(LineaModel.class, LineaModel::getCodigo, LineaModel::getId);
             case "nombre":
-                return Sort.by(sortDirection, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(LineaModel.class, LineaModel::getNombre, LineaModel::getId)
+                        : TypeSafeSorts.ascWithId(LineaModel.class, LineaModel::getNombre, LineaModel::getId);
             case "descripcion":
-                return Sort.by(sortDirection, "descripcion").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(LineaModel.class, LineaModel::getDescripcion, LineaModel::getId)
+                        : TypeSafeSorts.ascWithId(LineaModel.class, LineaModel::getDescripcion, LineaModel::getId);
             case "orden":
-                return Sort.by(sortDirection, "orden").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(LineaModel.class, LineaModel::getOrden, LineaModel::getId)
+                        : TypeSafeSorts.ascWithId(LineaModel.class, LineaModel::getOrden, LineaModel::getId);
             case "activo":
-                return Sort.by(sortDirection, "activo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(LineaModel.class, LineaModel::getActivo, LineaModel::getId)
+                        : TypeSafeSorts.ascWithId(LineaModel.class, LineaModel::getActivo, LineaModel::getId);
             case "createdat":
             case "created_at":
-                return Sort.by(sortDirection, "createdAt").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(LineaModel.class, LineaModel::getCreatedAt, LineaModel::getId)
+                        : TypeSafeSorts.ascWithId(LineaModel.class, LineaModel::getCreatedAt, LineaModel::getId);
             default:
-                return Sort.by(Sort.Direction.ASC, "orden").and(Sort.by(Sort.Direction.ASC, "id"));
+                return TypeSafeSorts.ascWithId(LineaModel.class, LineaModel::getOrden, LineaModel::getId);
         }
     }
 

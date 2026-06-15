@@ -5,11 +5,9 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 
-@Repository
 public interface NivelRepository extends JpaRepository<NivelModel, Long> {
     
     Optional<NivelModel> findByCodigo(String codigo);

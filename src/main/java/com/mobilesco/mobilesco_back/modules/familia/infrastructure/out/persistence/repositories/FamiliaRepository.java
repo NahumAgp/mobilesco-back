@@ -11,11 +11,9 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 
-@Repository
 public interface FamiliaRepository extends JpaRepository<FamiliaModel, Long> {
     
     Optional<FamiliaModel> findByCodigo(String codigo);

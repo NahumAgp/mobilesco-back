@@ -25,6 +25,8 @@ import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorResponseDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.application.usecases.ProveedorService;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
+import com.mobilesco.mobilesco_back.modules.proveedor.domain.models.ProveedorModel;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -61,7 +63,30 @@ public class ProveedorController {  // ✅ Nombre correcto con 'e'
         if (page != null || size != null) {
             int pageNumber = page != null ? page : 0;
             int pageSize = size != null ? size : PAGE_SIZE;
-            Sort sort = Sort.by(Sort.Direction.fromString(direction), sortBy);
+            Sort.Direction sortDirection = Sort.Direction.fromString(direction);
+            Sort sort = switch (sortBy == null ? "id" : sortBy.trim().toLowerCase()) {
+                case "id" -> sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descById(ProveedorModel.class, ProveedorModel::getId)
+                        : TypeSafeSorts.ascById(ProveedorModel.class, ProveedorModel::getId);
+                case "razonsocial", "razon_social" -> sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(ProveedorModel.class, ProveedorModel::getRazonSocial, ProveedorModel::getId)
+                        : TypeSafeSorts.ascWithId(ProveedorModel.class, ProveedorModel::getRazonSocial, ProveedorModel::getId);
+                case "nombre" -> sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(ProveedorModel.class, ProveedorModel::getNombre, ProveedorModel::getId)
+                        : TypeSafeSorts.ascWithId(ProveedorModel.class, ProveedorModel::getNombre, ProveedorModel::getId);
+                case "apellidopaterno", "apellido_paterno" -> sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(ProveedorModel.class, ProveedorModel::getApellidoPaterno, ProveedorModel::getId)
+                        : TypeSafeSorts.ascWithId(ProveedorModel.class, ProveedorModel::getApellidoPaterno, ProveedorModel::getId);
+                case "tipodeinsumo", "tipo_insumo" -> sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(ProveedorModel.class, ProveedorModel::getTipoInsumo, ProveedorModel::getId)
+                        : TypeSafeSorts.ascWithId(ProveedorModel.class, ProveedorModel::getTipoInsumo, ProveedorModel::getId);
+                case "activo" -> sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(ProveedorModel.class, ProveedorModel::getActivo, ProveedorModel::getId)
+                        : TypeSafeSorts.ascWithId(ProveedorModel.class, ProveedorModel::getActivo, ProveedorModel::getId);
+                default -> sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descById(ProveedorModel.class, ProveedorModel::getId)
+                        : TypeSafeSorts.ascById(ProveedorModel.class, ProveedorModel::getId);
+            };
             PageRequest pageable = PageRequest.of(pageNumber, pageSize, sort);
             Page<ProveedorResponseDTO> proveedores = proveedorService.buscarFiltradoPaginado(activo, tipoInsumo, busqueda, pageable);
             return ResponseEntity.ok(proveedores);

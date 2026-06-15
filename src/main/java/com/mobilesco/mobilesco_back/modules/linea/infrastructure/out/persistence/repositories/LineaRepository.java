@@ -12,11 +12,9 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 
-@Repository
 public interface LineaRepository extends JpaRepository<LineaModel, Long> {
     
     Optional<LineaModel> findByCodigo(String codigo);

@@ -165,14 +165,15 @@ public class ProveedorService {
     // =====================================================
 
     public List<ProveedorResponseDTO> buscarFiltrado(Boolean activo, String tipoInsumo, String busqueda) {
-        boolean tieneBusqueda = busqueda != null && !busqueda.isBlank();
+        String busquedaNormalizada = busqueda != null ? busqueda.trim() : null;
+        boolean tieneBusqueda = busquedaNormalizada != null && !busquedaNormalizada.isBlank();
 
         if (activo == null && tipoInsumo == null && !tieneBusqueda) {
             return obtenerTodos();
         }
 
         return mapToResponseDTOList(
-                proveedorRepository.buscarFiltrado(activo, tipoInsumo, tieneBusqueda ? busqueda.trim() : null));
+                proveedorRepository.buscarFiltrado(activo, tipoInsumo, tieneBusqueda ? busquedaNormalizada : null));
     }
 
     public Page<ProveedorResponseDTO> buscarFiltradoPaginado(
@@ -181,11 +182,12 @@ public class ProveedorService {
             String busqueda,
             Pageable pageable
     ) {
-        boolean tieneBusqueda = busqueda != null && !busqueda.isBlank();
+        String busquedaNormalizada = busqueda != null ? busqueda.trim() : null;
+        boolean tieneBusqueda = busquedaNormalizada != null && !busquedaNormalizada.isBlank();
         Page<ProveedorModel> page = proveedorRepository.buscarFiltradoPaginado(
                 activo,
                 tipoInsumo,
-                tieneBusqueda ? busqueda.trim() : null,
+                tieneBusqueda ? busquedaNormalizada : null,
                 pageable);
         return page.map(this::mapToResponseDTO);
     }

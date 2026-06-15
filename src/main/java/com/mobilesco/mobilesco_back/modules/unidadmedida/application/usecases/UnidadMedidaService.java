@@ -6,7 +6,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -19,6 +18,7 @@ import com.mobilesco.mobilesco_back.modules.unidadmedida.infrastructure.in.api.d
 import com.mobilesco.mobilesco_back.modules.unidadmedida.infrastructure.in.api.dtos.UnidadMedidaUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 import com.mobilesco.mobilesco_back.modules.unidadmedida.domain.models.UnidadMedidaModel;
 import com.mobilesco.mobilesco_back.modules.unidadmedida.infrastructure.out.persistence.repositories.UnidadMedidaRepository;
 
@@ -28,8 +28,11 @@ public class UnidadMedidaService {
 
     private static final int PAGE_SIZE = 10;
 
-    @Autowired
-    private UnidadMedidaRepository unidadMedidaRepository;
+    private final UnidadMedidaRepository unidadMedidaRepository;
+
+    public UnidadMedidaService(UnidadMedidaRepository unidadMedidaRepository) {
+        this.unidadMedidaRepository = unidadMedidaRepository;
+    }
 
     private UnidadMedidaResponseDTO mapToResponseDTO(UnidadMedidaModel unidadMedida) {
         UnidadMedidaResponseDTO dto = new UnidadMedidaResponseDTO();
@@ -86,27 +89,39 @@ public class UnidadMedidaService {
                 : Sort.Direction.ASC;
 
         if (sortBy == null || sortBy.isBlank()) {
-            return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+            return TypeSafeSorts.ascWithId(UnidadMedidaModel.class, UnidadMedidaModel::getNombre, UnidadMedidaModel::getId);
         }
 
         String campoNormalizado = sortBy.trim().toLowerCase(Locale.ROOT);
 
         switch (campoNormalizado) {
             case "id":
-                return Sort.by(sortDirection, "id");
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descById(UnidadMedidaModel.class, UnidadMedidaModel::getId)
+                        : TypeSafeSorts.ascById(UnidadMedidaModel.class, UnidadMedidaModel::getId);
             case "nombre":
-                return Sort.by(sortDirection, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(UnidadMedidaModel.class, UnidadMedidaModel::getNombre, UnidadMedidaModel::getId)
+                        : TypeSafeSorts.ascWithId(UnidadMedidaModel.class, UnidadMedidaModel::getNombre, UnidadMedidaModel::getId);
             case "simbolo":
-                return Sort.by(sortDirection, "simbolo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(UnidadMedidaModel.class, UnidadMedidaModel::getSimbolo, UnidadMedidaModel::getId)
+                        : TypeSafeSorts.ascWithId(UnidadMedidaModel.class, UnidadMedidaModel::getSimbolo, UnidadMedidaModel::getId);
             case "tipo":
-                return Sort.by(sortDirection, "tipo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(UnidadMedidaModel.class, UnidadMedidaModel::getTipo, UnidadMedidaModel::getId)
+                        : TypeSafeSorts.ascWithId(UnidadMedidaModel.class, UnidadMedidaModel::getTipo, UnidadMedidaModel::getId);
             case "estado":
-                return Sort.by(sortDirection, "estado").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(UnidadMedidaModel.class, UnidadMedidaModel::getEstado, UnidadMedidaModel::getId)
+                        : TypeSafeSorts.ascWithId(UnidadMedidaModel.class, UnidadMedidaModel::getEstado, UnidadMedidaModel::getId);
             case "fecharegistro":
             case "fecha_registro":
-                return Sort.by(sortDirection, "fechaRegistro").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(UnidadMedidaModel.class, UnidadMedidaModel::getFechaRegistro, UnidadMedidaModel::getId)
+                        : TypeSafeSorts.ascWithId(UnidadMedidaModel.class, UnidadMedidaModel::getFechaRegistro, UnidadMedidaModel::getId);
             default:
-                return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+                return TypeSafeSorts.ascWithId(UnidadMedidaModel.class, UnidadMedidaModel::getNombre, UnidadMedidaModel::getId);
         }
     }
 

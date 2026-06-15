@@ -22,6 +22,7 @@ import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
 import com.mobilesco.mobilesco_back.modules.categoria.application.ports.CategoriaPersistencePort;
 
@@ -152,25 +153,28 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
                 : org.springframework.data.domain.Sort.Direction.ASC;
 
         if (sortBy == null || sortBy.isBlank()) {
-            return org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "nombre")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            return TypeSafeSorts.ascWithId(CategoriaModel.class, CategoriaModel::getNombre, CategoriaModel::getId);
         }
 
         String campo = sortBy.trim().toLowerCase(Locale.ROOT);
         return switch (campo) {
-            case "id" -> org.springframework.data.domain.Sort.by(sortDirection, "id");
-            case "nombre" -> org.springframework.data.domain.Sort.by(sortDirection, "nombre")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "descripcion" -> org.springframework.data.domain.Sort.by(sortDirection, "descripcion")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "activo" -> org.springframework.data.domain.Sort.by(sortDirection, "activo")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "fecharegistro", "fecha_registro" -> org.springframework.data.domain.Sort.by(sortDirection, "fechaRegistro")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            case "fechaactualizacion", "fecha_actualizacion" -> org.springframework.data.domain.Sort.by(sortDirection, "fechaActualizacion")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
-            default -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "nombre")
-                    .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "id"));
+            case "id" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descById(CategoriaModel.class, CategoriaModel::getId)
+                    : TypeSafeSorts.ascById(CategoriaModel.class, CategoriaModel::getId);
+            case "nombre" -> TypeSafeSorts.ascWithId(CategoriaModel.class, CategoriaModel::getNombre, CategoriaModel::getId);
+            case "descripcion" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(CategoriaModel.class, CategoriaModel::getDescripcion, CategoriaModel::getId)
+                    : TypeSafeSorts.ascWithId(CategoriaModel.class, CategoriaModel::getDescripcion, CategoriaModel::getId);
+            case "activo" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(CategoriaModel.class, CategoriaModel::getActivo, CategoriaModel::getId)
+                    : TypeSafeSorts.ascWithId(CategoriaModel.class, CategoriaModel::getActivo, CategoriaModel::getId);
+            case "fecharegistro", "fecha_registro" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(CategoriaModel.class, CategoriaModel::getFechaRegistro, CategoriaModel::getId)
+                    : TypeSafeSorts.ascWithId(CategoriaModel.class, CategoriaModel::getFechaRegistro, CategoriaModel::getId);
+            case "fechaactualizacion", "fecha_actualizacion" -> sortDirection == org.springframework.data.domain.Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(CategoriaModel.class, CategoriaModel::getFechaActualizacion, CategoriaModel::getId)
+                    : TypeSafeSorts.ascWithId(CategoriaModel.class, CategoriaModel::getFechaActualizacion, CategoriaModel::getId);
+            default -> TypeSafeSorts.ascWithId(CategoriaModel.class, CategoriaModel::getNombre, CategoriaModel::getId);
         };
     }
 

@@ -27,6 +27,7 @@ import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadReq
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.familia.application.ports.FamiliaPersistencePort;
@@ -111,7 +112,7 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
                 : Sort.Direction.ASC;
 
         if (sortBy == null || sortBy.isBlank()) {
-            return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+            return TypeSafeSorts.ascWithId(FamiliaModel.class, FamiliaModel::getNombre, FamiliaModel::getId);
         }
 
         String campo = sortBy.trim();
@@ -119,20 +120,32 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
 
         switch (campoNormalizado) {
             case "id":
-                return Sort.by(sortDirection, "id");
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descById(FamiliaModel.class, FamiliaModel::getId)
+                        : TypeSafeSorts.ascById(FamiliaModel.class, FamiliaModel::getId);
             case "codigo":
-                return Sort.by(sortDirection, "codigo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(FamiliaModel.class, FamiliaModel::getCodigo, FamiliaModel::getId)
+                        : TypeSafeSorts.ascWithId(FamiliaModel.class, FamiliaModel::getCodigo, FamiliaModel::getId);
             case "nombre":
-                return Sort.by(sortDirection, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(FamiliaModel.class, FamiliaModel::getNombre, FamiliaModel::getId)
+                        : TypeSafeSorts.ascWithId(FamiliaModel.class, FamiliaModel::getNombre, FamiliaModel::getId);
             case "descripcion":
-                return Sort.by(sortDirection, "descripcion").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(FamiliaModel.class, FamiliaModel::getDescripcion, FamiliaModel::getId)
+                        : TypeSafeSorts.ascWithId(FamiliaModel.class, FamiliaModel::getDescripcion, FamiliaModel::getId);
             case "activo":
-                return Sort.by(sortDirection, "activo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(FamiliaModel.class, FamiliaModel::getActivo, FamiliaModel::getId)
+                        : TypeSafeSorts.ascWithId(FamiliaModel.class, FamiliaModel::getActivo, FamiliaModel::getId);
             case "createdat":
             case "created_at":
-                return Sort.by(sortDirection, "createdAt").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(FamiliaModel.class, FamiliaModel::getCreatedAt, FamiliaModel::getId)
+                        : TypeSafeSorts.ascWithId(FamiliaModel.class, FamiliaModel::getCreatedAt, FamiliaModel::getId);
             default:
-                return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+                return TypeSafeSorts.ascWithId(FamiliaModel.class, FamiliaModel::getNombre, FamiliaModel::getId);
         }
     }
 
