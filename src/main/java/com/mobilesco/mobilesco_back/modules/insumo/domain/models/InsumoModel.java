@@ -2,10 +2,13 @@ package com.mobilesco.mobilesco_back.modules.insumo.domain.models;
 
 import java.time.LocalDateTime;
 
+import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
 import com.mobilesco.mobilesco_back.modules.unidadmedida.domain.models.UnidadMedidaModel;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -59,6 +62,10 @@ public class InsumoModel {
 
     @Column(name = "costo_cotizar")
     private Double costoCotizacion;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_insumo")
+    private TipoInsumo tipoInsumo;
 
 
     // Unidad de Medida

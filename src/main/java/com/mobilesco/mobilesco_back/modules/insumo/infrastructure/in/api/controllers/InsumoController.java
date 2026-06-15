@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCostoCotizacionUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCostoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCreateDTO;
@@ -129,6 +130,12 @@ public class InsumoController {
     @GetMapping("/activos")
     public ResponseEntity<List<InsumoResponseDTO>> listarActivos() {
         return ResponseEntity.ok(insumoService.listarActivos());
+    }
+
+    @Operation(summary = "Obtener todos los tipos de insumo")
+    @GetMapping("/tipos-insumo")
+    public ResponseEntity<TipoInsumo[]> getTiposInsumo() {
+        return ResponseEntity.ok(insumoService.getTodosLosTipos());
     }
 
     @Operation(summary = "Buscar insumos por nombre")

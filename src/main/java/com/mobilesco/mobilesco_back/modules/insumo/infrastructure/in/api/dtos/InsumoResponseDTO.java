@@ -3,6 +3,7 @@ package com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,6 +20,7 @@ public class InsumoResponseDTO {
     private String codigoBarras;
     private String nombre;
     private String descripcion;
+    private TipoInsumo tipoInsumo;
 
     private Long unidadMedidaId;
     private String unidadMedidaNombre;

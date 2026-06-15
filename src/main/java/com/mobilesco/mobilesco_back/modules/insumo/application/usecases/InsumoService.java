@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraModel;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCostoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoResponseDTO;
@@ -29,6 +30,7 @@ import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.out.pers
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.unidadmedida.domain.models.UnidadMedidaModel;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
@@ -109,6 +111,7 @@ public class InsumoService {
         }
         insumo.setNombre(dto.getNombre());
         insumo.setDescripcion(dto.getDescripcion());
+        insumo.setTipoInsumo(dto.getTipoInsumo());
         insumo.setUbicacion(dto.getUbicacion());
         insumo.setFila(dto.getFila());
         insumo.setColumna(dto.getColumna());
@@ -184,6 +187,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
             .codigo(codigoInicial.trim())
             .nombre(dto.getNombre())
             .descripcion(dto.getDescripcion())
+            .tipoInsumo(dto.getTipoInsumo())
             .ubicacion(dto.getUbicacion())
             .fila(dto.getFila())
             .columna(dto.getColumna())
@@ -288,37 +292,55 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 : Sort.Direction.ASC;
 
         if (sortBy == null || sortBy.isBlank()) {
-            return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+            return TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getNombre, InsumoModel::getId);
         }
 
         String campoNormalizado = sortBy.trim().toLowerCase(Locale.ROOT);
 
         switch (campoNormalizado) {
             case "id":
-                return Sort.by(sortDirection, "id");
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descById(InsumoModel.class, InsumoModel::getId)
+                        : TypeSafeSorts.ascById(InsumoModel.class, InsumoModel::getId);
             case "codigo":
-                return Sort.by(sortDirection, "codigo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(InsumoModel.class, InsumoModel::getCodigo, InsumoModel::getId)
+                        : TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getCodigo, InsumoModel::getId);
             case "nombre":
-                return Sort.by(sortDirection, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(InsumoModel.class, InsumoModel::getNombre, InsumoModel::getId)
+                        : TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getNombre, InsumoModel::getId);
             case "ubicacion":
-                return Sort.by(sortDirection, "ubicacion").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(InsumoModel.class, InsumoModel::getUbicacion, InsumoModel::getId)
+                        : TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getUbicacion, InsumoModel::getId);
             case "stockactual":
             case "stock_actual":
-                return Sort.by(sortDirection, "stockActual").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(InsumoModel.class, InsumoModel::getStockActual, InsumoModel::getId)
+                        : TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getStockActual, InsumoModel::getId);
             case "stockminimo":
             case "stock_minimo":
-                return Sort.by(sortDirection, "stockMinimo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(InsumoModel.class, InsumoModel::getStockMinimo, InsumoModel::getId)
+                        : TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getStockMinimo, InsumoModel::getId);
             case "costocotizacion":
             case "costo_cotizar":
             case "costo_cotizacion":
-                return Sort.by(sortDirection, "costoCotizacion").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(InsumoModel.class, InsumoModel::getCostoCotizacion, InsumoModel::getId)
+                        : TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getCostoCotizacion, InsumoModel::getId);
             case "activo":
-                return Sort.by(sortDirection, "activo").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(InsumoModel.class, InsumoModel::getActivo, InsumoModel::getId)
+                        : TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getActivo, InsumoModel::getId);
             case "fecharegistro":
             case "fecha_registro":
-                return Sort.by(sortDirection, "fechaRegistro").and(Sort.by(Sort.Direction.ASC, "id"));
+                return sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(InsumoModel.class, InsumoModel::getFechaRegistro, InsumoModel::getId)
+                        : TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getFechaRegistro, InsumoModel::getId);
             default:
-                return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+                return TypeSafeSorts.ascWithId(InsumoModel.class, InsumoModel::getNombre, InsumoModel::getId);
         }
     }
 
@@ -337,7 +359,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
         String[] headers = {
                 "ID", "Codigo", "Codigo barras", "Nombre", "Descripcion", "Ubicacion", "Fila", "Columna",
-                "Unidad", "Stock actual", "Stock minimo", "Costo cotizacion", "Estado", "Fecha registro"
+                "Tipo de insumo", "Unidad", "Stock actual", "Stock minimo", "Costo cotizacion", "Estado", "Fecha registro"
         };
 
         return ExcelReportBuilder.generate(
@@ -351,6 +373,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                                 nvl(insumo.getCodigoBarras()),
                                 nvl(insumo.getNombre()),
                                 nvl(insumo.getDescripcion()),
+                                insumo.getTipoInsumo() != null ? insumo.getTipoInsumo().name() : "",
                                 nvl(insumo.getUbicacion()),
                                 nvl(insumo.getFila()),
                                 nvl(insumo.getColumna()),
@@ -376,6 +399,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                         insumo.getCodigoBarras(),
                         insumo.getNombre(),
                         insumo.getDescripcion(),
+                        insumo.getTipoInsumo() != null ? insumo.getTipoInsumo().name() : null,
                         insumo.getUbicacion(),
                         insumo.getFila(),
                         insumo.getColumna(),
@@ -559,6 +583,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 .codigoBarras(insumo.getCodigoBarras())
                 .nombre(insumo.getNombre())
                 .descripcion(insumo.getDescripcion())
+                .tipoInsumo(insumo.getTipoInsumo())
                 .ubicacion(insumo.getUbicacion())
                 .fila(insumo.getFila())
                 .columna(insumo.getColumna())   
@@ -611,5 +636,10 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 && !productoInsumoRepository.existsByInsumoId(insumoId)
                 && !kardexRepository.existsByInsumoId(insumoId)
                 && !detalleSalidaInsumoRepository.existsByInsumoId(insumoId);
+    }
+
+    @Transactional(readOnly = true)
+    public TipoInsumo[] getTodosLosTipos() {
+        return TipoInsumo.values();
     }
 }

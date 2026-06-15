@@ -1,6 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -21,6 +22,9 @@ public class InsumoUpdateDTO {
     
     @NotNull(message = "La unidad de medida es obligatoria")
     private Long unidadMedidaId;
+
+    @NotNull(message = "El tipo de insumo es obligatorio")
+    private TipoInsumo tipoInsumo;
 
     @JsonAlias("costo_cotizar")
     @PositiveOrZero(message = "El costo de cotizacion no puede ser negativo")
