@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CifResumenDTO {
+    private Long configuracionId;
     private Double totalMensual;
     private Double minutosProductivosMes;
     private Double costoMinuto;

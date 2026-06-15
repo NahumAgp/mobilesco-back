@@ -218,9 +218,11 @@ public class CostoIndirectoService {
 
     @Transactional(readOnly = true)
     public CifResumenDTO obtenerResumen() {
+        CifConfiguracionModel config = obtenerConfiguracionModel();
         double totalMensual = calcularTotalMensualActivo();
-        double minutosProductivosMes = obtenerConfiguracionModel().calcularMinutosProductivosMes();
+        double minutosProductivosMes = config.calcularMinutosProductivosMes();
         return CifResumenDTO.builder()
+                .configuracionId(config.getId())
                 .totalMensual(totalMensual)
                 .minutosProductivosMes(minutosProductivosMes)
                 .costoMinuto(calcularTasaMinuto(totalMensual, minutosProductivosMes))
@@ -285,7 +287,7 @@ public class CostoIndirectoService {
 
     private CifConfiguracionModel obtenerConfiguracionModel() {
         return cifConfiguracionRepository.findFirstByActivoTrueOrderByIdAsc()
-                .orElseGet(() -> cifConfiguracionRepository.save(CifConfiguracionModel.builder().build()));
+                .orElseGet(CifConfiguracionModel::new);
     }
 
     private CifConfiguracionDTO mapToConfiguracionDTO(CifConfiguracionModel config) {
