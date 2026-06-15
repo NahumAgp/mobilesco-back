@@ -40,6 +40,9 @@ public class ModeloUpdateDTO {
     @Size(min = 1, message = "El modelo debe tener al menos una categoria")
     private List<ModeloCategoriaDTO> categorias;
 
+    @JsonProperty("materiales")
+    private List<Long> materiales;
+
     public String getCodigo() {
         return codigo;
     }
@@ -94,5 +97,13 @@ public class ModeloUpdateDTO {
 
     public void setCategorias(List<ModeloCategoriaDTO> categorias) {
         this.categorias = categorias;
+    }
+
+    public List<Long> getMateriales() {
+        return materiales;
+    }
+
+    public void setMateriales(List<Long> materiales) {
+        this.materiales = materiales;
     }
 }

@@ -26,8 +26,10 @@ import com.mobilesco.mobilesco_back.modules.material.application.ports.ProductoV
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialCreateDTO;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialResponseDTO;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 
 @Service
@@ -37,10 +39,14 @@ public class MaterialServiceImpl implements MaterialUseCase {
 
     private final MaterialPersistencePort materialRepository;
     private final ProductoValidationPort productoRepository;
+    private final ModeloRepository modeloRepository;
 
-    public MaterialServiceImpl(MaterialPersistencePort materialRepository, ProductoValidationPort productoRepository) {
+    public MaterialServiceImpl(MaterialPersistencePort materialRepository,
+                               ProductoValidationPort productoRepository,
+                               ModeloRepository modeloRepository) {
         this.materialRepository = materialRepository;
         this.productoRepository = productoRepository;
+        this.modeloRepository = modeloRepository;
     }
 
     private MaterialResponseDTO mapToResponseDTO(MaterialModel material) {
@@ -67,21 +73,33 @@ public class MaterialServiceImpl implements MaterialUseCase {
                 : Sort.Direction.ASC;
 
         if (sortBy == null || sortBy.isBlank()) {
-            return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+            return TypeSafeSorts.ascWithId(MaterialModel.class, MaterialModel::getNombre, MaterialModel::getId);
         }
 
         String campo = sortBy.trim().toLowerCase(Locale.ROOT);
         return switch (campo) {
-            case "id" -> Sort.by(sortDirection, "id");
-            case "codigo" -> Sort.by(sortDirection, "codigo").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "nombre" -> Sort.by(sortDirection, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "descripcion" -> Sort.by(sortDirection, "descripcion").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "activo" -> Sort.by(sortDirection, "activo").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "fecharegistro", "fecha_registro" ->
-                    Sort.by(sortDirection, "fechaRegistro").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "fechaactualizacion", "fecha_actualizacion" ->
-                    Sort.by(sortDirection, "fechaActualizacion").and(Sort.by(Sort.Direction.ASC, "id"));
-            default -> Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+            case "id" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descById(MaterialModel.class, MaterialModel::getId)
+                    : TypeSafeSorts.ascById(MaterialModel.class, MaterialModel::getId);
+            case "codigo" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(MaterialModel.class, MaterialModel::getCodigo, MaterialModel::getId)
+                    : TypeSafeSorts.ascWithId(MaterialModel.class, MaterialModel::getCodigo, MaterialModel::getId);
+            case "nombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(MaterialModel.class, MaterialModel::getNombre, MaterialModel::getId)
+                    : TypeSafeSorts.ascWithId(MaterialModel.class, MaterialModel::getNombre, MaterialModel::getId);
+            case "descripcion" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(MaterialModel.class, MaterialModel::getDescripcion, MaterialModel::getId)
+                    : TypeSafeSorts.ascWithId(MaterialModel.class, MaterialModel::getDescripcion, MaterialModel::getId);
+            case "activo" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(MaterialModel.class, MaterialModel::getActivo, MaterialModel::getId)
+                    : TypeSafeSorts.ascWithId(MaterialModel.class, MaterialModel::getActivo, MaterialModel::getId);
+            case "fecharegistro", "fecha_registro" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(MaterialModel.class, MaterialModel::getFechaRegistro, MaterialModel::getId)
+                    : TypeSafeSorts.ascWithId(MaterialModel.class, MaterialModel::getFechaRegistro, MaterialModel::getId);
+            case "fechaactualizacion", "fecha_actualizacion" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(MaterialModel.class, MaterialModel::getFechaActualizacion, MaterialModel::getId)
+                    : TypeSafeSorts.ascWithId(MaterialModel.class, MaterialModel::getFechaActualizacion, MaterialModel::getId);
+            default -> TypeSafeSorts.ascWithId(MaterialModel.class, MaterialModel::getNombre, MaterialModel::getId);
         };
     }
 
@@ -222,6 +240,10 @@ public class MaterialServiceImpl implements MaterialUseCase {
 
         if (productoRepository.existsByMaterialId(id)) {
             throw new BadRequestException("No se puede eliminar el material porque tiene productos asociados");
+        }
+
+        if (modeloRepository.existsByMaterialesId(id)) {
+            throw new BadRequestException("No se puede eliminar el material porque esta asociado a uno o mas modelos");
         }
 
         materialRepository.deleteById(id);

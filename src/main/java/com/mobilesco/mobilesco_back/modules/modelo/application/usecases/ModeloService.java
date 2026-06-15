@@ -10,6 +10,7 @@ package com.mobilesco.mobilesco_back.modules.modelo.application.usecases;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -29,8 +30,12 @@ import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadReq
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
+import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
+import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialResponseDTO;
+import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persistence.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCreateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCategoriaDTO;
@@ -49,17 +54,20 @@ public class ModeloService {
 
     private final ModeloRepository modeloRepository;
     private final FamiliaRepository familiaRepository;
+    private final MaterialRepository materialRepository;
     private final ProductoRepository productoRepository;
     private final NivelRepository nivelRepository;
     private final AlmacenamientoImagenesService almacenamientoImagenesService;
 
     public ModeloService(ModeloRepository modeloRepository,
                          FamiliaRepository familiaRepository,
+                         MaterialRepository materialRepository,
                          ProductoRepository productoRepository,
                          NivelRepository nivelRepository,
                          AlmacenamientoImagenesService almacenamientoImagenesService) {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
+        this.materialRepository = materialRepository;
         this.productoRepository = productoRepository;
         this.nivelRepository = nivelRepository;
         this.almacenamientoImagenesService = almacenamientoImagenesService;
@@ -83,6 +91,20 @@ public class ModeloService {
         dto.setCategorias(nivelRepository.findByModeloIdOrderByNombreAsc(modelo.getId()).stream()
                 .map(this::mapCategoria)
                 .toList());
+        dto.setMateriales(modelo.getMateriales().stream()
+                .sorted((izq, der) -> {
+                    String nombreIzq = izq.getNombre() == null ? "" : izq.getNombre().toLowerCase(Locale.ROOT);
+                    String nombreDer = der.getNombre() == null ? "" : der.getNombre().toLowerCase(Locale.ROOT);
+                    int comparacion = nombreIzq.compareTo(nombreDer);
+                    if (comparacion != 0) {
+                        return comparacion;
+                    }
+                    long idIzq = izq.getId() == null ? 0L : izq.getId();
+                    long idDer = der.getId() == null ? 0L : der.getId();
+                    return Long.compare(idIzq, idDer);
+                })
+                .map(this::mapMaterial)
+                .toList());
 
         return dto;
     }
@@ -99,21 +121,37 @@ public class ModeloService {
                 : Sort.Direction.ASC;
 
         if (sortBy == null || sortBy.isBlank()) {
-            return Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+            return TypeSafeSorts.ascWithId(ModeloModel.class, ModeloModel::getNombre, ModeloModel::getId);
         }
 
         String campoNormalizado = sortBy.trim().toLowerCase(Locale.ROOT);
 
         return switch (campoNormalizado) {
-            case "id" -> Sort.by(sortDirection, "id");
-            case "codigo" -> Sort.by(sortDirection, "codigo").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "nombre" -> Sort.by(sortDirection, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "descripcion" -> Sort.by(sortDirection, "descripcion").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "activo" -> Sort.by(sortDirection, "activo").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "createdat", "created_at" -> Sort.by(sortDirection, "createdAt").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "updatedat", "updated_at" -> Sort.by(sortDirection, "updatedAt").and(Sort.by(Sort.Direction.ASC, "id"));
-            case "familia", "familianombre" -> Sort.by(sortDirection, "familia.nombre").and(Sort.by(Sort.Direction.ASC, "id"));
-            default -> Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"));
+            case "id" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descById(ModeloModel.class, ModeloModel::getId)
+                    : TypeSafeSorts.ascById(ModeloModel.class, ModeloModel::getId);
+            case "codigo" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ModeloModel.class, ModeloModel::getCodigo, ModeloModel::getId)
+                    : TypeSafeSorts.ascWithId(ModeloModel.class, ModeloModel::getCodigo, ModeloModel::getId);
+            case "nombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ModeloModel.class, ModeloModel::getNombre, ModeloModel::getId)
+                    : TypeSafeSorts.ascWithId(ModeloModel.class, ModeloModel::getNombre, ModeloModel::getId);
+            case "descripcion" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ModeloModel.class, ModeloModel::getDescripcion, ModeloModel::getId)
+                    : TypeSafeSorts.ascWithId(ModeloModel.class, ModeloModel::getDescripcion, ModeloModel::getId);
+            case "activo" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ModeloModel.class, ModeloModel::getActivo, ModeloModel::getId)
+                    : TypeSafeSorts.ascWithId(ModeloModel.class, ModeloModel::getActivo, ModeloModel::getId);
+            case "createdat", "created_at" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ModeloModel.class, ModeloModel::getCreatedAt, ModeloModel::getId)
+                    : TypeSafeSorts.ascWithId(ModeloModel.class, ModeloModel::getCreatedAt, ModeloModel::getId);
+            case "updatedat", "updated_at" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ModeloModel.class, ModeloModel::getUpdatedAt, ModeloModel::getId)
+                    : TypeSafeSorts.ascWithId(ModeloModel.class, ModeloModel::getUpdatedAt, ModeloModel::getId);
+            case "familia", "familianombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descNestedWithId(ModeloModel.class, ModeloModel::getFamilia, FamiliaModel::getNombre, ModeloModel::getId)
+                    : TypeSafeSorts.ascNestedWithId(ModeloModel.class, ModeloModel::getFamilia, FamiliaModel::getNombre, ModeloModel::getId);
+            default -> TypeSafeSorts.ascWithId(ModeloModel.class, ModeloModel::getNombre, ModeloModel::getId);
         };
     }
 
@@ -136,6 +174,8 @@ public class ModeloService {
 
         ModeloModel guardado = modeloRepository.save(modelo);
         sincronizarCategorias(guardado, dto.getCategorias());
+        sincronizarMateriales(guardado, dto.getMateriales());
+        guardado = modeloRepository.save(guardado);
         return mapToResponseDTO(guardado);
     }
 
@@ -145,10 +185,12 @@ public class ModeloService {
                 .toList());
     }
 
+    @Transactional(readOnly = true)
     public List<ModeloResponseDTO> obtenerTodos() {
         return mapToResponseDTOList(modeloRepository.findAll());
     }
 
+    @Transactional(readOnly = true)
     public List<ModeloResponseDTO> obtenerActivos() {
         return mapToResponseDTOList(modeloRepository.findByActivo(true));
     }
@@ -189,6 +231,7 @@ public class ModeloService {
                         .collect(Collectors.toList()));
     }
 
+    @Transactional(readOnly = true)
     public PageResponseDTO<ModeloResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {
         int pageNumber = Math.max(page, 0);
         PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortModelos(sortBy, direction));
@@ -204,12 +247,14 @@ public class ModeloService {
         );
     }
 
+    @Transactional(readOnly = true)
     public ModeloResponseDTO obtenerPorId(Long id) {
         ModeloModel modelo = modeloRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + id));
         return mapToResponseDTO(modelo);
     }
 
+    @Transactional(readOnly = true)
     public List<ModeloResponseDTO> obtenerPorFamilia(Long familiaId) {
         if (!familiaRepository.existsById(familiaId)) {
             throw new NotFoundException("Familia no encontrada con ID: " + familiaId);
@@ -217,6 +262,7 @@ public class ModeloService {
         return mapToResponseDTOList(modeloRepository.findByFamiliaId(familiaId));
     }
 
+    @Transactional(readOnly = true)
     public List<ModeloResponseDTO> buscarConFiltros(String codigo, String nombre, Long familiaId) {
         return mapToResponseDTOList(modeloRepository.buscarConFiltros(codigo, nombre, familiaId));
     }
@@ -285,6 +331,10 @@ public class ModeloService {
         if (dto.getCategorias() != null) {
             sincronizarCategorias(actualizado, dto.getCategorias());
         }
+        if (dto.getMateriales() != null) {
+            sincronizarMateriales(actualizado, dto.getMateriales());
+        }
+        actualizado = modeloRepository.save(actualizado);
         return mapToResponseDTO(actualizado);
     }
 
@@ -351,6 +401,40 @@ public class ModeloService {
         dto.setDescripcion(nivel.getDescripcion());
         dto.setActivo(nivel.getActivo());
         return dto;
+    }
+
+    private MaterialResponseDTO mapMaterial(MaterialModel material) {
+        MaterialResponseDTO dto = new MaterialResponseDTO();
+        dto.setId(material.getId());
+        dto.setCodigo(material.getCodigo());
+        dto.setNombre(material.getNombre());
+        dto.setDescripcion(material.getDescripcion());
+        dto.setActivo(material.getActivo());
+        dto.setFechaRegistro(material.getFechaRegistro());
+        dto.setFechaActualizacion(material.getFechaActualizacion());
+        return dto;
+    }
+
+    private void sincronizarMateriales(ModeloModel modelo, List<Long> materialIds) {
+        if (materialIds == null) {
+            return;
+        }
+
+        Set<MaterialModel> materiales = new LinkedHashSet<>();
+        Set<Long> idsUnicos = new HashSet<>();
+
+        for (Long materialId : materialIds) {
+            if (materialId == null || !idsUnicos.add(materialId)) {
+                continue;
+            }
+
+            MaterialModel material = materialRepository.findById(materialId)
+                    .orElseThrow(() -> new NotFoundException("Material no encontrado con ID: " + materialId));
+            materiales.add(material);
+        }
+
+        modelo.getMateriales().clear();
+        modelo.getMateriales().addAll(materiales);
     }
 
     private void sincronizarCategorias(ModeloModel modelo, List<ModeloCategoriaDTO> categorias) {

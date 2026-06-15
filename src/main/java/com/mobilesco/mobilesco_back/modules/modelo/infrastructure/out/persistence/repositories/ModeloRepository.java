@@ -13,11 +13,9 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 
-@Repository
 public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
 
     Optional<ModeloModel> findByCodigo(String codigo);
@@ -29,6 +27,9 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
     boolean existsByFamiliaId(Long familiaId);
 
     boolean existsByCodigo(String codigo);
+
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM ModeloModel m JOIN m.materiales material WHERE material.id = :materialId")
+    boolean existsByMaterialesId(@Param("materialId") Long materialId);
 
     @Query("SELECT p FROM ModeloModel p WHERE " +
            "(:codigo IS NULL OR LOWER(p.codigo) LIKE LOWER(CONCAT('%', :codigo, '%'))) AND " +

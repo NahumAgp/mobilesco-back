@@ -13,6 +13,8 @@ package com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.mobilesco.mobilesco_back.modules.material.infrastructure.in.api.dtos.MaterialResponseDTO;
+
 public class ModeloResponseDTO {
 
     private Long id;
@@ -27,6 +29,7 @@ public class ModeloResponseDTO {
     private Long familiaId;
     private String familiaNombre;
     private List<ModeloCategoriaDTO> categorias;
+    private List<MaterialResponseDTO> materiales;
 
     public Long getId() {
         return id;
@@ -114,5 +117,13 @@ public class ModeloResponseDTO {
 
     public void setCategorias(List<ModeloCategoriaDTO> categorias) {
         this.categorias = categorias;
+    }
+
+    public List<MaterialResponseDTO> getMateriales() {
+        return materiales;
+    }
+
+    public void setMateriales(List<MaterialResponseDTO> materiales) {
+        this.materiales = materiales;
     }
 }

@@ -11,8 +11,11 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
+import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 
 @Entity
 @Getter
@@ -49,6 +52,15 @@ public class ModeloModel {
     @ManyToOne
     @JoinColumn(name = "familia_id")
     private FamiliaModel familia;
+
+    @ManyToMany
+    @JoinTable(
+            name = "modelo_material",
+            joinColumns = @JoinColumn(name = "modelo_id"),
+            inverseJoinColumns = @JoinColumn(name = "material_id"),
+            uniqueConstraints = @UniqueConstraint(name = "uk_modelo_material", columnNames = {"modelo_id", "material_id"})
+    )
+    private Set<MaterialModel> materiales = new HashSet<>();
     
     @PrePersist
     protected void onCreate() {
