@@ -34,6 +34,8 @@ public class MovimientoInsumoResponseDTO {
     
     // Referencias
     private Long compraId;
+    private Long proveedorId;
+    private String proveedorNombre;
     private Long produccionId;
     private Long ajusteId;
     

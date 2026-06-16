@@ -10,10 +10,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mobilesco.mobilesco_back.modules.kardex.infrastructure.in.api.dtos.MovimientoInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
+import com.mobilesco.mobilesco_back.modules.compra.domain.models.CompraModel;
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.kardex.domain.models.MovimientoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
 import com.mobilesco.mobilesco_back.modules.kardex.infrastructure.out.persistence.repositories.KardexRepository;
+import com.mobilesco.mobilesco_back.modules.proveedor.domain.models.ProveedorModel;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +28,7 @@ public class KardexService {
 
     private final KardexRepository kardexRepository;
     private final InsumoRepository insumoRepository;
+    private final CompraRepository compraRepository;
 
     /**
      * REGISTRAR una entrada por compra
@@ -227,6 +231,11 @@ public class KardexService {
     }
 
     private MovimientoInsumoResponseDTO mapToResponseDTO(MovimientoInsumoModel movimiento) {
+        CompraModel compra = movimiento.getCompraId() != null
+                ? compraRepository.findById(movimiento.getCompraId()).orElse(null)
+                : null;
+        ProveedorModel proveedor = compra != null ? compra.getProveedor() : null;
+
         return MovimientoInsumoResponseDTO.builder()
                 .id(movimiento.getId())
                 .insumoId(movimiento.getInsumo().getId())
@@ -245,9 +254,29 @@ public class KardexService {
                 .stockNuevo(movimiento.getStockNuevo())
                 .usuario(movimiento.getUsuario())
                 .compraId(movimiento.getCompraId())
+                .proveedorId(proveedor != null ? proveedor.getId() : null)
+                .proveedorNombre(obtenerNombreProveedor(proveedor))
                 .produccionId(movimiento.getProduccionId())
                 .ajusteId(movimiento.getAjusteId())
                 .fechaRegistro(movimiento.getFechaRegistro())
                 .build();
+    }
+
+    private String obtenerNombreProveedor(ProveedorModel proveedor) {
+        if (proveedor == null) {
+            return null;
+        }
+
+        if (proveedor.getRazonSocial() != null && !proveedor.getRazonSocial().isBlank()) {
+            return proveedor.getRazonSocial();
+        }
+
+        return List.of(
+                proveedor.getNombre(),
+                proveedor.getApellidoPaterno(),
+                proveedor.getApellidoMaterno()
+        ).stream()
+                .filter(valor -> valor != null && !valor.isBlank())
+                .collect(Collectors.joining(" "));
     }
 }
