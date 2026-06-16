@@ -37,37 +37,31 @@ public class DetalleCompraModel {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "compra_id", nullable = false, 
-                foreignKey = @ForeignKey(name = "fk_detalle_compra"))
+    @JoinColumn(name = "compra_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_detalle_compra"))
     private CompraModel compra;
 
     @ManyToOne
-    @JoinColumn(name = "insumo_id", nullable = false, 
-                foreignKey = @ForeignKey(name = "fk_detalle_insumo"))
+    @JoinColumn(name = "insumo_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_detalle_insumo"))
     private InsumoModel insumo;
 
-    // 📦 UNIDAD DE COMPRA (cómo se compró: TRAMO, CAJA, KG, ROLLO)
     @ManyToOne
     @JoinColumn(name = "unidad_compra_id", nullable = false,
-                foreignKey = @ForeignKey(name = "fk_detalle_unidad_compra"))
+            foreignKey = @ForeignKey(name = "fk_detalle_unidad_compra"))
     private UnidadMedidaModel unidadCompra;
 
-    // 🔢 CANTIDAD COMPRADA (en unidad de compra)
     @Column(nullable = false)
     private Double cantidad;
 
-    // 🔄 FACTOR DE CONVERSIÓN (1 unidad compra = X unidad consumo)
     @Column(nullable = false)
     private Double factorConversion;
 
-    // 💰 PRECIO POR UNIDAD DE COMPRA
     @Column(nullable = false)
     private Double precioUnitario;
 
-    // 📦 CANTIDAD RECIBIDA (opcional, por si llega incompleto)
     private Double cantidadRecibida;
 
-    // 🧮 SUBTOTAL (cantidad * precioUnitario)
     private Double subtotal;
 
     @Column(length = 255)
@@ -82,11 +76,9 @@ public class DetalleCompraModel {
     @Column(name = "fecha_actualizacion", nullable = false)
     private LocalDateTime fechaActualizacion;
 
-    // 📊 CAMPOS CALCULADOS (no persisten en BD)
-
     @Transient
     public Double getCantidadEnUnidadConsumo() {
-        return (cantidadRecibida != null ? cantidadRecibida : cantidad) * factorConversion;
+        return (cantidadRecibida != null ? cantidadRecibida : 0.0) * factorConversion;
     }
 
     @Transient
@@ -117,13 +109,11 @@ public class DetalleCompraModel {
         LocalDateTime now = LocalDateTime.now();
         fechaRegistro = now;
         fechaActualizacion = now;
-        
-        // Si no hay cantidad recibida, asumir que se recibió todo
+
         if (cantidadRecibida == null) {
-            cantidadRecibida = cantidad;
+            cantidadRecibida = 0.0;
         }
-        
-        // Calcular subtotal si no se proporcionó
+
         if (subtotal == null) {
             subtotal = cantidad * precioUnitario;
         }

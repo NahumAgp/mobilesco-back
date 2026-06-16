@@ -106,6 +106,7 @@ public class CompraController {
 
     @Operation(summary = "Eliminar compra (desactivar)")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         compraService.eliminar(id);
         return ResponseEntity.noContent().build();

@@ -62,9 +62,17 @@ public class DetalleCompraService {
             subtotal = dto.getCantidad() * dto.getPrecioUnitario();
         }
         
-        // Cantidad recibida (por defecto = cantidad)
+        // Una compra nueva todavia no actualiza stock; la recepcion se registra desde Entradas.
         Double cantidadRecibida = dto.getCantidadRecibida() != null ? 
-                                   dto.getCantidadRecibida() : dto.getCantidad();
+                                   dto.getCantidadRecibida() : 0.0;
+
+        if (cantidadRecibida < 0) {
+            throw new ValidationException("La cantidad recibida no puede ser negativa");
+        }
+
+        if (cantidadRecibida > dto.getCantidad()) {
+            throw new ValidationException("La cantidad recibida no puede ser mayor a la cantidad comprada");
+        }
         
         DetalleCompraModel detalle = DetalleCompraModel.builder()
                 .compra(compra)

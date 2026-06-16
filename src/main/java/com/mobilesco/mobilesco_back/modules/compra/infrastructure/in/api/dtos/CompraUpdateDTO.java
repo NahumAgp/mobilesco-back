@@ -17,6 +17,7 @@ public class CompraUpdateDTO {
     private Double impuesto;
     private Double total;
     private String observaciones;
+    private String entregadoPor;
     private String estado;
     private Boolean activo;
 }

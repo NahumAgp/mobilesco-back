@@ -1,6 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.proveedor.application.usecases;
 
 import java.util.List;
+import java.time.LocalDate;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -124,6 +125,7 @@ public class ProveedorService {
 
         // REGLA DE NEGOCIO
         proveedor.setActivo(true);
+        proveedor.setFechaUltimoContacto(LocalDate.now());
 
         ProveedorModel guardado = proveedorRepository.save(proveedor);
 
@@ -344,6 +346,7 @@ public class ProveedorService {
         // CONTACTO
         existente.setTelefono(dto.getTelefono());
         existente.setCorreo(dto.getCorreo());
+        existente.setFechaUltimoContacto(LocalDate.now());
 
         // ESTADO
         existente.setActivo(dto.getActivo());

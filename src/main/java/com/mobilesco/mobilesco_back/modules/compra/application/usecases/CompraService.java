@@ -84,6 +84,7 @@ public class CompraService {
         
         CompraModel savedCompra = compraRepository.save(compra);
         log.info("Compra creada con ID: {}", savedCompra.getId());
+        actualizarUltimoContactoProveedor(savedCompra.getProveedor());
         
         // Procesar detalles
         double subtotalCalculado = 0;
@@ -149,6 +150,7 @@ public class CompraService {
             ProveedorModel proveedor = proveedorRepository.findById(dto.getProveedorId())
                     .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado"));
             compra.setProveedor(proveedor);
+            actualizarUltimoContactoProveedor(proveedor);
         }
         
         if (dto.getTipoDocumento() != null) compra.setTipoDocumento(dto.getTipoDocumento());
@@ -165,6 +167,7 @@ public class CompraService {
         if (dto.getImpuesto() != null) compra.setImpuesto(dto.getImpuesto());
         if (dto.getTotal() != null) compra.setTotal(dto.getTotal());
         if (dto.getObservaciones() != null) compra.setObservaciones(dto.getObservaciones());
+        if (dto.getEntregadoPor() != null) compra.setEntregadoPor(dto.getEntregadoPor().trim());
         if (dto.getEstado() != null) compra.setEstado(dto.getEstado());
         if (dto.getActivo() != null) compra.setActivo(dto.getActivo());
         
@@ -239,7 +242,8 @@ public class CompraService {
         
         CompraModel updated = compraRepository.save(compra);
         log.info("Compra recibida exitosamente");
-        
+        actualizarUltimoContactoProveedor(compra.getProveedor());
+
         return mapToResponseDTO(updated);
     }
 
@@ -349,6 +353,15 @@ public class CompraService {
         compraRepository.save(compra);
         
         log.info("Compra desactivada correctamente");
+    }
+
+    private void actualizarUltimoContactoProveedor(ProveedorModel proveedor) {
+        if (proveedor == null) {
+            return;
+        }
+
+        proveedor.setFechaUltimoContacto(LocalDate.now());
+        proveedorRepository.save(proveedor);
     }
 
     /**
