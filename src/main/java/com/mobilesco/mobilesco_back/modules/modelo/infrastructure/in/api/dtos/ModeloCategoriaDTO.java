@@ -1,5 +1,8 @@
 package com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -8,10 +11,13 @@ public class ModeloCategoriaDTO {
 
     private Long id;
 
+    @JsonProperty("categoria_id")
+    @JsonAlias({"categoriaId"})
+    private Long categoriaId;
+
     @Pattern(regexp = "^[A-Z0-9]{1,3}$", message = "El codigo debe tener de 1 a 3 letras o numeros")
     private String codigo;
 
-    @NotBlank(message = "El nombre de la categoria es obligatorio")
     @Size(max = 50, message = "El nombre de la categoria no puede exceder 50 caracteres")
     private String nombre;
 
@@ -26,6 +32,14 @@ public class ModeloCategoriaDTO {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getCategoriaId() {
+        return categoriaId;
+    }
+
+    public void setCategoriaId(Long categoriaId) {
+        this.categoriaId = categoriaId;
     }
 
     public String getCodigo() {

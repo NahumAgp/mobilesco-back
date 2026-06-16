@@ -13,6 +13,8 @@ public class NivelResponseDTO {
     private LocalDateTime createdAt;
     private Long modeloId;
     private String modeloNombre;
+    private Long categoriaId;
+    private String categoriaNombre;
     
     // Getters y Setters
     public Long getId() {
@@ -77,5 +79,21 @@ public class NivelResponseDTO {
 
     public void setModeloNombre(String modeloNombre) {
         this.modeloNombre = modeloNombre;
+    }
+
+    public Long getCategoriaId() {
+        return categoriaId;
+    }
+
+    public void setCategoriaId(Long categoriaId) {
+        this.categoriaId = categoriaId;
+    }
+
+    public String getCategoriaNombre() {
+        return categoriaNombre;
+    }
+
+    public void setCategoriaNombre(String categoriaNombre) {
+        this.categoriaNombre = categoriaNombre;
     }
 }

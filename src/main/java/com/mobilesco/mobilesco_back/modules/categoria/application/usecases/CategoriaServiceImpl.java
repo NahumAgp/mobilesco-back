@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaCreateDTO;
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaResponseDTO;
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.in.api.dtos.CategoriaUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
@@ -35,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CategoriaServiceImpl implements CategoriaUseCase {
 
     private final CategoriaPersistencePort categoriaRepository;
+    private final NivelRepository nivelRepository;
 
     @Transactional
     public CategoriaResponseDTO crear(CategoriaCreateDTO dto) {
@@ -79,6 +82,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
         }
 
         CategoriaModel updated = categoriaRepository.save(categoria);
+        sincronizarNivelesAsociados(updated);
         log.info("Categoría actualizada: {}", updated.getNombre());
         
         return mapToResponseDTO(updated);
@@ -207,6 +211,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
 
         categoria.setActivo(true);
         CategoriaModel updated = categoriaRepository.save(categoria);
+        sincronizarNivelesAsociados(updated);
         return mapToResponseDTO(updated);
     }
 
@@ -217,6 +222,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
 
         categoria.setActivo(false);
         CategoriaModel updated = categoriaRepository.save(categoria);
+        sincronizarNivelesAsociados(updated);
         return mapToResponseDTO(updated);
     }
 
@@ -229,8 +235,23 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
         
         categoria.setActivo(false);
         categoriaRepository.save(categoria);
+        sincronizarNivelesAsociados(categoria);
         
         log.info("Categoría desactivada correctamente");
+    }
+
+    private void sincronizarNivelesAsociados(CategoriaModel categoria) {
+        List<NivelModel> niveles = nivelRepository.findByCategoriaId(categoria.getId());
+        if (niveles.isEmpty()) {
+            return;
+        }
+
+        for (NivelModel nivel : niveles) {
+            nivel.setNombre(categoria.getNombre());
+            nivel.setDescripcion(categoria.getDescripcion());
+            nivel.setActivo(categoria.getActivo());
+            nivelRepository.save(nivel);
+        }
     }
 
     private CategoriaResponseDTO mapToResponseDTO(CategoriaModel categoria) {

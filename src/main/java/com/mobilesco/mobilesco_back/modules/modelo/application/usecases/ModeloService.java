@@ -42,6 +42,8 @@ import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.Mo
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
+import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
+import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.out.persistence.repositories.CategoriaRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
@@ -57,6 +59,7 @@ public class ModeloService {
     private final MaterialRepository materialRepository;
     private final ProductoRepository productoRepository;
     private final NivelRepository nivelRepository;
+    private final CategoriaRepository categoriaRepository;
     private final AlmacenamientoImagenesService almacenamientoImagenesService;
 
     public ModeloService(ModeloRepository modeloRepository,
@@ -64,12 +67,14 @@ public class ModeloService {
                          MaterialRepository materialRepository,
                          ProductoRepository productoRepository,
                          NivelRepository nivelRepository,
+                         CategoriaRepository categoriaRepository,
                          AlmacenamientoImagenesService almacenamientoImagenesService) {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
         this.materialRepository = materialRepository;
         this.productoRepository = productoRepository;
         this.nivelRepository = nivelRepository;
+        this.categoriaRepository = categoriaRepository;
         this.almacenamientoImagenesService = almacenamientoImagenesService;
     }
 
@@ -88,7 +93,7 @@ public class ModeloService {
             dto.setFamiliaId(modelo.getFamilia().getId());
             dto.setFamiliaNombre(modelo.getFamilia().getNombre());
         }
-        dto.setCategorias(nivelRepository.findByModeloIdOrderByNombreAsc(modelo.getId()).stream()
+        dto.setCategorias(nivelRepository.findByModeloIdOrderByCodigoAsc(modelo.getId()).stream()
                 .map(this::mapCategoria)
                 .toList());
         dto.setMateriales(modelo.getMateriales().stream()
@@ -396,6 +401,9 @@ public class ModeloService {
     private ModeloCategoriaDTO mapCategoria(NivelModel nivel) {
         ModeloCategoriaDTO dto = new ModeloCategoriaDTO();
         dto.setId(nivel.getId());
+        if (nivel.getCategoria() != null) {
+            dto.setCategoriaId(nivel.getCategoria().getId());
+        }
         dto.setCodigo(nivel.getCodigo());
         dto.setNombre(nivel.getNombre());
         dto.setDescripcion(nivel.getDescripcion());
@@ -442,59 +450,46 @@ public class ModeloService {
             throw new BadRequestException("El modelo debe tener al menos una categoria");
         }
 
-        List<NivelModel> existentes = nivelRepository.findByModeloIdOrderByNombreAsc(modelo.getId());
+        List<NivelModel> existentes = nivelRepository.findByModeloIdOrderByCodigoAsc(modelo.getId());
         Set<Long> idsConservados = new HashSet<>();
-        Set<String> nombres = new HashSet<>();
-        Set<String> codigos = new HashSet<>();
-        List<String> codigosUsados = nivelRepository.findAll().stream()
+        Set<Long> categoriasConservadas = new HashSet<>();
+        Set<String> codigosUsados = existentes.stream()
                 .map(NivelModel::getCodigo)
-                .collect(Collectors.toCollection(ArrayList::new));
+                .map(codigo -> codigo == null ? "" : codigo.trim())
+                .filter(codigo -> !codigo.isBlank())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         for (ModeloCategoriaDTO categoria : categorias) {
-            String nombre = categoria.getNombre() == null ? "" : categoria.getNombre().trim();
-            if (nombre.isBlank()) {
-                throw new BadRequestException("Todas las categorias deben tener nombre");
-            }
-            if (!nombres.add(nombre.toLowerCase(Locale.ROOT))) {
-                throw new BadRequestException("No se pueden repetir categorias dentro del mismo modelo: " + nombre);
-            }
-
-            NivelModel nivel;
+            NivelModel nivel = null;
             if (categoria.getId() != null) {
                 nivel = existentes.stream()
                         .filter(item -> item.getId().equals(categoria.getId()))
                         .findFirst()
-                        .orElseThrow(() -> new BadRequestException("La categoria no pertenece al modelo"));
-                idsConservados.add(nivel.getId());
-            } else {
+                        .orElse(null);
+            }
+
+            CategoriaModel catalogo = resolverCategoriaGlobal(categoria, nivel);
+            if (catalogo == null) {
+                throw new BadRequestException("No se pudo resolver la categoria seleccionada");
+            }
+            if (!categoriasConservadas.add(catalogo.getId())) {
+                throw new BadRequestException("No se pueden repetir categorias dentro del mismo modelo: " + catalogo.getNombre());
+            }
+
+            if (nivel == null) {
                 nivel = new NivelModel();
                 nivel.setModelo(modelo);
-            }
-            boolean nombreOcupado = nivelRepository.findByNombre(nombre)
-                    .filter(item -> nivel.getId() == null || !item.getId().equals(nivel.getId()))
-                    .isPresent();
-            if (nombreOcupado) {
-                throw new BadRequestException("Ya existe una categoria con el nombre: " + nombre);
+                nivel.setCodigo(generarSiguienteCodigo(codigosUsados));
+                codigosUsados.add(nivel.getCodigo());
+            } else {
+                idsConservados.add(nivel.getId());
             }
 
-            String codigo = categoria.getCodigo() == null ? "" : categoria.getCodigo().trim().toUpperCase(Locale.ROOT);
-            if (codigo.isBlank()) {
-                codigo = CatalogCodeGenerator.generate(nombre, codigosUsados);
-            }
-            if (!codigos.add(codigo)) {
-                throw new BadRequestException("No se pueden repetir codigos de categoria dentro del mismo modelo: " + codigo);
-            }
-            boolean codigoOcupado = nivelRepository.existsByCodigo(codigo)
-                    && (nivel.getId() == null || !codigo.equalsIgnoreCase(nivel.getCodigo()));
-            if (codigoOcupado) {
-                throw new BadRequestException("Ya existe una categoria con el codigo: " + codigo);
-            }
-            codigosUsados.add(codigo);
+            nivel.setCategoria(catalogo);
+            nivel.setNombre(catalogo.getNombre());
+            nivel.setDescripcion(catalogo.getDescripcion());
+            nivel.setActivo(catalogo.getActivo() == null || Boolean.TRUE.equals(catalogo.getActivo()));
 
-            nivel.setCodigo(codigo);
-            nivel.setNombre(nombre);
-            nivel.setDescripcion(categoria.getDescripcion());
-            nivel.setActivo(categoria.getActivo() == null || Boolean.TRUE.equals(categoria.getActivo()));
             NivelModel guardado = nivelRepository.save(nivel);
             idsConservados.add(guardado.getId());
         }
@@ -508,6 +503,55 @@ public class ModeloService {
                         "No se puede eliminar la categoria " + existente.getNombre() + " porque tiene productos asociados");
             }
             nivelRepository.delete(existente);
+        }
+    }
+
+    private CategoriaModel resolverCategoriaGlobal(ModeloCategoriaDTO categoria, NivelModel nivelExistente) {
+        if (categoria.getCategoriaId() != null) {
+            return categoriaRepository.findById(categoria.getCategoriaId())
+                    .orElseThrow(() -> new BadRequestException("No existe la categoria seleccionada"));
+        }
+
+        if (nivelExistente != null && nivelExistente.getCategoria() != null) {
+            return nivelExistente.getCategoria();
+        }
+
+        String nombre = categoria.getNombre() == null ? "" : categoria.getNombre().trim();
+        if (nombre.isBlank()) {
+            return null;
+        }
+
+        return categoriaRepository.findByNombreIgnoreCase(nombre)
+                .orElseGet(() -> {
+                    CategoriaModel nueva = new CategoriaModel();
+                    nueva.setNombre(nombre);
+                    nueva.setDescripcion(categoria.getDescripcion());
+                    nueva.setActivo(categoria.getActivo() == null || Boolean.TRUE.equals(categoria.getActivo()));
+                    return categoriaRepository.save(nueva);
+                });
+    }
+
+    private String generarSiguienteCodigo(Set<String> codigosUsados) {
+        int maximo = codigosUsados.stream()
+                .mapToInt(this::parseCodigoSecuencial)
+                .max()
+                .orElse(0);
+        String siguiente = String.format(Locale.ROOT, "%02d", maximo + 1);
+        while (codigosUsados.contains(siguiente)) {
+            maximo += 1;
+            siguiente = String.format(Locale.ROOT, "%02d", maximo + 1);
+        }
+        return siguiente;
+    }
+
+    private int parseCodigoSecuencial(String codigo) {
+        if (codigo == null || codigo.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(codigo.trim());
+        } catch (NumberFormatException ex) {
+            return 0;
         }
     }
 }

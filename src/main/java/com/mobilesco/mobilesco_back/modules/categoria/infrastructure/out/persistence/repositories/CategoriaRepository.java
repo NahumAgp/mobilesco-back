@@ -19,6 +19,8 @@ import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaMod
 public interface CategoriaRepository extends JpaRepository<CategoriaModel, Long> {
     
     Optional<CategoriaModel> findByNombre(String nombre);
+
+    Optional<CategoriaModel> findByNombreIgnoreCase(String nombre);
     
     List<CategoriaModel> findByActivoTrue();
     

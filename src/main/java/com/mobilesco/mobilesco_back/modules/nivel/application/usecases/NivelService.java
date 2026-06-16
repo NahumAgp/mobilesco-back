@@ -11,13 +11,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
+import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
+import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.out.persistence.repositories.CategoriaRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.in.api.dtos.NivelCreateDTO;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.in.api.dtos.NivelResponseDTO;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.in.api.dtos.NivelUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
-import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
@@ -28,38 +29,41 @@ public class NivelService {
     private final NivelRepository nivelRepository;
     private final ProductoRepository productoRepository;
     private final ModeloRepository modeloRepository;
+    private final CategoriaRepository categoriaRepository;
 
     public NivelService(NivelRepository nivelRepository,
                         ProductoRepository productoRepository,
-                        ModeloRepository modeloRepository) {
+                        ModeloRepository modeloRepository,
+                        CategoriaRepository categoriaRepository) {
         this.nivelRepository = nivelRepository;
         this.productoRepository = productoRepository;
         this.modeloRepository = modeloRepository;
+        this.categoriaRepository = categoriaRepository;
     }
 
     @Transactional
     public synchronized NivelResponseDTO crear(NivelCreateDTO dto) {
         ModeloModel modelo = obtenerModelo(dto.getModeloId());
 
-        if (nivelRepository.existsByNombre(dto.getNombre())) {
-            throw new BadRequestException("Ya existe una categoria con el nombre: " + dto.getNombre());
+        CategoriaModel categoria = obtenerOCrearCategoria(dto.getNombre(), dto.getDescripcion(), true);
+        if (nivelRepository.existsByModeloIdAndCategoriaId(modelo.getId(), categoria.getId())) {
+            throw new BadRequestException("El modelo ya tiene una categoria asignada con el nombre: " + categoria.getNombre());
         }
 
         NivelModel nivel = new NivelModel();
-        nivel.setCodigo(sugerirCodigo(dto.getNombre(), modelo.getId()));
-        nivel.setNombre(dto.getNombre().trim());
-        nivel.setDescripcion(dto.getDescripcion());
+        nivel.setCodigo(generarSiguienteCodigo(modelo.getId()));
+        nivel.setNombre(categoria.getNombre());
+        nivel.setDescripcion(categoria.getDescripcion());
         nivel.setActivo(true);
         nivel.setModelo(modelo);
+        nivel.setCategoria(categoria);
 
         return mapToResponseDTO(nivelRepository.save(nivel));
     }
 
     public String sugerirCodigo(String nombre, Long modeloId) {
         obtenerModelo(modeloId);
-        return CatalogCodeGenerator.generate(nombre, nivelRepository.findAll().stream()
-                .map(NivelModel::getCodigo)
-                .toList());
+        return generarSiguienteCodigo(modeloId);
     }
 
     @Transactional(readOnly = true)
@@ -76,8 +80,8 @@ public class NivelService {
     public List<NivelResponseDTO> obtenerPorModelo(Long modeloId, boolean soloActivos) {
         obtenerModelo(modeloId);
         return mapToResponseDTOList(soloActivos
-                ? nivelRepository.findByModeloIdAndActivoTrueOrderByNombreAsc(modeloId)
-                : nivelRepository.findByModeloIdOrderByNombreAsc(modeloId));
+                ? nivelRepository.findByModeloIdAndActivoTrueOrderByCodigoAsc(modeloId)
+                : nivelRepository.findByModeloIdOrderByCodigoAsc(modeloId));
     }
 
     @Transactional(readOnly = true)
@@ -133,14 +137,19 @@ public class NivelService {
             existente.setCodigo(dto.getCodigo().trim().toUpperCase(Locale.ROOT));
         }
 
-        if (dto.getNombre() != null && !dto.getNombre().equalsIgnoreCase(existente.getNombre())) {
-            if (nivelRepository.existsByModeloIdAndNombreIgnoreCaseAndIdNot(modeloId, dto.getNombre(), id)) {
-                throw new BadRequestException("El modelo ya tiene una categoria con el nombre: " + dto.getNombre());
+        if (dto.getNombre() != null) {
+            CategoriaModel categoria = obtenerOCrearCategoria(
+                    dto.getNombre(),
+                    dto.getDescripcion() != null ? dto.getDescripcion() : existente.getDescripcion(),
+                    existente.getActivo());
+            if (nivelRepository.existsByModeloIdAndCategoriaId(modeloId, categoria.getId())
+                    && (existente.getCategoria() == null || !categoria.getId().equals(existente.getCategoria().getId()))) {
+                throw new BadRequestException("El modelo ya tiene una categoria asignada con el nombre: " + categoria.getNombre());
             }
-            existente.setNombre(dto.getNombre().trim());
-        }
-
-        if (dto.getDescripcion() != null) {
+            existente.setCategoria(categoria);
+            existente.setNombre(categoria.getNombre());
+            existente.setDescripcion(categoria.getDescripcion());
+        } else if (dto.getDescripcion() != null) {
             existente.setDescripcion(dto.getDescripcion());
         }
 
@@ -221,11 +230,52 @@ public class NivelService {
             dto.setModeloId(nivel.getModelo().getId());
             dto.setModeloNombre(nivel.getModelo().getNombre());
         }
+        if (nivel.getCategoria() != null) {
+            dto.setCategoriaId(nivel.getCategoria().getId());
+            dto.setCategoriaNombre(nivel.getCategoria().getNombre());
+        }
         return dto;
     }
 
     private List<NivelResponseDTO> mapToResponseDTOList(List<NivelModel> niveles) {
         return niveles.stream().map(this::mapToResponseDTO).collect(Collectors.toList());
+    }
+
+    private CategoriaModel obtenerOCrearCategoria(String nombre, String descripcion, Boolean activo) {
+        String nombreLimpio = nombre == null ? "" : nombre.trim();
+        if (nombreLimpio.isBlank()) {
+            throw new BadRequestException("La categoria es obligatoria");
+        }
+
+        return categoriaRepository.findByNombreIgnoreCase(nombreLimpio)
+                .orElseGet(() -> {
+                    CategoriaModel categoria = new CategoriaModel();
+                    categoria.setNombre(nombreLimpio);
+                    categoria.setDescripcion(descripcion);
+                    categoria.setActivo(activo == null ? true : activo);
+                    return categoriaRepository.save(categoria);
+                });
+    }
+
+    private String generarSiguienteCodigo(Long modeloId) {
+        List<NivelModel> niveles = nivelRepository.findByModeloIdOrderByCodigoAsc(modeloId);
+        int siguiente = niveles.stream()
+                .map(NivelModel::getCodigo)
+                .mapToInt(this::parseCodigoSecuencial)
+                .max()
+                .orElse(0) + 1;
+        return String.format(Locale.ROOT, "%02d", siguiente);
+    }
+
+    private int parseCodigoSecuencial(String codigo) {
+        if (codigo == null || codigo.isBlank()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(codigo.trim());
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
     }
 
     private boolean coincideBusqueda(NivelResponseDTO nivel, String busqueda) {

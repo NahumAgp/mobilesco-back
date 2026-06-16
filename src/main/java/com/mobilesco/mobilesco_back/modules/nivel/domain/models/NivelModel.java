@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
+import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
 
 @Entity
 @Getter
@@ -24,7 +25,7 @@ import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 @Table(
     name = "niveles",
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_nivel_modelo_nombre", columnNames = {"producto_base_id", "nombre"})
+        @UniqueConstraint(name = "uk_nivel_modelo_categoria", columnNames = {"producto_base_id", "categoria_id"})
     }
 )
 public class NivelModel {
@@ -42,6 +43,10 @@ public class NivelModel {
     @ManyToOne
     @JoinColumn(name = "producto_base_id")
     private ModeloModel modelo;
+
+    @ManyToOne
+    @JoinColumn(name = "categoria_id")
+    private CategoriaModel categoria;
     
     @Column(length = 255)
     private String descripcion;
