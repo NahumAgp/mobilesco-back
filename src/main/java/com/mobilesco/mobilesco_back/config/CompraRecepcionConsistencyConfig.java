@@ -31,7 +31,7 @@ public class CompraRecepcionConsistencyConfig {
             int comprasCorregidas = 0;
             int detallesCorregidos = 0;
 
-            for (CompraModel compra : compraRepository.findByEstado("PENDIENTE")) {
+            for (CompraModel compra : compraRepository.findByEstadoAndActivoTrue("PENDIENTE")) {
                 if (kardexRepository.existsByCompraId(compra.getId())) {
                     continue;
                 }

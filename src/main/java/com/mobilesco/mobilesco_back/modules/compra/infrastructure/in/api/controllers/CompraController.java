@@ -34,6 +34,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CompraController {
 
+    private static final String ROLES_ELIMINAR_COMPRAS = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL')";
+
     private final CompraService compraService;
 
     @Operation(summary = "Crear nueva compra")
@@ -106,7 +108,7 @@ public class CompraController {
 
     @Operation(summary = "Eliminar compra (desactivar)")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')")
+    @PreAuthorize(ROLES_ELIMINAR_COMPRAS)
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         compraService.eliminar(id);
         return ResponseEntity.noContent().build();

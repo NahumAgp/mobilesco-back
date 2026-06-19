@@ -131,7 +131,7 @@ public class NivelService {
         Long modeloId = existente.getModelo().getId();
 
         if (dto.getCodigo() != null && !dto.getCodigo().equalsIgnoreCase(existente.getCodigo())) {
-            if (nivelRepository.existsByCodigo(dto.getCodigo())) {
+            if (nivelRepository.existsByModeloIdAndCodigoIgnoreCaseAndIdNot(modeloId, dto.getCodigo(), id)) {
                 throw new BadRequestException("Ya existe una categoria con el codigo: " + dto.getCodigo());
             }
             existente.setCodigo(dto.getCodigo().trim().toUpperCase(Locale.ROOT));

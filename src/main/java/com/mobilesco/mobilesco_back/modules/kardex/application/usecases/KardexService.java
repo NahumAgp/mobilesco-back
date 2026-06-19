@@ -204,7 +204,7 @@ public class KardexService {
      */
     @Transactional(readOnly = true)
     public List<MovimientoInsumoResponseDTO> obtenerMovimientosPorCompra(Long compraId) {
-        return kardexRepository.findByCompraId(compraId)
+        return kardexRepository.findByCompraIdOrderByFechaDescIdDesc(compraId)
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());

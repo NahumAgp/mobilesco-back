@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -285,7 +287,7 @@ public class CompraService {
      */
     @Transactional(readOnly = true)
     public List<CompraResponseDTO> listar() {
-        return compraRepository.findAll()
+        return compraRepository.findByActivoTrue()
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
@@ -296,7 +298,7 @@ public class CompraService {
      */
     @Transactional(readOnly = true)
     public List<CompraResponseDTO> listarPorProveedor(Long proveedorId) {
-        return compraRepository.findByProveedorId(proveedorId)
+        return compraRepository.findByProveedorIdAndActivoTrue(proveedorId)
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
@@ -307,7 +309,7 @@ public class CompraService {
      */
     @Transactional(readOnly = true)
     public List<CompraResponseDTO> listarPorEstado(String estado) {
-        return compraRepository.findByEstado(estado)
+        return compraRepository.findByEstadoAndActivoTrue(estado)
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
@@ -340,7 +342,8 @@ public class CompraService {
      */
     @Transactional
     public void eliminar(Long id) {
-        log.info("Eliminando (desactivando) compra ID: {}", id);
+        String usuario = obtenerUsuarioAutenticado();
+        log.info("Eliminando (desactivando) compra ID: {} por usuario: {}", id, usuario);
         
         CompraModel compra = compraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con id: " + id));
@@ -352,7 +355,22 @@ public class CompraService {
         compra.setActivo(false);
         compraRepository.save(compra);
         
-        log.info("Compra desactivada correctamente");
+        Long proveedorId = compra.getProveedor() != null ? compra.getProveedor().getId() : null;
+        log.info(
+                "Auditoria compra eliminada - id: {}, folio: {}, proveedorId: {}, estado: {}, usuario: {}",
+                compra.getId(),
+                compra.getFolio(),
+                proveedorId,
+                compra.getEstado(),
+                usuario);
+    }
+
+    private String obtenerUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return "desconocido";
+        }
+        return authentication.getName();
     }
 
     private void actualizarUltimoContactoProveedor(ProveedorModel proveedor) {

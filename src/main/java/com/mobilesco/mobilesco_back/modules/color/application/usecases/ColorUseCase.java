@@ -17,7 +17,7 @@ public interface ColorUseCase {
 
     ColorResponseDTO crear(ColorCreateDTO dto);
 
-    String sugerirCodigo(String hex);
+    String sugerirCodigo(String nombre);
 
     List<ColorResponseDTO> obtenerTodos();
 

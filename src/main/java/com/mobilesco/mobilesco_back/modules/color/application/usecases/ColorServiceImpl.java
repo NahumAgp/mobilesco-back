@@ -17,7 +17,6 @@ import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.Col
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
-import com.mobilesco.mobilesco_back.modules.shared.application.codes.CatalogCodeGenerator;
 import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
 import com.mobilesco.mobilesco_back.modules.color.application.ports.ColorPersistencePort;
 import com.mobilesco.mobilesco_back.modules.color.application.ports.ProductoColorValidationPort;
@@ -61,7 +60,7 @@ public class ColorServiceImpl implements ColorUseCase {
         }
 
         ColorModel color = new ColorModel();
-        color.setCodigo(sugerirCodigo(dto.getHex()));
+        color.setCodigo(sugerirCodigo(dto.getNombre()));
         color.setNombre(dto.getNombre());
         color.setDescripcion(dto.getDescripcion());
         color.setHex(dto.getHex());
@@ -71,8 +70,8 @@ public class ColorServiceImpl implements ColorUseCase {
         return mapToResponseDTO(guardado);
     }
 
-    public String sugerirCodigo(String hex) {
-        return CatalogCodeGenerator.generate(hex, colorRepository.findAll().stream()
+    public String sugerirCodigo(String nombre) {
+        return ColorCodeGenerator.generate(nombre, colorRepository.findAll().stream()
                 .map(ColorModel::getCodigo)
                 .toList());
     }

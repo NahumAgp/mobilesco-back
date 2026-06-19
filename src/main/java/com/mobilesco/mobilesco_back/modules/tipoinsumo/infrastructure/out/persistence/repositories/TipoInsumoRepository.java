@@ -4,11 +4,9 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import com.mobilesco.mobilesco_back.modules.tipoinsumo.domain.models.TipoInsumoModel;
 
-@Repository
 public interface TipoInsumoRepository extends JpaRepository<TipoInsumoModel, Long> {
 
     List<TipoInsumoModel> findAllByOrderByActivoDescNombreAsc();

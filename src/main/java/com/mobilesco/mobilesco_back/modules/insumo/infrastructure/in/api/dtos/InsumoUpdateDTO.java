@@ -23,7 +23,6 @@ public class InsumoUpdateDTO {
     @NotNull(message = "La unidad de medida es obligatoria")
     private Long unidadMedidaId;
 
-    @NotNull(message = "El tipo de insumo es obligatorio")
     private TipoInsumo tipoInsumo;
 
     @JsonAlias("costo_cotizar")

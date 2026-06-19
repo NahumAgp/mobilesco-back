@@ -11,7 +11,6 @@ import com.mobilesco.mobilesco_back.modules.unidadmedida.domain.models.UnidadMed
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
-import com.mobilesco.mobilesco_back.modules.kardex.infrastructure.out.persistence.repositories.KardexRepository;
 import com.mobilesco.mobilesco_back.modules.unidadmedida.infrastructure.out.persistence.repositories.UnidadMedidaRepository;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
@@ -33,7 +32,6 @@ public class DetalleCompraService {
     private final InsumoRepository insumoRepository;
     private final UnidadMedidaRepository unidadMedidaRepository;
     private final KardexService kardexService;
-    private final KardexRepository kardexRepository;
 
     /**
      * CREAR un detalle de compra (normalmente se crean desde CompraService)
@@ -220,7 +218,7 @@ public class DetalleCompraService {
                 detalle.getCostoPorUnidadConsumo(),
                 detalle.getCompra().getNumeroDocumento(),
                 detalle.getCompra().getId(),
-                "Entrada por recepción de compra: " + detalle.getCompra().getFolio()
+                construirObservacionRecepcion(detalle, entregadoPor, motivoNoRecepcion)
         );
 
         CompraModel compra = detalle.getCompra();
@@ -238,6 +236,23 @@ public class DetalleCompraService {
         compraRepository.save(compra);
         
         return mapToResponseDTO(updated);
+    }
+
+    private String construirObservacionRecepcion(DetalleCompraModel detalle, String entregadoPor, String motivoNoRecepcion) {
+        StringBuilder observacion = new StringBuilder("Entrada por recepcion de compra: ")
+                .append(detalle.getCompra().getFolio());
+
+        if (entregadoPor != null && !entregadoPor.isBlank()) {
+            observacion.append(" | Entregado por: ").append(entregadoPor.trim());
+        }
+
+        if (motivoNoRecepcion != null && !motivoNoRecepcion.isBlank()) {
+            observacion.append(" | Motivo: ").append(motivoNoRecepcion.trim());
+        }
+
+        return observacion.length() > 255
+                ? observacion.substring(0, 255)
+                : observacion.toString();
     }
 
     /**

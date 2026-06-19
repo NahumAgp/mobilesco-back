@@ -1,7 +1,6 @@
 package com.mobilesco.mobilesco_back.modules.nivel.application.usecases;
 
 import java.util.List;
-import java.util.Locale;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;

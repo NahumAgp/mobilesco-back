@@ -8,7 +8,6 @@
 package com.mobilesco.mobilesco_back.modules.modelo.application.usecases;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;

@@ -25,7 +25,8 @@ import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaMod
 @Table(
     name = "niveles",
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_nivel_modelo_categoria", columnNames = {"producto_base_id", "categoria_id"})
+        @UniqueConstraint(name = "uk_nivel_modelo_categoria", columnNames = {"producto_base_id", "categoria_id"}),
+        @UniqueConstraint(name = "uk_nivel_modelo_codigo", columnNames = {"producto_base_id", "codigo"})
     }
 )
 public class NivelModel {
@@ -34,7 +35,7 @@ public class NivelModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(unique = true, nullable = false, length = 3)
+    @Column(nullable = false, length = 3)
     private String codigo;
     
     @Column(nullable = false, length = 50)

@@ -62,8 +62,8 @@ public class ColorController {
     }
 
     @GetMapping("/codigo-sugerido")
-    public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String hex) {
-        return ResponseEntity.ok(Map.of("codigo", colorService.sugerirCodigo(hex)));
+    public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String nombre) {
+        return ResponseEntity.ok(Map.of("codigo", colorService.sugerirCodigo(nombre)));
     }
     
     @GetMapping("/{id}")

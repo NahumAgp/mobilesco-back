@@ -29,7 +29,7 @@ public interface KardexRepository extends JpaRepository<MovimientoInsumoModel, L
         LocalDateTime fechaInicio, LocalDateTime fechaFin);
     
     // Movimientos relacionados con una compra
-    List<MovimientoInsumoModel> findByCompraId(Long compraId);
+    List<MovimientoInsumoModel> findByCompraIdOrderByFechaDescIdDesc(Long compraId);
 
     boolean existsByCompraId(Long compraId);
 

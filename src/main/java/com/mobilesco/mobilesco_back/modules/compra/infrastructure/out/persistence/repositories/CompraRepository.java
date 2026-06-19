@@ -10,24 +10,26 @@ import org.springframework.data.repository.query.Param;
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.CompraModel;
 
 public interface CompraRepository extends JpaRepository<CompraModel, Long> {
+
+    List<CompraModel> findByActivoTrue();
     
-    List<CompraModel> findByProveedorId(Long proveedorId);
+    List<CompraModel> findByProveedorIdAndActivoTrue(Long proveedorId);
     
-    List<CompraModel> findByEstado(String estado);
+    List<CompraModel> findByEstadoAndActivoTrue(String estado);
     
-    @Query("SELECT c FROM CompraModel c WHERE c.fechaCompra BETWEEN :fechaInicio AND :fechaFin")
+    @Query("SELECT c FROM CompraModel c WHERE c.activo = true AND c.fechaCompra BETWEEN :fechaInicio AND :fechaFin")
     List<CompraModel> findByRangoFechas(
         @Param("fechaInicio") LocalDate fechaInicio,
         @Param("fechaFin") LocalDate fechaFin
     );
     
-    @Query("SELECT c FROM CompraModel c WHERE c.proveedor.id = :proveedorId AND c.estado = :estado")
+    @Query("SELECT c FROM CompraModel c WHERE c.activo = true AND c.proveedor.id = :proveedorId AND c.estado = :estado")
     List<CompraModel> findByProveedorAndEstado(
         @Param("proveedorId") Long proveedorId,
         @Param("estado") String estado
     );
     
-    @Query("SELECT c FROM CompraModel c WHERE c.folio LIKE %:folio%")
+    @Query("SELECT c FROM CompraModel c WHERE c.activo = true AND c.folio LIKE %:folio%")
     List<CompraModel> buscarPorFolio(@Param("folio") String folio);
     
     boolean existsByNumeroDocumento(String numeroDocumento);
