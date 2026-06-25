@@ -1,7 +1,9 @@
 package com.mobilesco.mobilesco_back.modules.empleado.application.usecases;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,7 +24,6 @@ import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.RefreshTokenModel;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.out.persistence.repositories.EmpleadoRepository;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.RefreshTokenRepository;
-import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.RolRepository;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
 
 import jakarta.transaction.Transactional;
@@ -39,20 +40,17 @@ public class EmpleadoService {
     private final EmpleadoRepository empleadoRepository;
     private final UsuarioRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final RolRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
     public EmpleadoService(
             EmpleadoRepository empleadoRepository,
             UsuarioRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
-            RolRepository roleRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.empleadoRepository = empleadoRepository;
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -112,28 +110,10 @@ public class EmpleadoService {
 
         EmpleadoModel empleadoGuardado = empleadoRepository.save(empleado);
 
-        boolean traeCuenta =
-                dto.getEmail() != null && !dto.getEmail().isBlank()
-                && dto.getPassword() != null && !dto.getPassword().isBlank();
+        boolean traeCuenta = dto.getEmail() != null && !dto.getEmail().isBlank();
 
         if (traeCuenta) {
-
-            userRepository.findByEmail(dto.getEmail())
-                .ifPresent(u -> { throw new BadRequestException("Ese correo ya está registrado."); });
-
-            RolModel rolEmpleado = roleRepository.findByName("EMPLOYEE")
-                    .orElseThrow(() -> new BadRequestException("No existe el rol EMPLOYEE"));
-
-            UsuarioModel user = new UsuarioModel();
-            user.setEmail(dto.getEmail());
-            user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-            user.setEnabled(false);
-            user.setLocked(true);
-            user.setEstadoCuenta(EstadoCuentaUsuario.PENDING);
-            user.setEmpleado(empleadoGuardado);
-            user.setRoles(Set.of(rolEmpleado));
-
-            userRepository.save(user);
+            crearCuentaEmpleadoSinRoles(empleadoGuardado, dto.getEmail());
         }
 
         return mapToResponseDTO(empleadoGuardado);
@@ -241,30 +221,12 @@ public class EmpleadoService {
 
         EmpleadoModel guardado = empleadoRepository.save(existente);
 
-        boolean traeCuenta =
-                dto.getEmail() != null && !dto.getEmail().isBlank()
-                && dto.getPassword() != null && !dto.getPassword().isBlank();
+        boolean traeCuenta = dto.getEmail() != null && !dto.getEmail().isBlank();
 
         UsuarioModel usuario = userRepository.findByEmpleado(guardado).orElse(null);
 
         if (usuario == null && traeCuenta) {
-
-            userRepository.findByEmail(dto.getEmail())
-                .ifPresent(u -> { throw new BadRequestException("Ese correo ya está registrado."); });
-
-            RolModel rolEmpleado = roleRepository.findByName("EMPLOYEE")
-                    .orElseThrow(() -> new BadRequestException("No existe el rol EMPLOYEE"));
-
-            UsuarioModel nuevoUsuario = new UsuarioModel();
-            nuevoUsuario.setEmail(dto.getEmail());
-            nuevoUsuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
-            nuevoUsuario.setEnabled(false);
-            nuevoUsuario.setLocked(true);
-            nuevoUsuario.setEstadoCuenta(EstadoCuentaUsuario.PENDING);
-            nuevoUsuario.setEmpleado(guardado);
-            nuevoUsuario.setRoles(Set.of(rolEmpleado));
-
-            userRepository.save(nuevoUsuario);
+            crearCuentaEmpleadoSinRoles(guardado, dto.getEmail());
         }
 
         if (usuario != null) {
@@ -288,6 +250,24 @@ public class EmpleadoService {
         }
 
         return mapToResponseDTO(guardado);
+    }
+
+    private UsuarioModel crearCuentaEmpleadoSinRoles(EmpleadoModel empleado, String email) {
+        String emailNormalizado = email.trim().toLowerCase(Locale.ROOT);
+
+        userRepository.findByEmail(emailNormalizado)
+                .ifPresent(u -> { throw new BadRequestException("Ese correo ya está registrado."); });
+
+        UsuarioModel user = new UsuarioModel();
+        user.setEmail(emailNormalizado);
+        user.setPasswordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+        user.setEnabled(false);
+        user.setLocked(true);
+        user.setEstadoCuenta(EstadoCuentaUsuario.PENDING);
+        user.setEmpleado(empleado);
+        user.setRoles(new HashSet<>());
+
+        return userRepository.save(user);
     }
 
     private UsuarioModel obtenerUsuarioActual() {

@@ -23,4 +23,5 @@ public class InvitacionUsuarioResponseDTO {
     private LocalDateTime usedAt;
     private String createdBy;
     private String usedBy;
+    private Long empleadoId;
 }

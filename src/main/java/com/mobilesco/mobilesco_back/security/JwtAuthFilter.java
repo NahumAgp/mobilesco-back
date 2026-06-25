@@ -1,6 +1,7 @@
 package com.mobilesco.mobilesco_back.security;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -49,10 +50,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String email = claims.get("email", String.class);
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
+            @SuppressWarnings("unchecked")
+            List<String> permissions = claims.get("permissions", List.class);
 
-            var authorities = roles.stream()
-                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                    .toList();
+            var authorities = new ArrayList<SimpleGrantedAuthority>();
+            if (roles != null) {
+                roles.stream()
+                        .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
+                        .forEach(authorities::add);
+            }
+            if (permissions != null) {
+                permissions.stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .forEach(authorities::add);
+            }
 
             // Creamos un "usuario autenticado" para esta request
             var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);

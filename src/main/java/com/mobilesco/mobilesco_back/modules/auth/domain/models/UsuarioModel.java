@@ -77,6 +77,14 @@ public class UsuarioModel {
     )
     private Set<RolModel> roles = new HashSet<>();
 
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_permissions",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    private Set<PermisoModel> permisos = new HashSet<>();
+
     @OneToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "empleado_id", unique = true)
     private EmpleadoModel empleado;
@@ -133,4 +141,7 @@ public class UsuarioModel {
 
     public Set<RolModel> getRoles() { return roles; }
     public void setRoles(Set<RolModel> roles) { this.roles = roles; }
+
+    public Set<PermisoModel> getPermisos() { return permisos; }
+    public void setPermisos(Set<PermisoModel> permisos) { this.permisos = permisos; }
 }

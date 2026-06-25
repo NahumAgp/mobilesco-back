@@ -1,6 +1,7 @@
 package com.mobilesco.mobilesco_back.config;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
 
@@ -11,9 +12,12 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
+import com.mobilesco.mobilesco_back.modules.auth.application.usecases.PermisoCatalog;
+import com.mobilesco.mobilesco_back.modules.auth.domain.models.PermisoModel;
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.RolModel;
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.out.persistence.repositories.EmpleadoRepository;
+import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.PermisoRepository;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.RolRepository;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
 import com.mobilesco.mobilesco_back.modules.tipoinsumo.domain.models.TipoInsumoModel;
@@ -27,6 +31,7 @@ public class DataSeeder {
     @SuppressWarnings("unused")
     CommandLineRunner initData(
             RolRepository roleRepo,
+            PermisoRepository permisoRepository,
             UsuarioRepository userRepo,
             EmpleadoRepository empleadoRepo,
             TipoInsumoRepository tipoInsumoRepository,
@@ -38,15 +43,30 @@ public class DataSeeder {
             // 1️⃣ Crear roles si no existen
             // ===============================
 
+            PermisoCatalog.DEFINITIONS.forEach(definition -> permisoRepository.findByCode(definition.code()).orElseGet(() -> {
+                PermisoModel permiso = new PermisoModel();
+                permiso.setCode(definition.code());
+                permiso.setNombre(definition.nombre());
+                permiso.setModulo(definition.modulo());
+                permiso.setVista(definition.vista());
+                permiso.setDescripcion(definition.descripcion());
+                permiso.setRuta(definition.ruta());
+                permiso.setTipo(definition.tipo());
+                permiso.setActivo(true);
+                return permisoRepository.save(permiso);
+            }));
+
             RolModel adminRole = roleRepo.findByName("ADMIN").orElseGet(() -> {
                 RolModel r = new RolModel();
                 r.setName("ADMIN");
+                r.setSistema(true);
                 return roleRepo.save(r);
             });
 
             RolModel employeeRole = roleRepo.findByName("EMPLOYEE").orElseGet(() -> {
                 RolModel r = new RolModel();
                 r.setName("EMPLOYEE");
+                r.setSistema(true);
                 return roleRepo.save(r);
             });
 
@@ -65,8 +85,17 @@ public class DataSeeder {
             ).forEach(nombreRol -> roleRepo.findByName(nombreRol).orElseGet(() -> {
                 RolModel r = new RolModel();
                 r.setName(nombreRol);
+                r.setSistema(true);
                 return roleRepo.save(r);
             }));
+
+            roleRepo.findAll().forEach(rol -> {
+                Set<String> codigosDefault = PermisoCatalog.DEFAULT_ROLE_PERMISSIONS.getOrDefault(rol.getName(), Set.of());
+                if (!codigosDefault.isEmpty() && rol.getPermisos().isEmpty()) {
+                    rol.setPermisos(new HashSet<>(permisoRepository.findByCodeIn(codigosDefault)));
+                    roleRepo.save(rol);
+                }
+            });
 
             // ===============================
             // 2️⃣ Crear empleado

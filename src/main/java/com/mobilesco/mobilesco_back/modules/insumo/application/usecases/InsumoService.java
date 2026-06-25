@@ -492,8 +492,22 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
      */
     @Transactional(readOnly = true)
     public List<InsumoResponseDTO> buscar(String nombre) {
-        return insumoRepository.buscarPorNombre(nombre)
-                .stream()
+        return buscar(nombre, true);
+    }
+
+    @Transactional(readOnly = true)
+    public List<InsumoResponseDTO> buscar(String busqueda, Boolean soloActivos) {
+        String termino = busqueda != null ? busqueda.trim() : null;
+        boolean tieneTermino = termino != null && !termino.isBlank();
+        Boolean filtroActivo = soloActivos == null ? Boolean.TRUE : soloActivos;
+
+        List<InsumoModel> insumos = tieneTermino
+                ? insumoRepository.buscarPorTermino(termino, filtroActivo)
+                : Boolean.TRUE.equals(filtroActivo)
+                        ? insumoRepository.findByActivoTrue()
+                        : insumoRepository.findAll();
+
+        return insumos.stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }

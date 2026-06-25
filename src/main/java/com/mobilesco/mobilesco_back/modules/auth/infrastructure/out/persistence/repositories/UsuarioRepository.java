@@ -15,8 +15,12 @@ public interface UsuarioRepository extends JpaRepository<UsuarioModel, Long> {
     boolean existsByEmail(String email);
 
     // ✅ este es el que usa /me, y debe regresar UsuarioModel, NO Object
-    @EntityGraph(attributePaths = {"roles", "empleado"})
+    @EntityGraph(attributePaths = {"roles", "roles.permisos", "permisos", "empleado"})
     Optional<UsuarioModel> findOneByEmail(String email);
+
+    @Override
+    @EntityGraph(attributePaths = {"roles", "roles.permisos", "permisos", "empleado"})
+    java.util.List<UsuarioModel> findAll();
 
     Optional<UsuarioModel> findByEmpleado(EmpleadoModel empleado);
 }

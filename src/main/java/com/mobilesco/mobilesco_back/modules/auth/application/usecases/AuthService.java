@@ -22,15 +22,18 @@ public class AuthService {
     private final UsuarioRepository userRepository;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final AccesoService accesoService;
 
     public AuthService(AuthenticationManager authenticationManager,
                        UsuarioRepository userRepository,
                        JwtService jwtService,
-                       RefreshTokenService refreshTokenService) {
+                       RefreshTokenService refreshTokenService,
+                       AccesoService accesoService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
+        this.accesoService = accesoService;
     }
 
     public TokenPair login(String email, String password) {
@@ -46,7 +49,7 @@ public class AuthService {
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
 
-        String access = jwtService.generateAccessToken(user);
+        String access = jwtService.generateAccessToken(user, accesoService.obtenerPermisosEfectivos(user));
         String refresh = refreshTokenService.issue(user);
 
         return new TokenPair(access, refresh);
@@ -58,7 +61,7 @@ public class AuthService {
         UsuarioModel user = userRepository.findById(result.userId())
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        String newAccess = jwtService.generateAccessToken(user);
+        String newAccess = jwtService.generateAccessToken(user, accesoService.obtenerPermisosEfectivos(user));
 
         return new TokenPair(newAccess, result.newRefreshToken());
     }
@@ -79,6 +82,7 @@ public class AuthService {
                         .map(r -> r.getName())
                         .toList()
         );
+        dto.setPermisos(accesoService.obtenerPermisosEfectivos(usuario).stream().sorted().toList());
 
         if (usuario.getEmpleado() != null) {
             var emp = usuario.getEmpleado();

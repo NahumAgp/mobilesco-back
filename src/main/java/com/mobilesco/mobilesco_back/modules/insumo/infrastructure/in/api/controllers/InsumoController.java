@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.util.StringUtils;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
@@ -140,8 +141,12 @@ public class InsumoController {
 
     @Operation(summary = "Buscar insumos por nombre")
     @GetMapping("/buscar")
-    public ResponseEntity<List<InsumoResponseDTO>> buscar(@RequestParam String nombre) {
-        return ResponseEntity.ok(insumoService.buscar(nombre));
+    public ResponseEntity<List<InsumoResponseDTO>> buscar(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false, defaultValue = "true") Boolean soloActivos) {
+        String termino = StringUtils.hasText(busqueda) ? busqueda : nombre;
+        return ResponseEntity.ok(insumoService.buscar(termino, soloActivos));
     }
 
     @Operation(summary = "Listar insumos por unidad de medida")

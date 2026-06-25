@@ -30,4 +30,6 @@ public class InvitacionUsuarioCreateDTO {
 
     @NotBlank(message = "El rol es obligatorio")
     private String rol;
+
+    private Long empleadoId;
 }

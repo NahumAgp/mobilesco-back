@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
+import java.util.Set;
 
 import javax.crypto.SecretKey;
 
@@ -37,6 +38,10 @@ public class JwtService {
     }
 
     public String generateAccessToken(UsuarioModel user) {
+        return generateAccessToken(user, Set.of());
+    }
+
+    public String generateAccessToken(UsuarioModel user, Set<String> permisos) {
         Instant now = Instant.now();
         Instant exp = now.plus(accessTtlMinutes, ChronoUnit.MINUTES);
 
@@ -49,6 +54,7 @@ public class JwtService {
                 .setExpiration(java.util.Date.from(exp))
                 .claim("email", user.getEmail())
                 .claim("roles", roles)
+                .claim("permissions", permisos.stream().sorted().toList())
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }

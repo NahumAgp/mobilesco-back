@@ -31,8 +31,9 @@ public interface CompraRepository extends JpaRepository<CompraModel, Long> {
     
     @Query("SELECT c FROM CompraModel c WHERE c.activo = true AND c.folio LIKE %:folio%")
     List<CompraModel> buscarPorFolio(@Param("folio") String folio);
-    
+
     boolean existsByNumeroDocumento(String numeroDocumento);
+    boolean existsByProveedorId(Long proveedorId);
 
     
 }

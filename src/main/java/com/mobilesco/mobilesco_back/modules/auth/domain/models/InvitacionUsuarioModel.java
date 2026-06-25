@@ -58,6 +58,9 @@ public class InvitacionUsuarioModel {
     @Column(name = "used_by", length = 190)
     private String usedBy;
 
+    @Column(name = "empleado_id")
+    private Long empleadoId;
+
     @OneToOne(mappedBy = "invitacion", fetch = FetchType.LAZY)
     private UsuarioModel usuario;
 
@@ -167,6 +170,14 @@ public class InvitacionUsuarioModel {
 
     public void setUsedBy(String usedBy) {
         this.usedBy = usedBy;
+    }
+
+    public Long getEmpleadoId() {
+        return empleadoId;
+    }
+
+    public void setEmpleadoId(Long empleadoId) {
+        this.empleadoId = empleadoId;
     }
 
     public UsuarioModel getUsuario() {
