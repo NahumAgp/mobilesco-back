@@ -164,6 +164,7 @@ public class ProveedorController {  // ✅ Nombre correcto con 'e'
     // 🔹 ELIMINAR
     // =====================================================
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar proveedor")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {

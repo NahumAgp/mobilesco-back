@@ -55,3 +55,9 @@ Endpoints principales:
 ## Nota de compatibilidad
 
 - Al editar un tipo de insumo se conserva el codigo actual para no romper relaciones existentes.
+
+## Despliegue en VPS
+
+- En `prod` el backend usa `spring.jpa.hibernate.ddl-auto=validate`.
+- Antes de levantar el servicio en VPS, asegúrate de aplicar los cambios de esquema SQL necesarios.
+- Esto evita que Hibernate modifique la base automaticamente y hace el despliegue mas predecible.

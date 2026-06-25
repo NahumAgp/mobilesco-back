@@ -4,16 +4,20 @@ import java.util.List;
 import java.time.LocalDate;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorCreateDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorResponseDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.proveedor.domain.models.ProveedorModel;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.out.persistence.repositories.ProveedorRepository;
@@ -23,15 +27,20 @@ import com.mobilesco.mobilesco_back.modules.tipoinsumo.infrastructure.out.persis
 @Service
 public class ProveedorService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProveedorService.class);
+
     private final ProveedorRepository proveedorRepository;
     private final TipoInsumoRepository tipoInsumoRepository;
+    private final CompraRepository compraRepository;
 
     public ProveedorService(
             ProveedorRepository proveedorRepository,
-            TipoInsumoRepository tipoInsumoRepository
+            TipoInsumoRepository tipoInsumoRepository,
+            CompraRepository compraRepository
     ) {
         this.proveedorRepository = proveedorRepository;
         this.tipoInsumoRepository = tipoInsumoRepository;
+        this.compraRepository = compraRepository;
     }
 
     // =====================================================
@@ -361,12 +370,22 @@ public class ProveedorService {
     // =====================================================
 
     public void eliminar(Long id) {
+        log.info("Solicitando eliminacion de proveedor ID: {}", id);
 
         if (!proveedorRepository.existsById(id)) {
+            log.warn("Intento de eliminar proveedor inexistente ID: {}", id);
             throw new NotFoundException("Proveedor no encontrado");
         }
 
+        if (compraRepository.existsByProveedorId(id)) {
+            log.warn("Se bloqueo la eliminacion del proveedor ID: {} porque tiene compras asociadas", id);
+            throw new ValidationException(
+                    "No se puede eliminar el proveedor porque tiene compras asociadas. " +
+                    "Desactivalo para conservar su tipo de insumo y el historial.");
+        }
+
         proveedorRepository.deleteById(id);
+        log.info("Proveedor eliminado correctamente ID: {}", id);
     }
 
     private TipoInsumoModel resolverTipoInsumo(String codigo) {
