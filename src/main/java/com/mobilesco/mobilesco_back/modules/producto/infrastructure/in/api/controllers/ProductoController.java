@@ -32,6 +32,7 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoEstructuraCostosDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoFichaDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoUpdateDTO;
 
@@ -106,6 +107,12 @@ public class ProductoController {
     @GetMapping("/por-modelo/{modeloId}")
     public ResponseEntity<List<ProductoResponseDTO>> obtenerPorModelo(@PathVariable Long modeloId) {
         return ResponseEntity.ok(productoService.obtenerCompletosPorModelo(modeloId));
+    }
+
+    @Operation(summary = "Obtener ficha del mueble (modelo) con todas sus variantes")
+    @GetMapping("/modelo/{modeloId}/ficha")
+    public ResponseEntity<ProductoFichaDTO> obtenerFichaPorModelo(@PathVariable Long modeloId) {
+        return ResponseEntity.ok(productoService.obtenerFichaPorModelo(modeloId));
     }
 
     @Operation(summary = "Buscar productos con filtros")

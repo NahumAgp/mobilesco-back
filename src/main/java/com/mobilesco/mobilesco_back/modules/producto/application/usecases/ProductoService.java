@@ -7,8 +7,11 @@
  */
 package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,6 +40,7 @@ import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistenc
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoEstructuraCostosDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoFichaDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoUpdateDTO;
@@ -534,6 +538,93 @@ public class ProductoService {
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public ProductoFichaDTO obtenerFichaPorModelo(Long modeloId) {
+        ModeloModel modelo = modeloRepository.findById(modeloId)
+                .orElseThrow(() -> new ResourceNotFoundException("Modelo no encontrado: " + modeloId));
+
+        List<ProductoModel> productos = productoRepository.findByModeloId(modeloId);
+
+        List<ImagenResponseDTO> imagenes = new ArrayList<>();
+        Map<Long, ProductoFichaDTO.ColorOpcionDTO> colores = new LinkedHashMap<>();
+        Map<Long, ProductoFichaDTO.TamanoOpcionDTO> tamanos = new LinkedHashMap<>();
+        Map<Long, ProductoFichaDTO.MaterialOpcionDTO> materiales = new LinkedHashMap<>();
+        List<ProductoFichaDTO.VarianteFichaDTO> variantes = new ArrayList<>();
+
+        for (ProductoModel producto : productos) {
+            imagenes.addAll(imagenService.obtenerPorProducto(producto.getId()));
+
+            ColorModel color = producto.getColor();
+            if (color != null && color.getId() != null) {
+                colores.computeIfAbsent(color.getId(), id -> ProductoFichaDTO.ColorOpcionDTO.builder()
+                        .id(color.getId())
+                        .codigo(color.getCodigo())
+                        .nombre(color.getNombre())
+                        .hex(color.getHex())
+                        .build());
+            }
+
+            NivelModel nivel = producto.getNivel();
+            if (nivel != null && nivel.getId() != null) {
+                tamanos.computeIfAbsent(nivel.getId(), id -> ProductoFichaDTO.TamanoOpcionDTO.builder()
+                        .id(nivel.getId())
+                        .codigo(nivel.getCodigo())
+                        .nombre(nivel.getNombre())
+                        .categoriaNombre(nivel.getCategoria() != null ? nivel.getCategoria().getNombre() : null)
+                        .build());
+            }
+
+            MaterialModel material = producto.getMaterial();
+            if (material != null && material.getId() != null) {
+                materiales.computeIfAbsent(material.getId(), id -> ProductoFichaDTO.MaterialOpcionDTO.builder()
+                        .id(material.getId())
+                        .codigo(material.getCodigo())
+                        .nombre(material.getNombre())
+                        .build());
+            }
+
+            ImagenResponseDTO imagenPrincipal = imagenService.obtenerPrincipalPorProducto(producto.getId());
+
+            variantes.add(ProductoFichaDTO.VarianteFichaDTO.builder()
+                    .productoId(producto.getId())
+                    .sku(producto.getSku())
+                    .nivelId(nivel != null ? nivel.getId() : null)
+                    .nivelNombre(nivel != null ? nivel.getNombre() : null)
+                    .colorId(color != null ? color.getId() : null)
+                    .colorNombre(color != null ? color.getNombre() : null)
+                    .colorHex(color != null ? color.getHex() : null)
+                    .materialId(material != null ? material.getId() : null)
+                    .materialNombre(material != null ? material.getNombre() : null)
+                    .ancho(producto.getAncho())
+                    .alto(producto.getAlto())
+                    .fondo(producto.getFondo())
+                    .dimensiones(producto.getDimensiones())
+                    .pesoKg(producto.getPesoKg())
+                    .pesoVolumetrico(producto.getPesoVolumetrico())
+                    .caracteristicas(producto.getCaracteristicas())
+                    .imagenPrincipalUrl(imagenPrincipal != null ? imagenPrincipal.getUrl() : null)
+                    .activo(producto.getActivo())
+                    .build());
+        }
+
+        FamiliaModel familia = modelo.getFamilia();
+
+        return ProductoFichaDTO.builder()
+                .modeloId(modelo.getId())
+                .codigo(modelo.getCodigo())
+                .nombre(modelo.getNombre())
+                .descripcion(modelo.getDescripcion())
+                .urlImagenModelo(modelo.getUrlImagen())
+                .familiaId(familia != null ? familia.getId() : null)
+                .familiaNombre(familia != null ? familia.getNombre() : null)
+                .imagenes(imagenes)
+                .colores(new ArrayList<>(colores.values()))
+                .tamanos(new ArrayList<>(tamanos.values()))
+                .materiales(new ArrayList<>(materiales.values()))
+                .variantes(variantes)
+                .build();
     }
 
     @Transactional(readOnly = true)

@@ -230,18 +230,55 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
     @Transactional(readOnly = true)
     public PageResponseDTO<InsumoResponseDTO> listarPaginado(int page, Integer size, String sortBy, String direction) {
+        return listarPaginado(page, size, sortBy, direction, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<InsumoResponseDTO> listarPaginado(int page, Integer size, String sortBy, String direction,
+            String busqueda, Boolean activo, Boolean stockBajo) {
         int pageNumber = Math.max(page, 0);
         int pageSize = size == null || size <= 0 ? PAGE_SIZE : Math.min(size, 100);
-        PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortInsumos(sortBy, direction));
 
-        Page<InsumoResponseDTO> result = insumoRepository.findAll(pageable).map(this::mapToResponseDTO);
+        boolean hayFiltros = (busqueda != null && !busqueda.isBlank())
+                || activo != null
+                || Boolean.TRUE.equals(stockBajo);
+
+        // Sin filtros: comportamiento original (paginacion en BD), totales y orden intactos.
+        if (!hayFiltros) {
+            PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortInsumos(sortBy, direction));
+            Page<InsumoResponseDTO> result = insumoRepository.findAll(pageable).map(this::mapToResponseDTO);
+
+            return new PageResponseDTO<>(
+                    result.getContent(),
+                    result.getNumber(),
+                    result.getSize(),
+                    result.getTotalElements(),
+                    result.getTotalPages()
+            );
+        }
+
+        // Con filtros: traer TODOS los insumos ordenados, filtrar y paginar en memoria.
+        List<InsumoResponseDTO> filtrados = insumoRepository.findAll(construirSortInsumos(sortBy, direction))
+                .stream()
+                .map(this::mapToResponseDTO)
+                .filter(insumo -> activo == null || Objects.equals(insumo.getActivo(), activo))
+                .filter(insumo -> !Boolean.TRUE.equals(stockBajo) || esStockBajo(insumo))
+                .filter(insumo -> coincideBusqueda(insumo, busqueda))
+                .collect(Collectors.toList());
+
+        long totalElements = filtrados.size();
+        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+
+        int fromIndex = Math.min(pageNumber * pageSize, filtrados.size());
+        int toIndex = Math.min(fromIndex + pageSize, filtrados.size());
+        List<InsumoResponseDTO> contenido = filtrados.subList(fromIndex, toIndex);
 
         return new PageResponseDTO<>(
-                result.getContent(),
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages()
+                contenido,
+                pageNumber,
+                pageSize,
+                totalElements,
+                totalPages
         );
     }
 

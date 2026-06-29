@@ -74,9 +74,13 @@ public class InsumoController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false, defaultValue = "asc") String direction) {
+            @RequestParam(required = false, defaultValue = "asc") String direction,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) Boolean stockBajo) {
         if (page != null) {
-            return ResponseEntity.ok(insumoService.listarPaginado(page, size, sortBy, direction));
+            return ResponseEntity.ok(
+                    insumoService.listarPaginado(page, size, sortBy, direction, busqueda, activo, stockBajo));
         }
 
         return ResponseEntity.ok(insumoService.listar());
