@@ -42,7 +42,7 @@ class InsumoControllerTest {
 
     @Test
     void endpointsDeCostosDeInsumosRequierenPermisoDeCostos() throws Exception {
-        assertPreAuthorize("listarCostos", PERMISO_GESTION_COSTOS_INSUMOS, Integer.class, Integer.class, String.class, String.class);
+        assertPreAuthorize("listarCostos", PERMISO_GESTION_COSTOS_INSUMOS, Integer.class, Integer.class, String.class, String.class, String.class);
         assertPreAuthorize("actualizarCostoCotizacion", "hasAnyRole('ADMIN','SUPER_ADMIN','SUBDIRECCION_ADMINISTRATIVA')", Long.class, InsumoCostoCotizacionUpdateDTO.class);
     }
 
