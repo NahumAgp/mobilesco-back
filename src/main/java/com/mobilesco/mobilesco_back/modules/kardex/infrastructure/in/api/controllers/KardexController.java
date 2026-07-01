@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,10 +20,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KardexController {
 
+    private static final String PERMISO_VER_KARDEX = "hasAuthority('VIEW_KARDEX')";
+
     private final KardexService kardexService;
 
     @Operation(summary = "Obtener historial de un insumo")
     @GetMapping("/insumo/{insumoId}")
+    @PreAuthorize(PERMISO_VER_KARDEX)
     public ResponseEntity<List<MovimientoInsumoResponseDTO>> getHistorialPorInsumo(
             @PathVariable Long insumoId) {
         return ResponseEntity.ok(kardexService.obtenerHistorialPorInsumo(insumoId));
@@ -30,6 +34,7 @@ public class KardexController {
 
     @Operation(summary = "Obtener movimientos por período")
     @GetMapping("/periodo")
+    @PreAuthorize(PERMISO_VER_KARDEX)
     public ResponseEntity<List<MovimientoInsumoResponseDTO>> getMovimientosPorPeriodo(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
@@ -38,6 +43,7 @@ public class KardexController {
 
     @Operation(summary = "Obtener movimientos de una compra")
     @GetMapping("/compra/{compraId}")
+    @PreAuthorize(PERMISO_VER_KARDEX)
     public ResponseEntity<List<MovimientoInsumoResponseDTO>> getMovimientosPorCompra(
             @PathVariable Long compraId) {
         return ResponseEntity.ok(kardexService.obtenerMovimientosPorCompra(compraId));
@@ -45,12 +51,14 @@ public class KardexController {
 
     @Operation(summary = "Calcular costo promedio de un insumo")
     @GetMapping("/insumo/{insumoId}/costo-promedio")
+    @PreAuthorize(PERMISO_VER_KARDEX)
     public ResponseEntity<Double> getCostoPromedio(@PathVariable Long insumoId) {
         return ResponseEntity.ok(kardexService.calcularCostoPromedio(insumoId));
     }
 
     @Operation(summary = "Calcular consumo en un período")
     @GetMapping("/insumo/{insumoId}/consumo")
+    @PreAuthorize(PERMISO_VER_KARDEX)
     public ResponseEntity<Double> getConsumoEnPeriodo(
             @PathVariable Long insumoId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,

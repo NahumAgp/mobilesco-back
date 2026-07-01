@@ -43,6 +43,8 @@ public class InsumoController {
 
     private static final String ROLES_GESTION_INSUMOS =
             "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','JEFE_ALMACEN','ALMACEN','SUBDIRECCION_ADMINISTRATIVA')";
+    private static final String PERMISO_VER_INVENTARIO = "hasAuthority('VIEW_INVENTORY')";
+    private static final String PERMISO_GESTION_COSTOS_INSUMOS = "hasAuthority('ACTION_INSUMOS_COSTS')";
 
     private final InsumoService insumoService;
 
@@ -64,12 +66,14 @@ public class InsumoController {
 
     @Operation(summary = "Obtener insumo por ID")
     @GetMapping("/{id}")
+    @PreAuthorize(PERMISO_VER_INVENTARIO)
     public ResponseEntity<InsumoResponseDTO> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(insumoService.obtenerPorId(id));
     }
 
     @Operation(summary = "Listar todos los insumos")
     @GetMapping
+    @PreAuthorize(PERMISO_VER_INVENTARIO)
     public ResponseEntity<?> listar(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -88,6 +92,7 @@ public class InsumoController {
 
     @Operation(summary = "Listar costos de insumos")
     @GetMapping("/costos")
+    @PreAuthorize(PERMISO_GESTION_COSTOS_INSUMOS)
     public ResponseEntity<PageResponseDTO<InsumoCostoResponseDTO>> listarCostos(
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false) Integer size,
@@ -116,6 +121,7 @@ public class InsumoController {
 
     @Operation(summary = "Exportar insumos a Excel")
     @GetMapping("/reporte/excel")
+    @PreAuthorize(PERMISO_VER_INVENTARIO)
     public ResponseEntity<byte[]> exportarExcel(
             @RequestParam(required = false) Boolean activo,
             @RequestParam(required = false) Boolean stockBajo,
@@ -133,18 +139,21 @@ public class InsumoController {
 
     @Operation(summary = "Listar solo insumos activos")
     @GetMapping("/activos")
+    @PreAuthorize(PERMISO_VER_INVENTARIO)
     public ResponseEntity<List<InsumoResponseDTO>> listarActivos() {
         return ResponseEntity.ok(insumoService.listarActivos());
     }
 
     @Operation(summary = "Obtener todos los tipos de insumo")
     @GetMapping("/tipos-insumo")
+    @PreAuthorize(PERMISO_VER_INVENTARIO)
     public ResponseEntity<TipoInsumo[]> getTiposInsumo() {
         return ResponseEntity.ok(insumoService.getTodosLosTipos());
     }
 
     @Operation(summary = "Buscar insumos por nombre")
     @GetMapping("/buscar")
+    @PreAuthorize(PERMISO_VER_INVENTARIO)
     public ResponseEntity<List<InsumoResponseDTO>> buscar(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String busqueda,
@@ -155,12 +164,14 @@ public class InsumoController {
 
     @Operation(summary = "Listar insumos por unidad de medida")
     @GetMapping("/unidad-medida/{unidadMedidaId}")
+    @PreAuthorize(PERMISO_VER_INVENTARIO)
     public ResponseEntity<List<InsumoResponseDTO>> listarPorUnidadMedida(@PathVariable Long unidadMedidaId) {
         return ResponseEntity.ok(insumoService.listarPorUnidadMedida(unidadMedidaId));
     }
 
     @Operation(summary = "Listar insumos con stock bajo (stock actual <= stock mínimo)")
     @GetMapping("/stock-bajo")
+    @PreAuthorize(PERMISO_VER_INVENTARIO)
     public ResponseEntity<List<InsumoResponseDTO>> listarStockBajo() {
         return ResponseEntity.ok(insumoService.listarStockBajo());
     }

@@ -34,18 +34,22 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CompraController {
 
+    private static final String PERMISO_VER_COMPRAS = "hasAuthority('VIEW_PURCHASES')";
+    private static final String ROLES_GESTION_COMPRAS = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')";
     private static final String ROLES_ELIMINAR_COMPRAS = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL')";
 
     private final CompraService compraService;
 
     @Operation(summary = "Crear nueva compra")
     @PostMapping
+    @PreAuthorize(ROLES_GESTION_COMPRAS)
     public ResponseEntity<CompraResponseDTO> crear(@Valid @RequestBody CompraCreateDTO dto) {
         return new ResponseEntity<>(compraService.crear(dto), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Actualizar compra")
     @PutMapping("/{id}")
+    @PreAuthorize(ROLES_GESTION_COMPRAS)
     public ResponseEntity<CompraResponseDTO> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody CompraUpdateDTO dto) {
@@ -54,14 +58,14 @@ public class CompraController {
 
     @Operation(summary = "Recibir compra (actualiza stock)")
     @PostMapping("/{id}/recibir")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')")
+    @PreAuthorize(ROLES_GESTION_COMPRAS)
     public ResponseEntity<CompraResponseDTO> recibirCompra(@PathVariable Long id) {
         return ResponseEntity.ok(compraService.recibirCompra(id));
     }
 
     @Operation(summary = "Cancelar compra")
     @PostMapping("/{id}/cancelar")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')")
+    @PreAuthorize(ROLES_GESTION_COMPRAS)
     public ResponseEntity<CompraResponseDTO> cancelarCompra(
             @PathVariable Long id,
             @RequestParam String motivo) {
@@ -70,30 +74,35 @@ public class CompraController {
 
     @Operation(summary = "Obtener compra por ID")
     @GetMapping("/{id}")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<CompraResponseDTO> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(compraService.obtenerPorId(id));
     }
 
     @Operation(summary = "Listar todas las compras")
     @GetMapping
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<List<CompraResponseDTO>> listar() {
         return ResponseEntity.ok(compraService.listar());
     }
 
     @Operation(summary = "Listar compras por proveedor")
     @GetMapping("/proveedor/{proveedorId}")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<List<CompraResponseDTO>> listarPorProveedor(@PathVariable Long proveedorId) {
         return ResponseEntity.ok(compraService.listarPorProveedor(proveedorId));
     }
 
     @Operation(summary = "Listar compras por estado")
     @GetMapping("/estado/{estado}")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<List<CompraResponseDTO>> listarPorEstado(@PathVariable String estado) {
         return ResponseEntity.ok(compraService.listarPorEstado(estado));
     }
 
     @Operation(summary = "Listar compras por rango de fechas")
     @GetMapping("/rango-fechas")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<List<CompraResponseDTO>> listarPorRangoFechas(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
@@ -102,6 +111,7 @@ public class CompraController {
 
     @Operation(summary = "Buscar compras por folio")
     @GetMapping("/buscar")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<List<CompraResponseDTO>> buscarPorFolio(@RequestParam String folio) {
         return ResponseEntity.ok(compraService.buscarPorFolio(folio));
     }

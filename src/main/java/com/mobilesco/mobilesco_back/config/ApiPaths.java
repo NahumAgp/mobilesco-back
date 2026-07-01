@@ -40,7 +40,7 @@ public final class ApiPaths {
 
     public static final String OPERACION = API_VERSION + "/operaciones";
     public static final String CIF = API_VERSION + "/cif";
-    public static final String PRODUCTO_OPERACION = API_VERSION + "producto-operaciones";
+    public static final String PRODUCTO_OPERACION = API_VERSION + "/producto-operaciones";
 
     public static final String COMPRAS = API_VERSION + "/compras";
     public static final String DETALLES_COMPRA = API_VERSION + "/detalles-compra";

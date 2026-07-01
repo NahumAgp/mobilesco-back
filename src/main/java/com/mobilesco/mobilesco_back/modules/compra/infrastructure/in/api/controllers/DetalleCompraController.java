@@ -22,10 +22,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DetalleCompraController {
 
+    private static final String PERMISO_VER_COMPRAS = "hasAuthority('VIEW_PURCHASES')";
+    private static final String ROLES_GESTION_COMPRAS = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')";
+
     private final DetalleCompraService detalleCompraService;
 
     @Operation(summary = "Crear detalle para una compra")
     @PostMapping("/compra/{compraId}")
+    @PreAuthorize(ROLES_GESTION_COMPRAS)
     public ResponseEntity<DetalleCompraResponseDTO> crear(
             @PathVariable Long compraId,
             @Valid @RequestBody DetalleCompraCreateDTO dto) {
@@ -34,6 +38,7 @@ public class DetalleCompraController {
 
     @Operation(summary = "Actualizar detalle")
     @PutMapping("/{id}")
+    @PreAuthorize(ROLES_GESTION_COMPRAS)
     public ResponseEntity<DetalleCompraResponseDTO> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody DetalleCompraUpdateDTO dto) {
@@ -42,25 +47,28 @@ public class DetalleCompraController {
 
     @Operation(summary = "Obtener detalle por ID")
     @GetMapping("/{id}")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<DetalleCompraResponseDTO> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(detalleCompraService.obtenerPorId(id));
     }
 
     @Operation(summary = "Listar detalles por compra")
     @GetMapping("/compra/{compraId}")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<List<DetalleCompraResponseDTO>> listarPorCompra(@PathVariable Long compraId) {
         return ResponseEntity.ok(detalleCompraService.listarPorCompra(compraId));
     }
 
     @Operation(summary = "Listar compras de un insumo")
     @GetMapping("/insumo/{insumoId}")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
     public ResponseEntity<List<DetalleCompraResponseDTO>> listarPorInsumo(@PathVariable Long insumoId) {
         return ResponseEntity.ok(detalleCompraService.listarPorInsumo(insumoId));
     }
 
     @Operation(summary = "Registrar recepción parcial")
     @PatchMapping("/{id}/recibir")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')")
+    @PreAuthorize(ROLES_GESTION_COMPRAS)
     public ResponseEntity<DetalleCompraResponseDTO> recibirParcial(
             @PathVariable Long id,
             @RequestParam Double cantidadRecibida,
@@ -71,6 +79,7 @@ public class DetalleCompraController {
 
     @Operation(summary = "Eliminar detalle")
     @DeleteMapping("/{id}")
+    @PreAuthorize(ROLES_GESTION_COMPRAS)
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         detalleCompraService.eliminar(id);
         return ResponseEntity.noContent().build();
