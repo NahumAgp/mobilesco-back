@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
+import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 
 class GlobalExceptionHandlerTest {
 
@@ -22,6 +25,20 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.FORBIDDEN.value(), response.getBody().get("status"));
         assertEquals("Forbidden", response.getBody().get("error"));
         assertEquals("No tienes permisos para realizar esta accion.", response.getBody().get("message"));
+        assertEquals(false, response.getBody().get("success"));
+    }
+
+    @Test
+    void optimisticLockDevuelveConflictConMensajeClaro() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleOptimisticLock(new ObjectOptimisticLockingFailureException(InsumoModel.class, 1L));
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals(HttpStatus.CONFLICT.value(), response.getBody().get("status"));
+        assertEquals("Conflict", response.getBody().get("error"));
+        assertEquals("El registro fue modificado por otro usuario. Vuelve a intentarlo.", response.getBody().get("message"));
         assertEquals(false, response.getBody().get("success"));
     }
 }

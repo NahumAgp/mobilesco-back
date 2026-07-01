@@ -134,23 +134,15 @@ public class SalidaInsumoService {
 
         DetalleSalidaInsumoModel savedDetalle = detalleSalidaInsumoRepository.save(detalle);
 
-        MovimientoInsumoModel movimiento = MovimientoInsumoModel.builder()
-                .insumo(insumo)
-                .fecha(salida.getFechaSalida())
-                .tipo("SALIDA")
-                .concepto("PRODUCCION")
-                .cantidad(cantidad)
-                .costoUnitario(costoUnitario)
-                .costoTotal(costoTotal)
-                .documento(salida.getOrdenProduccion())
-                .referencia("Salida #" + salida.getId())
-                .observaciones(dto.getObservaciones())
-                .stockAnterior(stockAnterior)
-                .stockNuevo(stockNuevo)
-                .usuario(obtenerUsuarioActual())
-                .build();
-
-        kardexRepository.save(movimiento);
+        kardexService.registrarSalidaProduccion(
+                insumo.getId(),
+                cantidad,
+                costoUnitario,
+                salida.getId(),
+                dto.getObservaciones(),
+                stockAnterior,
+                stockNuevo
+        );
 
         log.info("Salida registrada - Insumo: {}, Anterior: {}, Nuevo: {}, Cantidad: {}",
                 insumo.getNombre(), stockAnterior, stockNuevo, cantidad);

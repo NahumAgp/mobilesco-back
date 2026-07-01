@@ -218,7 +218,9 @@ public class DetalleCompraService {
                 detalle.getCostoPorUnidadConsumo(),
                 detalle.getCompra().getNumeroDocumento(),
                 detalle.getCompra().getId(),
-                construirObservacionRecepcion(detalle, entregadoPor, motivoNoRecepcion)
+                construirObservacionRecepcion(detalle, entregadoPor, motivoNoRecepcion),
+                stockAnterior,
+                stockNuevo
         );
 
         CompraModel compra = detalle.getCompra();

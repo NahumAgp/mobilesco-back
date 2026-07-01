@@ -40,15 +40,17 @@ public class KardexService {
             Double costoUnitario,
             String documento,
             Long compraId,
-            String observaciones) {
+            String observaciones,
+            Double stockAnterior,
+            Double stockNuevo) {
         
         log.info("Registrando entrada por compra - Insumo ID: {}, Cantidad: {}", insumoId, cantidad);
         
         InsumoModel insumo = insumoRepository.findById(insumoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado"));
-        
-        Double stockAnterior = insumo.getStockActual();
-        Double stockNuevo = stockAnterior + cantidad;
+
+        Double stockAnteriorSeguro = stockAnterior != null ? stockAnterior : 0.0;
+        Double stockNuevoSeguro = stockNuevo != null ? stockNuevo : stockAnteriorSeguro + cantidad;
         Double costoTotal = cantidad * costoUnitario;
         
         MovimientoInsumoModel movimiento = MovimientoInsumoModel.builder()
@@ -62,8 +64,8 @@ public class KardexService {
                 .documento(documento)
                 .referencia("Compra #" + compraId)
                 .observaciones(observaciones)
-                .stockAnterior(stockAnterior)
-                .stockNuevo(stockNuevo)
+                .stockAnterior(stockAnteriorSeguro)
+                .stockNuevo(stockNuevoSeguro)
                 .compraId(compraId)
                 .build();
         
@@ -82,22 +84,24 @@ public class KardexService {
             Double cantidad,
             Double costoUnitario,
             Long produccionId,
-            String observaciones) {
+            String observaciones,
+            Double stockAnterior,
+            Double stockNuevo) {
         
         log.info("Registrando salida por producción - Insumo ID: {}, Cantidad: {}", insumoId, cantidad);
         
         InsumoModel insumo = insumoRepository.findById(insumoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado"));
-        
-        if (insumo.getStockActual() < cantidad) {
+
+        Double stockAnteriorSeguro = stockAnterior != null ? stockAnterior : 0.0;
+        Double stockNuevoSeguro = stockNuevo != null ? stockNuevo : stockAnteriorSeguro - cantidad;
+        if (stockNuevoSeguro < 0) {
             throw new ValidationException(String.format(
                 "Stock insuficiente. Actual: %.2f %s, requerido: %.2f %s",
-                insumo.getStockActual(), insumo.getUnidadMedida().getSimbolo(),
+                stockAnteriorSeguro, insumo.getUnidadMedida().getSimbolo(),
                 cantidad, insumo.getUnidadMedida().getSimbolo()));
         }
-        
-        Double stockAnterior = insumo.getStockActual();
-        Double stockNuevo = stockAnterior - cantidad;
+
         Double costoTotal = cantidad * costoUnitario;
         
         MovimientoInsumoModel movimiento = MovimientoInsumoModel.builder()
@@ -110,8 +114,8 @@ public class KardexService {
                 .costoTotal(costoTotal)
                 .referencia("Producción #" + produccionId)
                 .observaciones(observaciones)
-                .stockAnterior(stockAnterior)
-                .stockNuevo(stockNuevo)
+                .stockAnterior(stockAnteriorSeguro)
+                .stockNuevo(stockNuevoSeguro)
                 .produccionId(produccionId)
                 .build();
         
@@ -127,6 +131,7 @@ public class KardexService {
     @Transactional
     public MovimientoInsumoResponseDTO registrarAjuste(
             Long insumoId,
+            Double stockAnterior,
             Double nuevoStock,
             String motivo,
             String usuario) {
@@ -135,17 +140,18 @@ public class KardexService {
         
         InsumoModel insumo = insumoRepository.findById(insumoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado"));
-        
-        Double stockAnterior = insumo.getStockActual();
-        Double diferencia = nuevoStock - stockAnterior;
-        
+
+        Double stockAnteriorSeguro = stockAnterior != null ? stockAnterior : 0.0;
+        Double nuevoStockSeguro = nuevoStock != null ? nuevoStock : stockAnteriorSeguro;
+        Double diferencia = nuevoStockSeguro - stockAnteriorSeguro;
+
         if (diferencia == 0) {
             throw new ValidationException("El nuevo stock es igual al actual. No hay cambio.");
         }
-        
+
         String tipo = diferencia > 0 ? "ENTRADA" : "SALIDA";
         Double cantidad = Math.abs(diferencia);
-        
+
         // Obtener último costo para el ajuste
         MovimientoInsumoModel ultimoMovimiento = kardexRepository.findUltimoMovimientoByInsumo(insumoId);
         Double costoUnitario = ultimoMovimiento != null ? ultimoMovimiento.getCostoUnitario() : 0.0;
@@ -160,8 +166,8 @@ public class KardexService {
                 .costoUnitario(costoUnitario)
                 .costoTotal(costoTotal)
                 .observaciones("Ajuste manual: " + motivo)
-                .stockAnterior(stockAnterior)
-                .stockNuevo(nuevoStock)
+                .stockAnterior(stockAnteriorSeguro)
+                .stockNuevo(nuevoStockSeguro)
                 .usuario(usuario)
                 .build();
         

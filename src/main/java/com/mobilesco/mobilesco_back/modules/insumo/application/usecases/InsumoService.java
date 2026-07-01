@@ -124,10 +124,6 @@ public class InsumoService {
             insumo.setStockMinimo(dto.getStockMinimo());
         }
         
-        if (dto.getStockActual() != null) {
-            insumo.setStockActual(dto.getStockActual());
-        }
-        
         if (dto.getActivo() != null) {
             insumo.setActivo(dto.getActivo());
         }
@@ -202,6 +198,17 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     saved.setCodigoBarras(generarCodigoBarras(saved.getId()));
     saved.setCodigo(saved.getCodigoBarras());
     saved = insumoRepository.save(saved);
+
+    if (saved.getStockActual() != null && saved.getStockActual() > 0) {
+        kardexService.registrarAjuste(
+                saved.getId(),
+                0.0,
+                saved.getStockActual(),
+                "Stock inicial",
+                obtenerUsuarioActual()
+        );
+    }
+
     log.info("Insumo creado con ID: {}", saved.getId());
     
     return mapToResponseDTO(saved);
@@ -580,28 +587,45 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         
         InsumoModel insumo = insumoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
-        
+
+        if (cantidad == null || cantidad <= 0) {
+            throw new ValidationException("La cantidad debe ser mayor a 0");
+        }
+
+        double stockAnterior = insumo.getStockActual() != null ? insumo.getStockActual() : 0.0;
+        double stockNuevo;
+
         if ("ENTRADA".equalsIgnoreCase(tipo)) {
-            insumo.setStockActual(insumo.getStockActual() + cantidad);
-            log.info("Entrada de stock. Nuevo stock: {}", insumo.getStockActual());
+            stockNuevo = stockAnterior + cantidad;
+            log.info("Entrada de stock. Nuevo stock: {}", stockNuevo);
             
         } else if ("SALIDA".equalsIgnoreCase(tipo)) {
-            if (insumo.getStockActual() < cantidad) {
+            if (stockAnterior < cantidad) {
                 throw new ValidationException(String.format(
                     "Stock insuficiente. Actual: %.2f %s, solicitado: %.2f %s",
-                    insumo.getStockActual(), 
+                    stockAnterior, 
                     insumo.getUnidadMedida().getSimbolo(),
                     cantidad, 
                     insumo.getUnidadMedida().getSimbolo()));
             }
-            insumo.setStockActual(insumo.getStockActual() - cantidad);
-            log.info("Salida de stock. Nuevo stock: {}", insumo.getStockActual());
+            stockNuevo = stockAnterior - cantidad;
+            log.info("Salida de stock. Nuevo stock: {}", stockNuevo);
             
         } else {
             throw new ValidationException("Tipo debe ser 'ENTRADA' o 'SALIDA'");
         }
         
+        insumo.setStockActual(stockNuevo);
         InsumoModel updated = insumoRepository.save(insumo);
+
+        kardexService.registrarAjuste(
+                updated.getId(),
+                stockAnterior,
+                stockNuevo,
+                motivo,
+                obtenerUsuarioActual()
+        );
+
         return mapToResponseDTO(updated);
     }
 
@@ -680,6 +704,15 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
         Double costo = ultimasCompras.get(0).getCostoPorUnidadConsumo();
         return costo != null ? costo : 0.0;
+    }
+
+    private String obtenerUsuarioActual() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return "system";
+        }
+
+        return authentication.getName();
     }
 
     private boolean puedeEliminarDefinitivo(Long insumoId) {

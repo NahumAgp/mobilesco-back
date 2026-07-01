@@ -215,13 +215,14 @@ public class CompraService {
             }
 
             double cantidadEnUnidadConsumo = cantidadPendiente * detalle.getFactorConversion();
-            double stockAnterior = insumo.getStockActual();
+            double stockAnterior = insumo.getStockActual() != null ? insumo.getStockActual() : 0.0;
             
-            insumo.setStockActual(stockAnterior + cantidadEnUnidadConsumo);
+            double stockNuevo = stockAnterior + cantidadEnUnidadConsumo;
+            insumo.setStockActual(stockNuevo);
             insumoRepository.save(insumo);
             
             log.info("Stock actualizado - Insumo: {}, Anterior: {}, Nuevo: {}, +{} {}", 
-                    insumo.getNombre(), stockAnterior, insumo.getStockActual(), 
+                    insumo.getNombre(), stockAnterior, stockNuevo, 
                     cantidadEnUnidadConsumo, insumo.getUnidadMedida().getSimbolo());
             
             // Aquí deberías registrar en Kardex
@@ -231,7 +232,9 @@ public class CompraService {
                     detalle.getCostoPorUnidadConsumo(),
                     compra.getNumeroDocumento(),
                     compra.getId(),
-                    "Entrada por compra: " + compra.getFolio()
+                    "Entrada por compra: " + compra.getFolio(),
+                    stockAnterior,
+                    stockNuevo
             );
 
             detalle.setCantidadRecibida(detalle.getCantidad());
