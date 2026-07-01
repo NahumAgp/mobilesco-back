@@ -97,8 +97,9 @@ public class InsumoController {
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String busqueda,
             @RequestParam(required = false, defaultValue = "asc") String direction) {
-        return ResponseEntity.ok(insumoService.listarCostosPaginado(page, size, sortBy, direction));
+        return ResponseEntity.ok(insumoService.listarCostosPaginado(page, size, sortBy, direction, busqueda));
     }
 
     @Operation(summary = "Actualizar costo de cotizacion")

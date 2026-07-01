@@ -290,12 +290,20 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     }
 
     @Transactional(readOnly = true)
-    public PageResponseDTO<InsumoCostoResponseDTO> listarCostosPaginado(int page, Integer size, String sortBy, String direction) {
+    public PageResponseDTO<InsumoCostoResponseDTO> listarCostosPaginado(
+            int page,
+            Integer size,
+            String sortBy,
+            String direction,
+            String busqueda) {
         int pageNumber = Math.max(page, 0);
         int pageSize = size == null || size <= 0 ? PAGE_SIZE : Math.min(size, 100);
         PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortInsumos(sortBy, direction));
 
-        Page<InsumoCostoResponseDTO> result = insumoRepository.findAll(pageable).map(this::mapToCostoResponseDTO);
+        Page<InsumoModel> insumos = busqueda == null || busqueda.isBlank()
+                ? insumoRepository.findAll(pageable)
+                : insumoRepository.buscarCostos(busqueda.trim(), pageable);
+        Page<InsumoCostoResponseDTO> result = insumos.map(this::mapToCostoResponseDTO);
 
         return new PageResponseDTO<>(
                 result.getContent(),

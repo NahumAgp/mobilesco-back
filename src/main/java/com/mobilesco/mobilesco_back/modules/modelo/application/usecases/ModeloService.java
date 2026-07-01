@@ -83,6 +83,7 @@ public class ModeloService {
         dto.setCodigo(modelo.getCodigo());
         dto.setNombre(modelo.getNombre());
         dto.setDescripcion(modelo.getDescripcion());
+        dto.setDescripcionCorta(modelo.getDescripcionCorta());
         dto.setUrlImagen(modelo.getUrlImagen());
         dto.setActivo(modelo.getActivo());
         dto.setCreatedAt(modelo.getCreatedAt());
@@ -172,6 +173,7 @@ public class ModeloService {
         modelo.setCodigo(sugerirCodigo(dto.getNombre()));
         modelo.setNombre(dto.getNombre());
         modelo.setDescripcion(dto.getDescripcion());
+        modelo.setDescripcionCorta(dto.getDescripcionCorta());
         modelo.setUrlImagen(dto.getUrlImagen());
         modelo.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
         modelo.setFamilia(familia);
@@ -315,6 +317,10 @@ public class ModeloService {
 
         if (dto.getDescripcion() != null) {
             existente.setDescripcion(dto.getDescripcion());
+        }
+
+        if (dto.getDescripcionCorta() != null) {
+            existente.setDescripcionCorta(dto.getDescripcionCorta());
         }
 
         if (dto.getUrlImagen() != null) {

@@ -21,6 +21,7 @@ public class ModeloResponseDTO {
     private String codigo;
     private String nombre;
     private String descripcion;
+    private String descripcionCorta;
     private String urlImagen;
     private Boolean activo;
     private LocalDateTime createdAt;
@@ -61,6 +62,14 @@ public class ModeloResponseDTO {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public String getDescripcionCorta() {
+        return descripcionCorta;
+    }
+
+    public void setDescripcionCorta(String descripcionCorta) {
+        this.descripcionCorta = descripcionCorta;
     }
 
     public String getUrlImagen() {

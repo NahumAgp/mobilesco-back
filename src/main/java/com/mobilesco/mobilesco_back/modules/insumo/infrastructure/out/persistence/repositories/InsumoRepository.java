@@ -3,6 +3,8 @@ package com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persisten
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -47,6 +49,18 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
     List<InsumoModel> buscarPorTermino(
             @Param("busqueda") String busqueda,
             @Param("activo") Boolean activo);
+
+    @Query("""
+            SELECT i FROM InsumoModel i
+            LEFT JOIN i.unidadMedida um
+            WHERE :busqueda IS NULL OR :busqueda = ''
+               OR LOWER(COALESCE(i.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+               OR LOWER(COALESCE(i.codigo, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+               OR LOWER(COALESCE(i.codigoBarras, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+               OR LOWER(COALESCE(um.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+               OR LOWER(COALESCE(um.simbolo, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+            """)
+    Page<InsumoModel> buscarCostos(@Param("busqueda") String busqueda, Pageable pageable);
     
     // Filtrar por unidad de medida
     List<InsumoModel> findByUnidadMedidaId(Long unidadMedidaId);

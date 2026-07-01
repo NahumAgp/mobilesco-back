@@ -90,6 +90,7 @@ public class ProductoCreacionCompletaService {
             payload.setCodigo(dto.getModelo().getCodigo());
             payload.setNombre(dto.getModelo().getNombre());
             payload.setDescripcion(dto.getModelo().getDescripcion());
+            payload.setDescripcionCorta(dto.getModelo().getDescripcionCorta());
             payload.setActivo(dto.getModelo().getActivo());
             payload.setFamiliaId(resolverId(
                     dto.getModelo().getFamiliaId(),

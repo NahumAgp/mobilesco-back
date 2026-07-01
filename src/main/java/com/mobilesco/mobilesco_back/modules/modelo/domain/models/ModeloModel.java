@@ -36,6 +36,9 @@ public class ModeloModel {
     @Column(length = 500)
     private String descripcion;
 
+    @Column(name = "descripcion_corta", length = 250)
+    private String descripcionCorta;
+
     @Column(name = "url_imagen", length = 500)
     private String urlImagen;
 

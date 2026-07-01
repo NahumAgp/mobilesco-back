@@ -66,6 +66,7 @@ public class ProductoCreacionCompletaDTO {
         private String nombre;
         private String codigo;
         private String descripcion;
+        private String descripcionCorta;
         private Boolean activo = true;
         private Long familiaId;
         private String familiaRef;

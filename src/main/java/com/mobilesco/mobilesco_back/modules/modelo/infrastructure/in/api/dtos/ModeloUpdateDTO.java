@@ -27,6 +27,9 @@ public class ModeloUpdateDTO {
     @Size(max = 500, message = "La descripcion no puede exceder 500 caracteres")
     private String descripcion;
 
+    @Size(max = 250, message = "La descripcion corta no puede exceder 250 caracteres")
+    private String descripcionCorta;
+
     @Size(max = 500, message = "La url de imagen no puede exceder 500 caracteres")
     @JsonProperty("url_imagen")
     private String urlImagen;
@@ -65,6 +68,14 @@ public class ModeloUpdateDTO {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public String getDescripcionCorta() {
+        return descripcionCorta;
+    }
+
+    public void setDescripcionCorta(String descripcionCorta) {
+        this.descripcionCorta = descripcionCorta;
     }
 
     public String getUrlImagen() {
