@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -29,7 +30,10 @@ public CorsConfigurationSource corsConfigurationSource() {
         "http://localhost:80",
         "https://mobilesco.cloud",
         "https://www.mobilesco.cloud",
-        "https://erp.mobilesco.cloud"
+        "https://erp.mobilesco.cloud",
+        // Web publica que consume el catalogo publico (/api/v1/public/**)
+        "https://mobilesco.com.mx",
+        "https://www.mobilesco.com.mx"
     ));
 
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
@@ -53,6 +57,8 @@ public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthF
             .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/register").permitAll()
             .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
             .requestMatchers("/uploads/**").permitAll()
+            // Catalogo publico: solo lectura, sin autenticacion
+            .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
             //.requestMatchers("/api/v1/proveedores/**").permitAll()
             .anyRequest().authenticated()
         )

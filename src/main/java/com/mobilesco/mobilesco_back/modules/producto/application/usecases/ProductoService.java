@@ -38,6 +38,7 @@ import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persiste
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ModeloCatalogoPublicoDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoEstructuraCostosDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoFichaDTO;
@@ -547,6 +548,47 @@ public class ProductoService {
 
         List<ProductoModel> productos = productoRepository.findByModeloId(modeloId);
 
+        return construirFicha(modelo, productos);
+    }
+
+    /**
+     * Version PUBLICA de la ficha: solo modelo activo y variantes activas.
+     * Si el modelo no existe o esta inactivo, se responde 404 (no se expone al catalogo publico).
+     */
+    @Transactional(readOnly = true)
+    public ProductoFichaDTO obtenerFichaPublicaPorModelo(Long modeloId) {
+        ModeloModel modelo = modeloRepository.findById(modeloId)
+                .filter(m -> Boolean.TRUE.equals(m.getActivo()))
+                .orElseThrow(() -> new ResourceNotFoundException("Modelo no encontrado: " + modeloId));
+
+        List<ProductoModel> productos = productoRepository.findByModeloId(modeloId).stream()
+                .filter(producto -> Boolean.TRUE.equals(producto.getActivo()))
+                .collect(Collectors.toList());
+
+        return construirFicha(modelo, productos);
+    }
+
+    /**
+     * Listado ligero para alimentar el grid del catalogo PUBLICO (solo modelos activos).
+     */
+    @Transactional(readOnly = true)
+    public List<ModeloCatalogoPublicoDTO> listarCatalogoPublico() {
+        return modeloRepository.findByActivo(true).stream()
+                .map(modelo -> ModeloCatalogoPublicoDTO.builder()
+                        .modeloId(modelo.getId())
+                        .codigo(modelo.getCodigo())
+                        .nombre(modelo.getNombre())
+                        .descripcion(modelo.getDescripcion())
+                        .urlImagenModelo(modelo.getUrlImagen())
+                        .familiaId(modelo.getFamilia() != null ? modelo.getFamilia().getId() : null)
+                        .familiaNombre(modelo.getFamilia() != null ? modelo.getFamilia().getNombre() : null)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    // Construye la ficha agregada (imagenes, colores, tamanos, materiales y variantes) a partir
+    // de un modelo y su lista de productos. Compartido por la version interna y la publica.
+    private ProductoFichaDTO construirFicha(ModeloModel modelo, List<ProductoModel> productos) {
         List<ImagenResponseDTO> imagenes = new ArrayList<>();
         Map<Long, ProductoFichaDTO.ColorOpcionDTO> colores = new LinkedHashMap<>();
         Map<Long, ProductoFichaDTO.TamanoOpcionDTO> tamanos = new LinkedHashMap<>();

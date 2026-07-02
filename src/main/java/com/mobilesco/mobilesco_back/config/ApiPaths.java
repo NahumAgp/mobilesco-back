@@ -51,4 +51,10 @@ public final class ApiPaths {
     public static final String CLIENTES = API_VERSION + "/clientes";
     public static final String COTIZACIONES = API_VERSION + "/cotizaciones";
 
+    // =============================
+    // 🔹 CATALOGO PUBLICO (sin autenticacion, solo lectura)
+    // =============================
+    public static final String PUBLIC = API_VERSION + "/public";
+    public static final String PUBLIC_CATALOGO = PUBLIC + "/catalogo";
+
 }
