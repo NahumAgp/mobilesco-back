@@ -39,6 +39,10 @@ public class CompraModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    public Long getId() {
+        return id;
+    }
+
     @Column(name = "folio", length = 50)
     private String folio;
 

@@ -23,6 +23,7 @@ public class CompraRecepcionConsistencyConfig {
 
     @Bean
     @Order(2)
+    @SuppressWarnings("unused")
     CommandLineRunner normalizePendingPurchaseReceipts(
             CompraRepository compraRepository,
             DetalleCompraRepository detalleCompraRepository,
@@ -40,7 +41,7 @@ public class CompraRecepcionConsistencyConfig {
                 List<DetalleCompraModel> corregidos = new ArrayList<>();
 
                 for (DetalleCompraModel detalle : detalles) {
-                    double recibida = detalle.getCantidadRecibida() != null ? detalle.getCantidadRecibida() : 0.0;
+                    double recibida = valorSeguro(detalle.getCantidadRecibida());
                     if (recibida <= 0) {
                         continue;
                     }
@@ -64,5 +65,9 @@ public class CompraRecepcionConsistencyConfig {
                         detallesCorregidos);
             }
         };
+    }
+
+    private static double valorSeguro(Double valor) {
+        return valor != null ? valor.doubleValue() : 0.0;
     }
 }
