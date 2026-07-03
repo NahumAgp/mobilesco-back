@@ -22,7 +22,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraModel;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;

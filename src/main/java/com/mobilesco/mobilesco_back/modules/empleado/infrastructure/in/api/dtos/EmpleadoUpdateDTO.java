@@ -27,6 +27,8 @@ public class EmpleadoUpdateDTO {
 
     private Boolean activo;
 
+    private Long areaId;
+
     private String email;
     private String password;
 

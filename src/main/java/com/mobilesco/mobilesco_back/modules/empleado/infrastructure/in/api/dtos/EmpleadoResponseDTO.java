@@ -22,6 +22,9 @@ public class EmpleadoResponseDTO {
 
     private String fotoUrl;
 
+    private Long areaId;
+    private String areaNombre;
+
     private Boolean activo;
 
     private String correo;

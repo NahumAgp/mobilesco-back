@@ -38,6 +38,8 @@ public class EmpleadoCreateDTO {
      */
     private String fechaNacimiento;
 
+    private Long areaId;
+
       // CUENTA (opcional)
     private String email;
     private String password;

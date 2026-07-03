@@ -10,6 +10,8 @@ public interface InvitacionUsuarioRepository extends JpaRepository<InvitacionUsu
 
     Optional<InvitacionUsuarioModel> findByToken(String token);
 
+    Optional<InvitacionUsuarioModel> findByEmail(String email);
+
     boolean existsByToken(String token);
 
     boolean existsByEmail(String email);

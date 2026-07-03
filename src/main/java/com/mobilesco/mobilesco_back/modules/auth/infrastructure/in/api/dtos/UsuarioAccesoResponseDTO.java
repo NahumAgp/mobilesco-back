@@ -17,6 +17,7 @@ public class UsuarioAccesoResponseDTO {
     private String estadoCuenta;
     private boolean enabled;
     private boolean locked;
+    private LocalDateTime accessGrantedAt;
     private LocalDateTime lastLoginAt;
     private List<String> roles;
     private List<String> permisosDirectos;

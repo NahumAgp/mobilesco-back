@@ -19,11 +19,9 @@ import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.Valida
 import com.mobilesco.mobilesco_back.modules.salidainsumo.domain.models.DetalleSalidaInsumoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
-import com.mobilesco.mobilesco_back.modules.kardex.domain.models.MovimientoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.domain.models.SalidaInsumoModel;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.out.persistence.repositories.DetalleSalidaInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
-import com.mobilesco.mobilesco_back.modules.kardex.infrastructure.out.persistence.repositories.KardexRepository;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.out.persistence.repositories.SalidaInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
 
@@ -38,7 +36,6 @@ public class SalidaInsumoService {
     private final SalidaInsumoRepository salidaInsumoRepository;
     private final DetalleSalidaInsumoRepository detalleSalidaInsumoRepository;
     private final InsumoRepository insumoRepository;
-    private final KardexRepository kardexRepository;
     private final KardexService kardexService;
     private final UsuarioRepository usuarioRepository;
 

@@ -8,6 +8,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -15,6 +18,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import com.mobilesco.mobilesco_back.modules.areatrabajo.domain.models.AreaTrabajoModel;
 
 @Entity
 @Table(name = "empleados")
@@ -55,6 +60,10 @@ public class EmpleadoModel {
 
     @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "area_trabajo_id")
+    private AreaTrabajoModel areaTrabajo;
 
     // =========================
     // FOTO (UNA SOLA)

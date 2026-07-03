@@ -20,6 +20,7 @@ import com.mobilesco.mobilesco_back.modules.auth.domain.models.EstadoCuentaUsuar
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.RefreshTokenRepository;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
+import com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.out.persistence.repositories.AreaTrabajoRepository;
 import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.EmpleadoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.out.persistence.repositories.EmpleadoRepository;
@@ -27,6 +28,7 @@ import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.out.persiste
 class EmpleadoServiceTest {
 
     private EmpleadoRepository empleadoRepository;
+    private AreaTrabajoRepository areaTrabajoRepository;
     private UsuarioRepository usuarioRepository;
     private RefreshTokenRepository refreshTokenRepository;
     private PasswordEncoder passwordEncoder;
@@ -35,12 +37,14 @@ class EmpleadoServiceTest {
     @BeforeEach
     void setUp() {
         empleadoRepository = mock(EmpleadoRepository.class);
+        areaTrabajoRepository = mock(AreaTrabajoRepository.class);
         usuarioRepository = mock(UsuarioRepository.class);
         refreshTokenRepository = mock(RefreshTokenRepository.class);
         passwordEncoder = mock(PasswordEncoder.class);
 
         service = new EmpleadoService(
                 empleadoRepository,
+                areaTrabajoRepository,
                 usuarioRepository,
                 refreshTokenRepository,
                 passwordEncoder

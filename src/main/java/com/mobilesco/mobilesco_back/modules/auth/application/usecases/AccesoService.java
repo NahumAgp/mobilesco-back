@@ -74,16 +74,11 @@ public class AccesoService {
     public InvitacionUsuarioResponseDTO crearInvitacion(InvitacionUsuarioCreateDTO dto, String creador) {
         String email = normalizarEmail(dto.getEmail());
 
-        if (usuarioRepository.existsByEmail(email)) {
-            throw new BadRequestException("Ese correo ya tiene una cuenta registrada.");
-        }
-
-        if (invitacionUsuarioRepository.existsByEmail(email)) {
-            throw new BadRequestException("Ya existe una invitacion para ese correo.");
-        }
-
         RolModel rol = rolRepository.findByName(dto.getRol())
                 .orElseThrow(() -> new BadRequestException("El rol indicado no existe: " + dto.getRol()));
+
+        UsuarioModel usuarioExistente = usuarioRepository.findByEmail(email).orElse(null);
+        EmpleadoModel empleadoInvitado = null;
 
         InvitacionUsuarioModel invitacion = new InvitacionUsuarioModel();
         invitacion.setEmail(email);
@@ -100,12 +95,36 @@ public class AccesoService {
         invitacion.setUsed(false);
 
         if (dto.getEmpleadoId() != null) {
-            EmpleadoModel empleado = empleadoRepository.findById(dto.getEmpleadoId())
+            empleadoInvitado = empleadoRepository.findById(dto.getEmpleadoId())
                     .orElseThrow(() -> new BadRequestException("El empleado indicado no existe."));
-            usuarioRepository.findByEmpleado(empleado)
-                    .ifPresent(u -> {
-                        throw new BadRequestException("Ese empleado ya tiene una cuenta de acceso.");
-                    });
+            UsuarioModel usuarioDelEmpleado = usuarioRepository.findByEmpleado(empleadoInvitado).orElse(null);
+            if (usuarioDelEmpleado != null && !esCuentaPendienteSinAcceso(usuarioDelEmpleado, empleadoInvitado, email)) {
+                throw new BadRequestException("Ese empleado ya tiene una cuenta de acceso.");
+            }
+        }
+
+        if (usuarioExistente != null && !esCuentaPendienteSinAcceso(usuarioExistente, empleadoInvitado, email)) {
+            throw new BadRequestException("Ese correo ya tiene una cuenta registrada.");
+        }
+
+        var invitacionExistente = invitacionUsuarioRepository.findByEmail(email);
+        if (invitacionExistente.isPresent()) {
+            InvitacionUsuarioModel existente = invitacionExistente.get();
+            if (existente.isUsed()) {
+                throw new BadRequestException("Ya existe una invitacion utilizada para ese correo.");
+            }
+
+            existente.setNombre(invitacion.getNombre());
+            existente.setApellidoPaterno(invitacion.getApellidoPaterno());
+            existente.setApellidoMaterno(invitacion.getApellidoMaterno());
+            existente.setTelefono(invitacion.getTelefono());
+            existente.setPuesto(invitacion.getPuesto());
+            existente.setRol(invitacion.getRol());
+            existente.setEmpleadoId(invitacion.getEmpleadoId());
+            existente.setCreatedBy(creador);
+            InvitacionUsuarioModel actualizada = invitacionUsuarioRepository.save(existente);
+            registrarAuditoria("REUSAR_INVITACION", "INVITACION", actualizada.getId(), creador, "Invitacion existente para " + email + " con rol " + rol.getName());
+            return mapInvitation(actualizada);
         }
 
         InvitacionUsuarioModel guardada = invitacionUsuarioRepository.save(invitacion);
@@ -128,23 +147,26 @@ public class AccesoService {
             throw new BadRequestException("Esta invitacion ya fue utilizada.");
         }
 
-        if (usuarioRepository.existsByEmail(email)) {
-            throw new BadRequestException("Ese correo ya está registrado.");
-        }
-
         RolModel rol = rolRepository.findByName(invitacion.getRol())
                 .orElseThrow(() -> new BadRequestException("El rol indicado en la invitacion no existe."));
 
-        UsuarioModel usuario = new UsuarioModel();
+        EmpleadoModel empleado = resolverEmpleadoParaInvitacion(invitacion);
+        UsuarioModel usuario = usuarioRepository.findByEmail(email)
+                .filter(u -> esCuentaPendienteSinAcceso(u, empleado, email))
+                .orElseGet(UsuarioModel::new);
+
+        if (usuario.getId() == null && usuarioRepository.existsByEmail(email)) {
+            throw new BadRequestException("Ese correo ya esta registrado.");
+        }
+
         usuario.setEmail(email);
         usuario.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
         usuario.setEnabled(true);
         usuario.setLocked(false);
         usuario.setEstadoCuenta(EstadoCuentaUsuario.ACTIVE);
-        usuario.setRoles(Set.of(rol));
+        usuario.setRoles(new HashSet<>(Set.of(rol)));
         usuario.setInvitacion(invitacion);
 
-        EmpleadoModel empleado = resolverEmpleadoParaInvitacion(invitacion);
         usuario.setEmpleado(empleado);
 
         UsuarioModel guardado = usuarioRepository.save(usuario);
@@ -160,6 +182,22 @@ public class AccesoService {
         response.setCorreo(guardado.getEmail());
         response.setMensaje("Registro creado y activado correctamente.");
         return response;
+    }
+
+    private boolean esCuentaPendienteSinAcceso(UsuarioModel usuario, EmpleadoModel empleado, String email) {
+        if (usuario == null) {
+            return false;
+        }
+
+        boolean mismoCorreo = email == null || usuario.getEmail().equalsIgnoreCase(email);
+        boolean sinRoles = usuario.getRoles() == null || usuario.getRoles().isEmpty();
+        boolean pendiente = usuario.getEstadoCuenta() == EstadoCuentaUsuario.PENDING;
+        boolean bloqueada = !usuario.isEnabled() || usuario.isLocked();
+        boolean mismoEmpleado = empleado == null
+                || usuario.getEmpleado() == null
+                || usuario.getEmpleado().getId().equals(empleado.getId());
+
+        return mismoCorreo && sinRoles && pendiente && bloqueada && mismoEmpleado;
     }
 
     public List<String> listarRolesDisponibles() {
@@ -448,6 +486,9 @@ public class AccesoService {
         dto.setEstadoCuenta(usuario.getEstadoCuenta() == null ? "" : usuario.getEstadoCuenta().name());
         dto.setEnabled(usuario.isEnabled());
         dto.setLocked(usuario.isLocked());
+        if (usuario.getInvitacion() != null) {
+            dto.setAccessGrantedAt(usuario.getInvitacion().getUsedAt());
+        }
         dto.setLastLoginAt(usuario.getLastLoginAt());
         dto.setRoles(usuario.getRoles().stream().map(RolModel::getName).sorted().toList());
         dto.setPermisosDirectos(usuario.getPermisos().stream().map(PermisoModel::getCode).sorted().toList());
@@ -531,6 +572,7 @@ public class AccesoService {
             EmpleadoModel existente = empleadoRepository.findById(invitacion.getEmpleadoId())
                     .orElseThrow(() -> new BadRequestException("El empleado asociado a la invitacion ya no existe."));
             usuarioRepository.findByEmpleado(existente)
+                    .filter(u -> !esCuentaPendienteSinAcceso(u, existente, invitacion.getEmail()))
                     .ifPresent(u -> {
                         throw new BadRequestException("El empleado asociado a la invitacion ya tiene una cuenta.");
                     });

@@ -20,6 +20,7 @@ public final class ApiPaths {
     public static final String AUTH_INVITACIONES = AUTH + "/invitaciones";
     public static final String AUTH_PENDIENTES = AUTH + "/usuarios-pendientes";
     public static final String EMPLEADOS = API_VERSION + "/empleados"; 
+    public static final String AREAS_TRABAJO = API_VERSION + "/areas-trabajo";
     public static final String PROVEEDORES = API_VERSION + "/proveedores";
     public static final String UNIDADES_MEDIDA = API_VERSION + "/unidades-medida";
     public static final String TIPOS_INSUMO = API_VERSION + "/tipos-insumo";

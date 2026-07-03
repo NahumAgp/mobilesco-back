@@ -140,8 +140,8 @@ public class UsuarioModel {
     public void setInvitacion(InvitacionUsuarioModel invitacion) { this.invitacion = invitacion; }
 
     public Set<RolModel> getRoles() { return roles; }
-    public void setRoles(Set<RolModel> roles) { this.roles = roles; }
+    public void setRoles(Set<RolModel> roles) { this.roles = roles == null ? new HashSet<>() : new HashSet<>(roles); }
 
     public Set<PermisoModel> getPermisos() { return permisos; }
-    public void setPermisos(Set<PermisoModel> permisos) { this.permisos = permisos; }
+    public void setPermisos(Set<PermisoModel> permisos) { this.permisos = permisos == null ? new HashSet<>() : new HashSet<>(permisos); }
 }

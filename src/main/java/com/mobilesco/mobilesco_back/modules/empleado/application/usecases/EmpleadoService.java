@@ -17,6 +17,8 @@ import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.EmpleadoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.areatrabajo.domain.models.AreaTrabajoModel;
+import com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.out.persistence.repositories.AreaTrabajoRepository;
 import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.EstadoCuentaUsuario;
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.RolModel;
@@ -38,17 +40,20 @@ public class EmpleadoService {
     );
 
     private final EmpleadoRepository empleadoRepository;
+    private final AreaTrabajoRepository areaTrabajoRepository;
     private final UsuarioRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     public EmpleadoService(
             EmpleadoRepository empleadoRepository,
+            AreaTrabajoRepository areaTrabajoRepository,
             UsuarioRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.empleadoRepository = empleadoRepository;
+        this.areaTrabajoRepository = areaTrabajoRepository;
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -69,6 +74,10 @@ public class EmpleadoService {
         dto.setTelefono(empleado.getTelefono());
         dto.setFechaNacimiento(empleado.getFechaNacimiento());
         dto.setFotoUrl(empleado.getFotoUrl());
+        if (empleado.getAreaTrabajo() != null) {
+            dto.setAreaId(empleado.getAreaTrabajo().getId());
+            dto.setAreaNombre(empleado.getAreaTrabajo().getNombre());
+        }
         dto.setActivo(empleado.getActivo());
         dto.setFechaRegistro(empleado.getFechaRegistro());
 
@@ -106,6 +115,7 @@ public class EmpleadoService {
         if (dto.getFechaNacimiento() != null && !dto.getFechaNacimiento().isBlank()) {
             empleado.setFechaNacimiento(LocalDate.parse(dto.getFechaNacimiento()));
         }
+        empleado.setAreaTrabajo(resolverArea(dto.getAreaId()));
         empleado.setActivo(true);
 
         EmpleadoModel empleadoGuardado = empleadoRepository.save(empleado);
@@ -210,6 +220,7 @@ public class EmpleadoService {
         } else {
             existente.setFechaNacimiento(null);
         }
+        existente.setAreaTrabajo(resolverArea(dto.getAreaId()));
 
         if (dto.getActivo() != null && !dto.getActivo().equals(existente.getActivo())) {
             if (!puedeGestionarEmpleados(usuarioActual)) {
@@ -268,6 +279,15 @@ public class EmpleadoService {
         user.setRoles(new HashSet<>());
 
         return userRepository.save(user);
+    }
+
+    private AreaTrabajoModel resolverArea(Long areaId) {
+        if (areaId == null) {
+            return null;
+        }
+
+        return areaTrabajoRepository.findById(areaId)
+                .orElseThrow(() -> new BadRequestException("El area indicada no existe."));
     }
 
     private UsuarioModel obtenerUsuarioActual() {
