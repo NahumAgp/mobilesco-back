@@ -498,6 +498,8 @@ public class ProductoService {
         response.setNivelNombre(producto.getNivel() != null ? producto.getNivel().getNombre() : null);
         response.setColorId(producto.getColor() != null ? producto.getColor().getId() : null);
         response.setColorNombre(producto.getColor() != null ? producto.getColor().getNombre() : null);
+        response.setColorCodigo(producto.getColor() != null ? producto.getColor().getCodigo() : null);
+        response.setColorHex(producto.getColor() != null ? producto.getColor().getHex() : null);
         response.setMaterialId(producto.getMaterial() != null ? producto.getMaterial().getId() : null);
         response.setMaterialNombre(producto.getMaterial() != null ? producto.getMaterial().getNombre() : null);
         response.setActivo(producto.getActivo());

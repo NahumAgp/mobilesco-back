@@ -45,7 +45,9 @@ public class NivelService {
     public synchronized NivelResponseDTO crear(NivelCreateDTO dto) {
         ModeloModel modelo = obtenerModelo(dto.getModeloId());
 
-        CategoriaModel categoria = obtenerOCrearCategoria(dto.getNombre(), dto.getDescripcion(), true);
+        CategoriaModel categoria = dto.getCategoriaId() != null
+                ? obtenerCategoriaGlobal(dto.getCategoriaId())
+                : obtenerOCrearCategoria(dto.getNombre(), dto.getDescripcion(), true);
         if (nivelRepository.existsByModeloIdAndCategoriaId(modelo.getId(), categoria.getId())) {
             throw new BadRequestException("El modelo ya tiene una categoria asignada con el nombre: " + categoria.getNombre());
         }
@@ -216,6 +218,11 @@ public class NivelService {
     private NivelModel obtenerNivel(Long id) {
         return nivelRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Nivel no encontrado con ID: " + id));
+    }
+
+    private CategoriaModel obtenerCategoriaGlobal(Long categoriaId) {
+        return categoriaRepository.findById(categoriaId)
+                .orElseThrow(() -> new NotFoundException("Categoria no encontrada con ID: " + categoriaId));
     }
 
     private NivelResponseDTO mapToResponseDTO(NivelModel nivel) {

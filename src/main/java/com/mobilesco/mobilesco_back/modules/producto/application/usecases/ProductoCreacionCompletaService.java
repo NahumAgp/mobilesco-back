@@ -108,6 +108,7 @@ public class ProductoCreacionCompletaService {
             payload.setCodigo(borrador.getCodigo());
             payload.setNombre(borrador.getNombre());
             payload.setDescripcion(borrador.getDescripcion());
+            payload.setCategoriaId(borrador.getCategoriaId());
             payload.setModeloId(borrador.getModeloId());
             NivelResponseDTO creada = nivelService.crear(payload);
             registrarRef(categorias, borrador.getRef(), creada.getId(), "categoria");

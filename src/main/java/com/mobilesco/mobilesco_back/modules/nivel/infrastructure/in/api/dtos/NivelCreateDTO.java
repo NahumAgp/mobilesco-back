@@ -16,6 +16,10 @@ public class NivelCreateDTO {
     @Size(max = 50, message = "El nombre no puede exceder 50 caracteres")
     private String nombre;
 
+    @JsonProperty("categoria_id")
+    @JsonAlias({"categoriaId"})
+    private Long categoriaId;
+
     @Size(max = 255, message = "La descripcion no puede exceder 255 caracteres")
     private String descripcion;
 
@@ -38,6 +42,14 @@ public class NivelCreateDTO {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
+    }
+
+    public Long getCategoriaId() {
+        return categoriaId;
+    }
+
+    public void setCategoriaId(Long categoriaId) {
+        this.categoriaId = categoriaId;
     }
 
     public String getDescripcion() {

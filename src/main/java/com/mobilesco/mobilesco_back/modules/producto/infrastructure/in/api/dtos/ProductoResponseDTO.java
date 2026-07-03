@@ -57,6 +57,11 @@ public class ProductoResponseDTO {
     @JsonProperty("nombre_color")
     private String colorNombre;
 
+    @JsonProperty("codigo_color")
+    private String colorCodigo;
+
+    private String colorHex;
+
     @JsonProperty("id_material")
     private Long materialId;
 
@@ -159,6 +164,14 @@ public class ProductoResponseDTO {
 
     public void setColorNombre(String colorNombre) {
         this.colorNombre = colorNombre;
+    }
+
+    public void setColorCodigo(String colorCodigo) {
+        this.colorCodigo = colorCodigo;
+    }
+
+    public void setColorHex(String colorHex) {
+        this.colorHex = colorHex;
     }
 
     public void setMaterialId(Long materialId) {
