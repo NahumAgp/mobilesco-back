@@ -5,13 +5,20 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 
+import jakarta.persistence.LockModeType;
+
 public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM InsumoModel i WHERE i.id = :id")
+    Optional<InsumoModel> findByIdForUpdate(@Param("id") Long id);
     
     // Buscar por nombre exacto
     Optional<InsumoModel> findByNombre(String nombre);

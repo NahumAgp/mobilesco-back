@@ -92,7 +92,7 @@ public class SalidaInsumoService {
     }
 
     private DetalleSalidaInsumoModel procesarDetalle(SalidaInsumoModel salida, DetalleSalidaInsumoCreateDTO dto) {
-        InsumoModel insumo = insumoRepository.findById(dto.getInsumoId())
+        InsumoModel insumo = insumoRepository.findByIdForUpdate(dto.getInsumoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + dto.getInsumoId()));
 
         Double cantidad = dto.getCantidad();
