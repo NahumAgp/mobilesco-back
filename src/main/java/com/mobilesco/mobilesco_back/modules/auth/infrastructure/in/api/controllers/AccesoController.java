@@ -1,9 +1,12 @@
 package com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.controllers;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,10 +15,13 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.modules.auth.application.usecases.AccesoService;
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.modules.auth.domain.models.RolModel;
+import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.InvitacionUsuarioCreateDTO;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.InvitacionUsuarioResponseDTO;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.PermisoResponseDTO;
@@ -26,6 +32,8 @@ import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.Usua
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.UsuarioAccesoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.UsuarioCreateDTO;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.UsuarioPendienteResponseDTO;
+import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import jakarta.validation.Valid;
 
@@ -53,7 +61,19 @@ public class AccesoController {
 
     @GetMapping("/roles-config")
     @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_USERS')")
-    public ResponseEntity<List<RolResponseDTO>> rolesConfig() {
+    public ResponseEntity<?> rolesConfig(
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = Math.max(size == null ? 10 : size, 1);
+            PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortRoles(sortBy, direction));
+            return ResponseEntity.ok(accesoService.listarRolesDetallePaginado(busqueda, pageable));
+        }
         return ResponseEntity.ok(accesoService.listarRolesDetalle());
     }
 
@@ -75,7 +95,19 @@ public class AccesoController {
 
     @GetMapping("/usuarios")
     @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_USERS')")
-    public ResponseEntity<List<UsuarioAccesoResponseDTO>> usuarios() {
+    public ResponseEntity<?> usuarios(
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(defaultValue = "correo") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = Math.max(size == null ? 10 : size, 1);
+            PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortUsuarios(sortBy, direction));
+            return ResponseEntity.ok(accesoService.listarUsuariosPaginado(busqueda, pageable));
+        }
         return ResponseEntity.ok(accesoService.listarUsuarios());
     }
 
@@ -119,7 +151,19 @@ public class AccesoController {
 
     @GetMapping("/usuarios-pendientes")
     @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
-    public ResponseEntity<List<UsuarioPendienteResponseDTO>> pendientes() {
+    public ResponseEntity<?> pendientes(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = Math.max(size == null ? 10 : size, 1);
+            PageRequest pageable = PageRequest.of(
+                    pageNumber,
+                    pageSize,
+                    TypeSafeSorts.asc(UsuarioModel.class, UsuarioModel::getEmail));
+            return ResponseEntity.ok(accesoService.listarPendientesPaginado(pageable));
+        }
         return ResponseEntity.ok(accesoService.listarPendientes());
     }
 
@@ -130,5 +174,48 @@ public class AccesoController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(accesoService.aprobarUsuario(id, authentication.getName()));
+    }
+
+    private Sort construirSortRoles(String sortBy, String direction) {
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return switch ((sortBy == null ? "" : sortBy).toLowerCase(Locale.ROOT)) {
+            case "descripcion" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.desc(RolModel.class, RolModel::getDescripcion)
+                    : TypeSafeSorts.asc(RolModel.class, RolModel::getDescripcion);
+            case "sistema", "tipo" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.desc(RolModel.class, RolModel::isSistema)
+                    : TypeSafeSorts.asc(RolModel.class, RolModel::isSistema);
+            default -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.desc(RolModel.class, RolModel::getName)
+                    : TypeSafeSorts.asc(RolModel.class, RolModel::getName);
+        };
+    }
+
+    private Sort construirSortUsuarios(String sortBy, String direction) {
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return switch ((sortBy == null ? "" : sortBy).toLowerCase(Locale.ROOT)) {
+            case "nombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descNestedWithId(UsuarioModel.class, UsuarioModel::getEmpleado, EmpleadoModel::getNombre, UsuarioModel::getId)
+                    : TypeSafeSorts.ascNestedWithId(UsuarioModel.class, UsuarioModel::getEmpleado, EmpleadoModel::getNombre, UsuarioModel::getId);
+            case "apellidopaterno" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descNestedWithId(UsuarioModel.class, UsuarioModel::getEmpleado, EmpleadoModel::getApellidoPaterno, UsuarioModel::getId)
+                    : TypeSafeSorts.ascNestedWithId(UsuarioModel.class, UsuarioModel::getEmpleado, EmpleadoModel::getApellidoPaterno, UsuarioModel::getId);
+            case "enabled" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.desc(UsuarioModel.class, UsuarioModel::isEnabled)
+                    : TypeSafeSorts.asc(UsuarioModel.class, UsuarioModel::isEnabled);
+            case "locked" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.desc(UsuarioModel.class, UsuarioModel::isLocked)
+                    : TypeSafeSorts.asc(UsuarioModel.class, UsuarioModel::isLocked);
+            case "lastloginat" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.desc(UsuarioModel.class, UsuarioModel::getLastLoginAt)
+                    : TypeSafeSorts.asc(UsuarioModel.class, UsuarioModel::getLastLoginAt);
+            default -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.desc(UsuarioModel.class, UsuarioModel::getEmail)
+                    : TypeSafeSorts.asc(UsuarioModel.class, UsuarioModel::getEmail);
+        };
     }
 }

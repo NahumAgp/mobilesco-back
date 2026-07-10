@@ -92,6 +92,10 @@ public class ModeloService {
         if (modelo.getFamilia() != null) {
             dto.setFamiliaId(modelo.getFamilia().getId());
             dto.setFamiliaNombre(modelo.getFamilia().getNombre());
+            if (modelo.getFamilia().getLinea() != null) {
+                dto.setLineaId(modelo.getFamilia().getLinea().getId());
+                dto.setLineaNombre(modelo.getFamilia().getLinea().getNombre());
+            }
         }
         dto.setCategorias(nivelRepository.findByModeloIdOrderByCodigoAsc(modelo.getId()).stream()
                 .map(this::mapCategoria)
@@ -164,14 +168,14 @@ public class ModeloService {
     public synchronized ModeloResponseDTO crear(ModeloCreateDTO dto) {
         FamiliaModel familia = familiaRepository.findById(dto.getFamiliaId())
                 .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + dto.getFamiliaId()));
-        if (modeloRepository.findAll().stream()
-                .anyMatch(item -> item.getNombre().equalsIgnoreCase(dto.getNombre().trim()))) {
-            throw new BadRequestException("Ya existe un modelo con el nombre: " + dto.getNombre());
+        String nombre = dto.getNombre().trim();
+        if (modeloRepository.existsByFamiliaIdAndNombreIgnoreCase(familia.getId(), nombre)) {
+            throw new BadRequestException("Ya existe un modelo con el nombre: " + nombre + " en la familia seleccionada");
         }
 
         ModeloModel modelo = new ModeloModel();
-        modelo.setCodigo(sugerirCodigo(dto.getNombre()));
-        modelo.setNombre(dto.getNombre());
+        modelo.setCodigo(sugerirCodigo(nombre, familia.getId()));
+        modelo.setNombre(nombre);
         modelo.setDescripcion(dto.getDescripcion());
         modelo.setDescripcionCorta(dto.getDescripcionCorta());
         modelo.setUrlImagen(dto.getUrlImagen());
@@ -191,6 +195,18 @@ public class ModeloService {
                 .toList());
     }
 
+    public String sugerirCodigo(String nombre, Long familiaId) {
+        if (familiaId == null) {
+            return sugerirCodigo(nombre);
+        }
+        if (!familiaRepository.existsById(familiaId)) {
+            throw new NotFoundException("Familia no encontrada con ID: " + familiaId);
+        }
+        return CatalogCodeGenerator.generate(nombre, modeloRepository.findByFamiliaId(familiaId).stream()
+                .map(ModeloModel::getCodigo)
+                .toList());
+    }
+
     @Transactional(readOnly = true)
     public List<ModeloResponseDTO> obtenerTodos() {
         return mapToResponseDTOList(modeloRepository.findAll());
@@ -202,13 +218,14 @@ public class ModeloService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] generarReporteExcel(Boolean activo, String busqueda, String familia, String sortBy, String direction) {
+    public byte[] generarReporteExcel(Boolean activo, String busqueda, String familia, Long familiaId, String sortBy, String direction) {
         List<ModeloResponseDTO> modelos = mapToResponseDTOList(
                 modeloRepository.findAll(construirSortModelos(sortBy, direction)));
 
         String familiaNormalizada = familia == null ? "" : familia.trim().toLowerCase(Locale.ROOT);
         List<ModeloResponseDTO> filtrados = modelos.stream()
                 .filter(modelo -> activo == null || Objects.equals(modelo.getActivo(), activo))
+                .filter(modelo -> familiaId == null || Objects.equals(modelo.getFamiliaId(), familiaId))
                 .filter(modelo -> familiaNormalizada.isBlank()
                         || (modelo.getFamiliaNombre() != null
                         && modelo.getFamiliaNombre().toLowerCase(Locale.ROOT).contains(familiaNormalizada)))
@@ -238,11 +255,19 @@ public class ModeloService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponseDTO<ModeloResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {
+    public PageResponseDTO<ModeloResponseDTO> obtenerPaginado(
+            int page,
+            String sortBy,
+            String direction,
+            Boolean activo,
+            String busqueda,
+            Long familiaId) {
         int pageNumber = Math.max(page, 0);
         PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortModelos(sortBy, direction));
 
-        Page<ModeloResponseDTO> result = modeloRepository.findAll(pageable).map(this::mapToResponseDTO);
+        Page<ModeloResponseDTO> result = modeloRepository
+                .buscarPaginado(activo, normalizarBusqueda(busqueda), familiaId, pageable)
+                .map(this::mapToResponseDTO);
 
         return new PageResponseDTO<>(
                 result.getContent(),
@@ -251,6 +276,10 @@ public class ModeloService {
                 result.getTotalElements(),
                 result.getTotalPages()
         );
+    }
+
+    private String normalizarBusqueda(String busqueda) {
+        return busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
     }
 
     @Transactional(readOnly = true)
@@ -304,16 +333,27 @@ public class ModeloService {
         ModeloModel existente = modeloRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + id));
 
-        if (dto.getCodigo() != null && !dto.getCodigo().equals(existente.getCodigo())) {
-            if (modeloRepository.existsByCodigo(dto.getCodigo())) {
-                throw new BadRequestException("Ya existe un modelo con el codigo: " + dto.getCodigo());
-            }
-            existente.setCodigo(dto.getCodigo());
+        FamiliaModel familiaDestino = dto.getFamiliaId() != null
+                ? familiaRepository.findById(dto.getFamiliaId())
+                        .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + dto.getFamiliaId()))
+                : existente.getFamilia();
+        if (familiaDestino == null || familiaDestino.getId() == null) {
+            throw new BadRequestException("El modelo debe estar asociado a una familia");
         }
 
-        if (dto.getNombre() != null) {
-            existente.setNombre(dto.getNombre());
+        String codigoDestino = dto.getCodigo() != null ? dto.getCodigo().trim() : existente.getCodigo();
+        String nombreDestino = dto.getNombre() != null ? dto.getNombre().trim() : existente.getNombre();
+
+        if (modeloRepository.existsByFamiliaIdAndCodigoIgnoreCaseAndIdNot(familiaDestino.getId(), codigoDestino, id)) {
+            throw new BadRequestException("Ya existe un modelo con el codigo: " + codigoDestino + " en la familia seleccionada");
         }
+
+        if (modeloRepository.existsByFamiliaIdAndNombreIgnoreCaseAndIdNot(familiaDestino.getId(), nombreDestino, id)) {
+            throw new BadRequestException("Ya existe un modelo con el nombre: " + nombreDestino + " en la familia seleccionada");
+        }
+
+        existente.setCodigo(codigoDestino);
+        existente.setNombre(nombreDestino);
 
         if (dto.getDescripcion() != null) {
             existente.setDescripcion(dto.getDescripcion());
@@ -327,11 +367,7 @@ public class ModeloService {
             existente.setUrlImagen(dto.getUrlImagen());
         }
 
-        if (dto.getFamiliaId() != null) {
-            FamiliaModel familia = familiaRepository.findById(dto.getFamiliaId())
-                    .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + dto.getFamiliaId()));
-            existente.setFamilia(familia);
-        }
+        existente.setFamilia(familiaDestino);
 
         if (dto.getActivo() != null) {
             existente.setActivo(dto.getActivo());

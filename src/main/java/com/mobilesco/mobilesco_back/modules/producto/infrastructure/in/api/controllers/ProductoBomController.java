@@ -9,6 +9,7 @@ package com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.cont
 
 import java.util.List;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,15 +18,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoOperacionModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoInsumoService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoOperacionService;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import jakarta.validation.Valid;
 
@@ -43,7 +49,22 @@ public class ProductoBomController {
     }
 
     @GetMapping("/insumos")
-    public ResponseEntity<List<ProductoInsumoResponseDTO>> listarInsumos(@PathVariable Long productoId) {
+    public ResponseEntity<?> listarInsumos(
+            @PathVariable Long productoId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        if (page != null) {
+            PageRequest pageable = PageRequest.of(
+                    Math.max(page, 0),
+                    Math.max(size == null ? 10 : size, 1),
+                    TypeSafeSorts.ascNestedWithId(
+                            ProductoInsumoModel.class,
+                            ProductoInsumoModel::getInsumo,
+                            InsumoModel::getNombre,
+                            ProductoInsumoModel::getId)
+            );
+            return ResponseEntity.ok(productoInsumoService.listarPorProductoPaginado(productoId, pageable));
+        }
         return ResponseEntity.ok(productoInsumoService.listarPorProducto(productoId));
     }
 
@@ -78,7 +99,18 @@ public class ProductoBomController {
     }
 
     @GetMapping("/operaciones")
-    public ResponseEntity<List<ProductoOperacionResponseDTO>> listarOperaciones(@PathVariable Long productoId) {
+    public ResponseEntity<?> listarOperaciones(
+            @PathVariable Long productoId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        if (page != null) {
+            PageRequest pageable = PageRequest.of(
+                    Math.max(page, 0),
+                    Math.max(size == null ? 10 : size, 1),
+                    TypeSafeSorts.ascWithId(ProductoOperacionModel.class, ProductoOperacionModel::getOrden, ProductoOperacionModel::getId)
+            );
+            return ResponseEntity.ok(productoOperacionService.listarPorProductoPaginado(productoId, pageable));
+        }
         return ResponseEntity.ok(productoOperacionService.listarPorProducto(productoId));
     }
 

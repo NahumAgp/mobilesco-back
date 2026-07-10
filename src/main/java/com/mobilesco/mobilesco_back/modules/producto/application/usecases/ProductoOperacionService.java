@@ -3,9 +3,12 @@ package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
@@ -109,6 +112,21 @@ public class ProductoOperacionService {
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<ProductoOperacionResponseDTO> listarPorProductoPaginado(Long productoId, Pageable pageable) {
+        Long productoIdValidado = validarProductoId(productoId);
+        Page<ProductoOperacionResponseDTO> page = productoOperacionRepository.findByProductoId(productoIdValidado, pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 
     @Transactional

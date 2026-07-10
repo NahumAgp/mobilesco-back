@@ -55,9 +55,18 @@ public class ModeloController {
     public ResponseEntity<?> obtenerTodos(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false, defaultValue = "asc") String direction) {
+            @RequestParam(required = false, defaultValue = "asc") String direction,
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Long familiaId) {
         if (page != null) {
-            PageResponseDTO<ModeloResponseDTO> resultado = modeloService.obtenerPaginado(page, sortBy, direction);
+            PageResponseDTO<ModeloResponseDTO> resultado = modeloService.obtenerPaginado(
+                    page,
+                    sortBy,
+                    direction,
+                    activo,
+                    busqueda,
+                    familiaId);
             return ResponseEntity.ok(resultado);
         }
 
@@ -69,9 +78,10 @@ public class ModeloController {
             @RequestParam(required = false) Boolean activo,
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) String familia,
+            @RequestParam(required = false) Long familiaId,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false, defaultValue = "asc") String direction) {
-        byte[] excel = modeloService.generarReporteExcel(activo, busqueda, familia, sortBy, direction);
+        byte[] excel = modeloService.generarReporteExcel(activo, busqueda, familia, familiaId, sortBy, direction);
         String filename = "modelos.xlsx";
 
         return ResponseEntity.ok()
@@ -86,8 +96,10 @@ public class ModeloController {
     }
 
     @GetMapping("/codigo-sugerido")
-    public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String nombre) {
-        return ResponseEntity.ok(Map.of("codigo", modeloService.sugerirCodigo(nombre)));
+    public ResponseEntity<Map<String, String>> sugerirCodigo(
+            @RequestParam String nombre,
+            @RequestParam(required = false) Long familiaId) {
+        return ResponseEntity.ok(Map.of("codigo", modeloService.sugerirCodigo(nombre, familiaId)));
     }
 
     @GetMapping("/{id}")

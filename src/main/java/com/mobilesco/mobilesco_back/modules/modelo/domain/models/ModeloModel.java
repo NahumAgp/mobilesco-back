@@ -20,14 +20,20 @@ import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel
 @Entity
 @Getter
 @Setter
-@Table(name = "productos_base")
+@Table(
+    name = "productos_base",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_modelo_familia_codigo", columnNames = {"familia_id", "codigo"}),
+        @UniqueConstraint(name = "uk_modelo_familia_nombre", columnNames = {"familia_id", "nombre"})
+    }
+)
 public class ModeloModel {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "codigo", unique = true, nullable = false, length = 30)
+    @Column(name = "codigo", nullable = false, length = 30)
     private String codigo;
 
     @Column(nullable = false, length = 200)

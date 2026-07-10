@@ -29,6 +29,8 @@ public class ModeloResponseDTO {
 
     private Long familiaId;
     private String familiaNombre;
+    private Long lineaId;
+    private String lineaNombre;
     private List<ModeloCategoriaDTO> categorias;
     private List<MaterialResponseDTO> materiales;
 
@@ -118,6 +120,22 @@ public class ModeloResponseDTO {
 
     public void setFamiliaNombre(String familiaNombre) {
         this.familiaNombre = familiaNombre;
+    }
+
+    public Long getLineaId() {
+        return lineaId;
+    }
+
+    public void setLineaId(Long lineaId) {
+        this.lineaId = lineaId;
+    }
+
+    public String getLineaNombre() {
+        return lineaNombre;
+    }
+
+    public void setLineaNombre(String lineaNombre) {
+        this.lineaNombre = lineaNombre;
     }
 
     public List<ModeloCategoriaDTO> getCategorias() {

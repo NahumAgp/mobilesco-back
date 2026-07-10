@@ -16,9 +16,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.imagen.infrastructure.in.api.dtos.ImagenResponseDTO;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.application.usecases.CostoIndirectoService;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CifResumenDTO;
@@ -522,6 +525,26 @@ public class ProductoService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponseDTO<ProductoResponseDTO> obtenerTodosCompletosPaginado(
+            Boolean activo,
+            String busqueda,
+            Long modeloId,
+            Long nivelId,
+            Long colorId,
+            Pageable pageable) {
+        Page<ProductoResponseDTO> page = productoRepository
+                .buscarPaginado(activo, normalizarFiltro(busqueda), modeloId, nivelId, colorId, pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
+    }
+
+    @Transactional(readOnly = true)
     public ProductoResponseDTO obtenerProductoCompleto(Long id) {
         ProductoModel producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
@@ -854,5 +877,12 @@ public class ProductoService {
 
     private boolean esProductoVisible(ProductoModel producto) {
         return producto.getModelo() != null || producto.getNivel() != null || producto.getMaterial() != null || producto.getColor() != null;
+    }
+
+    private String normalizarFiltro(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().replaceAll("\\s+", " ");
     }
 }

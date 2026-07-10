@@ -8,9 +8,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.InvitacionUsuarioCreateDTO;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.InvitacionUsuarioResponseDTO;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.PermisoResponseDTO;
@@ -84,7 +87,7 @@ public class AccesoService {
         invitacion.setEmail(email);
         invitacion.setNombre(normalizarTexto(dto.getNombre()));
         invitacion.setApellidoPaterno(normalizarTexto(dto.getApellidoPaterno()));
-        invitacion.setApellidoMaterno(normalizarTexto(dto.getApellidoMaterno()));
+        invitacion.setApellidoMaterno(normalizarTextoOpcional(dto.getApellidoMaterno()));
         invitacion.setTelefono(normalizarTexto(dto.getTelefono()));
         invitacion.setPuesto(dto.getPuesto().trim());
         invitacion.setRol(rol.getName());
@@ -220,6 +223,19 @@ public class AccesoService {
                 .toList();
     }
 
+    public PageResponseDTO<RolResponseDTO> listarRolesDetallePaginado(String busqueda, Pageable pageable) {
+        Page<RolResponseDTO> page = rolRepository.buscarPaginado(normalizarFiltro(busqueda), pageable)
+                .map(this::mapRol);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
+    }
+
     @Transactional
     public RolResponseDTO crearRol(RolCreateDTO dto, String actor) {
         String nombreRol = normalizarRol(dto.getName());
@@ -258,6 +274,19 @@ public class AccesoService {
                 .sorted((a, b) -> a.getEmail().compareToIgnoreCase(b.getEmail()))
                 .map(this::mapUsuarioAcceso)
                 .toList();
+    }
+
+    public PageResponseDTO<UsuarioAccesoResponseDTO> listarUsuariosPaginado(String busqueda, Pageable pageable) {
+        Page<UsuarioAccesoResponseDTO> page = usuarioRepository.buscarPaginado(normalizarFiltro(busqueda), pageable)
+                .map(this::mapUsuarioAcceso);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 
     @Transactional
@@ -324,6 +353,20 @@ public class AccesoService {
                 .filter(usuario -> !esCuentaActiva(usuario))
                 .map(this::mapPendiente)
                 .toList();
+    }
+
+    @Transactional
+    public PageResponseDTO<UsuarioPendienteResponseDTO> listarPendientesPaginado(Pageable pageable) {
+        Page<UsuarioPendienteResponseDTO> page = usuarioRepository.buscarPendientes(EstadoCuentaUsuario.ACTIVE, pageable)
+                .map(this::mapPendiente);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 
     @Transactional
@@ -555,6 +598,19 @@ public class AccesoService {
 
     private String normalizarTexto(String texto) {
         return texto == null ? "" : texto.trim();
+    }
+
+    private String normalizarFiltro(String texto) {
+        String limpio = normalizarTexto(texto);
+        return limpio.isBlank() ? null : limpio;
+    }
+
+    private String normalizarTextoOpcional(String texto) {
+        if (texto == null) {
+            return null;
+        }
+        String limpio = texto.trim();
+        return limpio.isEmpty() ? null : limpio;
     }
 
     private EmpleadoModel crearEmpleadoDesdeInvitacion(InvitacionUsuarioModel invitacion) {

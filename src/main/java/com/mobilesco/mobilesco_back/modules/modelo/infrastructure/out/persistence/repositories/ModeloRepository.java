@@ -10,6 +10,8 @@ package com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persisten
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,6 +30,14 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
 
     boolean existsByCodigo(String codigo);
 
+    boolean existsByFamiliaIdAndCodigoIgnoreCase(Long familiaId, String codigo);
+
+    boolean existsByFamiliaIdAndCodigoIgnoreCaseAndIdNot(Long familiaId, String codigo, Long id);
+
+    boolean existsByFamiliaIdAndNombreIgnoreCase(Long familiaId, String nombre);
+
+    boolean existsByFamiliaIdAndNombreIgnoreCaseAndIdNot(Long familiaId, String nombre, Long id);
+
     @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM ModeloModel m JOIN m.materiales material WHERE material.id = :materialId")
     boolean existsByMaterialesId(@Param("materialId") Long materialId);
 
@@ -40,4 +50,26 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
             @Param("nombre") String nombre,
             @Param("familiaId") Long familiaId
     );
+
+    @Query("""
+            SELECT m FROM ModeloModel m
+            LEFT JOIN m.familia f
+            LEFT JOIN f.linea l
+            WHERE (:activo IS NULL OR m.activo = :activo)
+              AND (:familiaId IS NULL OR f.id = :familiaId)
+              AND (
+                :busqueda IS NULL
+                OR LOWER(m.codigo) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(m.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(COALESCE(m.descripcion, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(COALESCE(m.descripcionCorta, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(COALESCE(f.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(COALESCE(l.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+              )
+            """)
+    Page<ModeloModel> buscarPaginado(
+            @Param("activo") Boolean activo,
+            @Param("busqueda") String busqueda,
+            @Param("familiaId") Long familiaId,
+            Pageable pageable);
 }

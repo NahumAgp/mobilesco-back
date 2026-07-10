@@ -19,7 +19,6 @@ public class InvitacionUsuarioCreateDTO {
     @NotBlank(message = "El apellido paterno es obligatorio")
     private String apellidoPaterno;
 
-    @NotBlank(message = "El apellido materno es obligatorio")
     private String apellidoMaterno;
 
     @NotBlank(message = "El teléfono es obligatorio")

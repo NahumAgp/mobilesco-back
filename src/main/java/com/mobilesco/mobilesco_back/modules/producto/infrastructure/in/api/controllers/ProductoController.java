@@ -8,7 +8,10 @@
 package com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.controllers;
 
 import java.util.List;
+import java.util.Locale;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,8 +29,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
+import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
+import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
+import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoCreacionCompletaService;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaResponseDTO;
@@ -35,6 +44,7 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoFichaDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -65,7 +75,28 @@ public class ProductoController {
 
     @Operation(summary = "Listar productos con imagenes")
     @GetMapping
-    public ResponseEntity<List<ProductoResponseDTO>> listar() {
+    public ResponseEntity<?> listar(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Long modeloId,
+            @RequestParam(required = false) Long nivelId,
+            @RequestParam(required = false) Long colorId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size,
+            @RequestParam(required = false, defaultValue = "sku") String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String direction) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = size == null ? 10 : Math.max(1, Math.min(size, 100));
+            PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortProductos(sortBy, direction));
+            return ResponseEntity.ok(productoService.obtenerTodosCompletosPaginado(
+                    activo,
+                    busqueda,
+                    modeloId,
+                    nivelId,
+                    colorId,
+                    pageable));
+        }
         return ResponseEntity.ok(productoService.obtenerTodosCompletos());
     }
 
@@ -156,5 +187,55 @@ public class ProductoController {
     public ResponseEntity<Void> eliminarDefinitivo(@PathVariable Long id) {
         productoService.eliminarProducto(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private Sort construirSortProductos(String sortBy, String direction) {
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        String campo = sortBy == null ? "sku" : sortBy.trim().toLowerCase(Locale.ROOT);
+
+        return switch (campo) {
+            case "nombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getNombre, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getNombre, ProductoModel::getId);
+            case "modelonombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descNestedWithId(ProductoModel.class, ProductoModel::getModelo, ModeloModel::getNombre, ProductoModel::getId)
+                    : TypeSafeSorts.ascNestedWithId(ProductoModel.class, ProductoModel::getModelo, ModeloModel::getNombre, ProductoModel::getId);
+            case "familianombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descNestedWithId(ProductoModel.class, ProductoModel::getModelo, ModeloModel::getFamilia, FamiliaModel::getNombre, ProductoModel::getId)
+                    : TypeSafeSorts.ascNestedWithId(ProductoModel.class, ProductoModel::getModelo, ModeloModel::getFamilia, FamiliaModel::getNombre, ProductoModel::getId);
+            case "lineanombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descNestedWithId(
+                            ProductoModel.class,
+                            ProductoModel::getModelo,
+                            ModeloModel::getFamilia,
+                            FamiliaModel::getLinea,
+                            LineaModel::getNombre,
+                            ProductoModel::getId)
+                    : TypeSafeSorts.ascNestedWithId(
+                            ProductoModel.class,
+                            ProductoModel::getModelo,
+                            ModeloModel::getFamilia,
+                            FamiliaModel::getLinea,
+                            LineaModel::getNombre,
+                            ProductoModel::getId);
+            case "nivelnombre", "categorianombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descNestedWithId(ProductoModel.class, ProductoModel::getNivel, NivelModel::getNombre, ProductoModel::getId)
+                    : TypeSafeSorts.ascNestedWithId(ProductoModel.class, ProductoModel::getNivel, NivelModel::getNombre, ProductoModel::getId);
+            case "colornombre" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descNestedWithId(ProductoModel.class, ProductoModel::getColor, ColorModel::getNombre, ProductoModel::getId)
+                    : TypeSafeSorts.ascNestedWithId(ProductoModel.class, ProductoModel::getColor, ColorModel::getNombre, ProductoModel::getId);
+            case "activo" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getActivo, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getActivo, ProductoModel::getId);
+            case "createdat", "created_at" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getCreatedAt, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getCreatedAt, ProductoModel::getId);
+            case "updatedat", "updated_at" -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getUpdatedAt, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getUpdatedAt, ProductoModel::getId);
+            default -> sortDirection == Sort.Direction.DESC
+                    ? TypeSafeSorts.descWithId(ProductoModel.class, ProductoModel::getSku, ProductoModel::getId)
+                    : TypeSafeSorts.ascWithId(ProductoModel.class, ProductoModel::getSku, ProductoModel::getId);
+        };
     }
 }
