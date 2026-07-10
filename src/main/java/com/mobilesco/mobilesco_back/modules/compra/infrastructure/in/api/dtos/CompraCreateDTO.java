@@ -25,6 +25,9 @@ public class CompraCreateDTO {
     
     @Size(max = 50)
     private String numeroDocumento;
+
+    @Size(max = 60)
+    private String metodoPago;
     
     private Double subtotal;
     private Double impuesto;

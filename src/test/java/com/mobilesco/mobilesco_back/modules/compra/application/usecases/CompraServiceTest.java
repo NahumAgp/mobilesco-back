@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.CompraModel;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CuentaPorPagarRepository;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
 import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
@@ -31,6 +32,7 @@ class CompraServiceTest {
         ProveedorRepository proveedorRepository = mock(ProveedorRepository.class);
         InsumoRepository insumoRepository = mock(InsumoRepository.class);
         DetalleCompraRepository detalleCompraRepository = mock(DetalleCompraRepository.class);
+        CuentaPorPagarRepository cuentaPorPagarRepository = mock(CuentaPorPagarRepository.class);
         DetalleCompraService detalleCompraService = mock(DetalleCompraService.class);
         KardexService kardexService = mock(KardexService.class);
 
@@ -39,6 +41,7 @@ class CompraServiceTest {
                 proveedorRepository,
                 insumoRepository,
                 detalleCompraRepository,
+                cuentaPorPagarRepository,
                 detalleCompraService,
                 kardexService);
     }

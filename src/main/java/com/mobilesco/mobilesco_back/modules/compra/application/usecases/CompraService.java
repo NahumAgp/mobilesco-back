@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -17,11 +19,13 @@ import com.mobilesco.mobilesco_back.modules.compra.infrastructure.in.api.dtos.De
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.CompraModel;
+import com.mobilesco.mobilesco_back.modules.compra.domain.models.CuentaPorPagarModel;
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraModel;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
 import com.mobilesco.mobilesco_back.modules.proveedor.domain.models.ProveedorModel;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CuentaPorPagarRepository;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.out.persistence.repositories.ProveedorRepository;
@@ -38,6 +42,7 @@ public class CompraService {
     private final ProveedorRepository proveedorRepository;
     private final InsumoRepository insumoRepository;
     private final DetalleCompraRepository detalleCompraRepository;
+    private final CuentaPorPagarRepository cuentaPorPagarRepository;
     private final DetalleCompraService detalleCompraService;
     private final KardexService kardexService;
 
@@ -61,13 +66,6 @@ public class CompraService {
             throw new ValidationException("La compra debe tener al menos un detalle");
         }
         
-        // Validar número de documento único si aplica
-        if (dto.getNumeroDocumento() != null && !dto.getNumeroDocumento().isEmpty()) {
-            if (compraRepository.existsByNumeroDocumento(dto.getNumeroDocumento())) {
-                throw new ValidationException("Ya existe una compra con el documento: " + dto.getNumeroDocumento());
-            }
-        }
-        
         // Crear compra
         CompraModel compra = CompraModel.builder()
                 .folio(dto.getFolio())
@@ -76,6 +74,7 @@ public class CompraService {
                 .proveedor(proveedor)
                 .tipoDocumento(dto.getTipoDocumento())
                 .numeroDocumento(dto.getNumeroDocumento())
+                .metodoPago(normalizarTexto(dto.getMetodoPago()))
                 .subtotal(dto.getSubtotal())
                 .impuesto(dto.getImpuesto())
                 .total(dto.getTotal())
@@ -120,6 +119,8 @@ public class CompraService {
         if (actualizar) {
             compraRepository.save(savedCompra);
         }
+
+        sincronizarCuentaPorPagar(savedCompra);
         
         return mapToResponseDTO(savedCompra);
     }
@@ -156,14 +157,8 @@ public class CompraService {
         }
         
         if (dto.getTipoDocumento() != null) compra.setTipoDocumento(dto.getTipoDocumento());
-        
-        // Validar número de documento único si cambió
-        if (dto.getNumeroDocumento() != null && !dto.getNumeroDocumento().equals(compra.getNumeroDocumento())) {
-            if (compraRepository.existsByNumeroDocumento(dto.getNumeroDocumento())) {
-                throw new ValidationException("Ya existe una compra con el documento: " + dto.getNumeroDocumento());
-            }
-            compra.setNumeroDocumento(dto.getNumeroDocumento());
-        }
+        if (dto.getNumeroDocumento() != null) compra.setNumeroDocumento(dto.getNumeroDocumento());
+        if (dto.getMetodoPago() != null) compra.setMetodoPago(normalizarTexto(dto.getMetodoPago()));
         
         if (dto.getSubtotal() != null) compra.setSubtotal(dto.getSubtotal());
         if (dto.getImpuesto() != null) compra.setImpuesto(dto.getImpuesto());
@@ -174,6 +169,7 @@ public class CompraService {
         if (dto.getActivo() != null) compra.setActivo(dto.getActivo());
         
         CompraModel updated = compraRepository.save(compra);
+        sincronizarCuentaPorPagar(updated);
         log.info("Compra actualizada: {}", updated.getId());
         
         return mapToResponseDTO(updated);
@@ -230,7 +226,7 @@ public class CompraService {
                     insumo.getId(),
                     cantidadEnUnidadConsumo,
                     detalle.getCostoPorUnidadConsumo(),
-                    compra.getNumeroDocumento(),
+                    compra.getFolio(),
                     compra.getId(),
                     "Entrada por compra: " + compra.getFolio(),
                     stockAnterior,
@@ -270,6 +266,7 @@ public class CompraService {
         compra.setObservaciones(compra.getObservaciones() + " | CANCELADA: " + motivo);
         
         CompraModel updated = compraRepository.save(compra);
+        sincronizarCuentaPorPagar(updated);
         log.info("Compra cancelada");
         
         return mapToResponseDTO(updated);
@@ -294,6 +291,24 @@ public class CompraService {
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CompraResponseDTO> listarPaginado(
+            String busqueda,
+            String estado,
+            String proveedor,
+            LocalDate fechaInicio,
+            LocalDate fechaFin,
+            Pageable pageable) {
+        return compraRepository.buscarPaginado(
+                        normalizarTexto(busqueda),
+                        normalizarTexto(estado),
+                        normalizarTexto(proveedor),
+                        fechaInicio,
+                        fechaFin,
+                        pageable)
+                .map(this::mapToResponseDTO);
     }
 
     /**
@@ -385,6 +400,70 @@ public class CompraService {
         proveedorRepository.save(proveedor);
     }
 
+    private void sincronizarCuentaPorPagar(CompraModel compra) {
+        if (compra == null || compra.getId() == null) {
+            return;
+        }
+
+        var cuentaExistente = cuentaPorPagarRepository.findByCompraId(compra.getId());
+        boolean esCredito = "CREDITO".equalsIgnoreCase(normalizarTexto(compra.getMetodoPago()));
+        boolean compraActiva = Boolean.TRUE.equals(compra.getActivo()) && !"CANCELADA".equals(compra.getEstado());
+        double total = redondear(compra.getTotal() != null ? compra.getTotal() : 0.0);
+
+        if (!esCredito || !compraActiva || total <= 0) {
+            cuentaExistente.ifPresent(cuenta -> {
+                if (nvl(cuenta.getMontoPagado()) > 0) {
+                    cuenta.setEstado("CANCELADA");
+                    cuenta.setActivo(false);
+                } else {
+                    cuenta.setMontoTotal(total);
+                    cuenta.setSaldoPendiente(0.0);
+                    cuenta.setEstado("CANCELADA");
+                    cuenta.setActivo(false);
+                }
+                cuentaPorPagarRepository.save(cuenta);
+            });
+            return;
+        }
+
+        CuentaPorPagarModel cuenta = cuentaExistente.orElseGet(() -> CuentaPorPagarModel.builder()
+                .compra(compra)
+                .proveedor(compra.getProveedor())
+                .fechaCuenta(compra.getFechaCompra() != null ? compra.getFechaCompra() : LocalDate.now())
+                .montoPagado(0.0)
+                .activo(true)
+                .build());
+
+        cuenta.setCompra(compra);
+        cuenta.setProveedor(compra.getProveedor());
+        cuenta.setFechaCuenta(compra.getFechaCompra() != null ? compra.getFechaCompra() : LocalDate.now());
+        cuenta.setMontoTotal(total);
+        cuenta.setSaldoPendiente(redondear(total - nvl(cuenta.getMontoPagado())));
+        cuenta.setEstado(resolverEstadoCuenta(cuenta.getMontoTotal(), cuenta.getMontoPagado()));
+        cuenta.setActivo(true);
+        cuentaPorPagarRepository.save(cuenta);
+    }
+
+    private String resolverEstadoCuenta(Double montoTotal, Double montoPagado) {
+        double total = nvl(montoTotal);
+        double pagado = nvl(montoPagado);
+        if (pagado <= 0) {
+            return "PENDIENTE";
+        }
+        if (pagado >= total) {
+            return "PAGADA";
+        }
+        return "PARCIAL";
+    }
+
+    private double nvl(Double valor) {
+        return valor == null ? 0.0 : valor;
+    }
+
+    private double redondear(double valor) {
+        return Math.round(valor * 100.0) / 100.0;
+    }
+
     /**
      * Mapear de Entity a ResponseDTO
      */
@@ -439,6 +518,7 @@ public class CompraService {
                 
                 .tipoDocumento(compra.getTipoDocumento())
                 .numeroDocumento(compra.getNumeroDocumento())
+                .metodoPago(compra.getMetodoPago())
                 .subtotal(compra.getSubtotal())
                 .impuesto(compra.getImpuesto())
                 .total(compra.getTotal())
@@ -449,5 +529,13 @@ public class CompraService {
                 .fechaActualizacion(compra.getFechaActualizacion())
                 .detalles(detalles)  // ✅ Ahora sí existe
                 .build();
+    }
+
+    private String normalizarTexto(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        String limpio = valor.trim();
+        return limpio.isEmpty() ? null : limpio;
     }
 }

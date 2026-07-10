@@ -29,7 +29,16 @@ class CompraControllerTest {
     @Test
     void endpointsDeLecturaDeCompraRequierenPermiso() throws Exception {
         assertPreAuthorize("obtenerPorId", PERMISO_VER_COMPRAS, Long.class);
-        assertPreAuthorize("listar", PERMISO_VER_COMPRAS);
+        assertPreAuthorize(
+                "listar",
+                PERMISO_VER_COMPRAS,
+                Integer.class,
+                Integer.class,
+                String.class,
+                String.class,
+                String.class,
+                LocalDate.class,
+                LocalDate.class);
         assertPreAuthorize("listarPorProveedor", PERMISO_VER_COMPRAS, Long.class);
         assertPreAuthorize("listarPorEstado", PERMISO_VER_COMPRAS, String.class);
         assertPreAuthorize("listarPorRangoFechas", PERMISO_VER_COMPRAS, LocalDate.class, LocalDate.class);

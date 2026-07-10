@@ -13,6 +13,7 @@ public class CompraUpdateDTO {
     private Long proveedorId;
     private String tipoDocumento;
     private String numeroDocumento;
+    private String metodoPago;
     private Double subtotal;
     private Double impuesto;
     private Double total;

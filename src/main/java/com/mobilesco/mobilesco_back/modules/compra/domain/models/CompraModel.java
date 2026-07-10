@@ -64,6 +64,9 @@ public class CompraModel {
     @Column(name = "numero_documento", length = 50)
     private String numeroDocumento;
 
+    @Column(name = "metodo_pago", length = 60)
+    private String metodoPago;
+
     @Column(name = "subtotal")
     private Double subtotal;
 
