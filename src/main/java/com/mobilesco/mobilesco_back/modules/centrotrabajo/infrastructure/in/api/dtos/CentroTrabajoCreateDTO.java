@@ -1,7 +1,6 @@
 package com.mobilesco.mobilesco_back.modules.centrotrabajo.infrastructure.in.api.dtos;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -20,9 +19,11 @@ public class CentroTrabajoCreateDTO {
     @Size(max = 255, message = "La descripción no puede exceder 255 caracteres")
     private String descripcion;
     
-    @NotNull(message = "El costo por hora es obligatorio")
     @Positive(message = "El costo por hora debe ser mayor a 0")
     private Double costoHora;
+
+    @Positive(message = "El costo por minuto debe ser mayor a 0")
+    private Double costoMinuto;
     
     @Positive(message = "La capacidad diaria debe ser mayor a 0")
     private Double capacidadDiaria;
@@ -32,4 +33,7 @@ public class CentroTrabajoCreateDTO {
     
     @Positive(message = "Las horas disponibles deben ser mayor a 0")
     private Double horasDisponiblesDia;
+
+    @Size(max = 500, message = "El enlace de Drive no puede exceder 500 caracteres")
+    private String enlaceDriveReporte;
 }

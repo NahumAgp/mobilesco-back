@@ -53,9 +53,16 @@ public class MaterialController {
     public ResponseEntity<?> obtenerTodos(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false, defaultValue = "asc") String direction) {
+            @RequestParam(required = false, defaultValue = "asc") String direction,
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda) {
         if (page != null) {
-            PageResponseDTO<MaterialResponseDTO> resultado = materialService.obtenerPaginado(page, sortBy, direction);
+            PageResponseDTO<MaterialResponseDTO> resultado = materialService.obtenerPaginado(
+                    page,
+                    sortBy,
+                    direction,
+                    activo,
+                    busqueda);
             return ResponseEntity.ok(resultado);
         }
 

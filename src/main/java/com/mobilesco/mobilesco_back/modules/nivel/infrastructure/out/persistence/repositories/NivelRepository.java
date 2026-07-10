@@ -4,7 +4,11 @@ package com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistenc
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 
@@ -47,4 +51,22 @@ public interface NivelRepository extends JpaRepository<NivelModel, Long> {
     boolean existsByModeloIdAndCodigoIgnoreCaseAndIdNot(Long modeloId, String codigo, Long id);
 
     boolean existsByModeloIdAndNombreIgnoreCaseAndIdNot(Long modeloId, String nombre, Long id);
+
+    @Query("""
+            SELECT n
+            FROM NivelModel n
+            LEFT JOIN n.modelo m
+            WHERE (:activo IS NULL OR n.activo = :activo)
+              AND (
+                    :busqueda IS NULL
+                    OR LOWER(n.codigo) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                    OR LOWER(n.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                    OR LOWER(COALESCE(n.descripcion, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                    OR LOWER(COALESCE(m.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                  )
+            """)
+    Page<NivelModel> buscarPaginado(
+            @Param("activo") Boolean activo,
+            @Param("busqueda") String busqueda,
+            Pageable pageable);
 }

@@ -10,8 +10,11 @@ package com.mobilesco.mobilesco_back.modules.color.application.usecases;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorCreateDTO;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorResponseDTO;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorUpdateDTO;
@@ -80,6 +83,18 @@ public class ColorServiceImpl implements ColorUseCase {
 
     public List<ColorResponseDTO> obtenerTodos() {
         return mapToResponseDTOList(colorRepository.findAll());
+    }
+
+    public PageResponseDTO<ColorResponseDTO> obtenerPaginado(Boolean activo, String busqueda, Pageable pageable) {
+        Page<ColorResponseDTO> page = colorRepository.buscarPaginado(activo, normalizarFiltro(busqueda), pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
     }
 
     public List<ColorResponseDTO> obtenerActivos() {
@@ -163,6 +178,13 @@ public class ColorServiceImpl implements ColorUseCase {
         }
 
         colorRepository.deleteById(id);
+    }
+
+    private String normalizarFiltro(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().replaceAll("\\s+", " ");
     }
 }
 

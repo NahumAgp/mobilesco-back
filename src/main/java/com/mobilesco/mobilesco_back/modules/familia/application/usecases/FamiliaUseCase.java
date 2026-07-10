@@ -20,11 +20,19 @@ public interface FamiliaUseCase {
 
     String sugerirCodigo(String nombre);
 
+    String sugerirCodigo(String nombre, Long lineaId);
+
     byte[] generarReporteExcel(Boolean activo, String busqueda, Long lineaId, String sortBy, String direction);
 
     List<FamiliaResponseDTO> obtenerTodos();
 
-    PageResponseDTO<FamiliaResponseDTO> obtenerPaginado(int page, String sortBy, String direction);
+    PageResponseDTO<FamiliaResponseDTO> obtenerPaginado(
+            int page,
+            String sortBy,
+            String direction,
+            Boolean activo,
+            String busqueda,
+            Long lineaId);
 
     List<FamiliaResponseDTO> obtenerActivos();
 

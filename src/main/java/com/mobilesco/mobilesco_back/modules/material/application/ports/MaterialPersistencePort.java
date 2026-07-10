@@ -26,6 +26,8 @@ public interface MaterialPersistencePort {
 
     Page<MaterialModel> findAll(Pageable pageable);
 
+    Page<MaterialModel> buscarPaginado(Boolean activo, String busqueda, Pageable pageable);
+
     List<MaterialModel> findByActivo(Boolean activo);
 
     Optional<MaterialModel> findById(Long id);

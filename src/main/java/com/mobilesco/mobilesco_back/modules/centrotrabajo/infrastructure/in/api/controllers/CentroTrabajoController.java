@@ -2,6 +2,7 @@ package com.mobilesco.mobilesco_back.modules.centrotrabajo.infrastructure.in.api
 
 import java.util.List;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,10 +16,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.modules.centrotrabajo.domain.models.CentroTrabajoModel;
 import com.mobilesco.mobilesco_back.modules.centrotrabajo.infrastructure.in.api.dtos.CentroTrabajoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.centrotrabajo.infrastructure.in.api.dtos.CentroTrabajoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.centrotrabajo.infrastructure.in.api.dtos.CentroTrabajoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.centrotrabajo.application.usecases.CentroTrabajoService;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -61,8 +64,24 @@ public class CentroTrabajoController {
 
     @Operation(summary = "Listar todos los centros de trabajo")
     @GetMapping
-    public ResponseEntity<List<CentroTrabajoResponseDTO>> listar() {
-        return ResponseEntity.ok(centroTrabajoService.listar());
+    public ResponseEntity<?> listar(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String estatus,
+            @RequestParam(defaultValue = "false") boolean soloActivos) {
+        if (page == null && size == null) {
+            return ResponseEntity.ok(centroTrabajoService.listar());
+        }
+
+        int pageNumber = page != null && page >= 0 ? page : 0;
+        int pageSize = size != null && size > 0 ? Math.min(size, 100) : 10;
+        PageRequest pageable = PageRequest.of(
+                pageNumber,
+                pageSize,
+                TypeSafeSorts.ascWithId(CentroTrabajoModel.class, CentroTrabajoModel::getCodigo, CentroTrabajoModel::getId));
+
+        return ResponseEntity.ok(centroTrabajoService.listarPaginado(busqueda, estatus, soloActivos, pageable));
     }
 
     @Operation(summary = "Listar solo centros activos")

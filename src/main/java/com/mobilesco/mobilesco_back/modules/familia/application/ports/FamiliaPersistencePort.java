@@ -26,6 +26,8 @@ public interface FamiliaPersistencePort {
 
     Page<FamiliaModel> findAll(Pageable pageable);
 
+    Page<FamiliaModel> buscarPaginado(Boolean activo, String busqueda, Long lineaId, Pageable pageable);
+
     List<FamiliaModel> findByActivo(Boolean activo);
 
     List<FamiliaModel> findByLineaId(Long lineaId);
@@ -40,11 +42,19 @@ public interface FamiliaPersistencePort {
 
     boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id);
 
+    boolean existsByLineaIdAndCodigoIgnoreCase(Long lineaId, String codigo);
+
+    boolean existsByLineaIdAndCodigoIgnoreCaseAndIdNot(Long lineaId, String codigo, Long id);
+
     boolean existsByNombre(String nombre);
 
     boolean existsByNombreIgnoreCase(String nombre);
 
     boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
+
+    boolean existsByLineaIdAndNombreIgnoreCase(Long lineaId, String nombre);
+
+    boolean existsByLineaIdAndNombreIgnoreCaseAndIdNot(Long lineaId, String nombre, Long id);
 
     FamiliaModel save(FamiliaModel familia);
 

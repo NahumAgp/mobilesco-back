@@ -67,12 +67,20 @@ public class UnidadMedidaService {
         return mapToResponseDTOList(unidadMedidaRepository.findAll(construirSortUnidades("nombre", "asc")));
     }
 
-    public PageResponseDTO<UnidadMedidaResponseDTO> obtenerPaginado(int page, Integer size, String sortBy, String direction) {
+    public PageResponseDTO<UnidadMedidaResponseDTO> obtenerPaginado(
+            int page,
+            Integer size,
+            String sortBy,
+            String direction,
+            Boolean estado,
+            String busqueda) {
         int pageNumber = Math.max(page, 0);
         int pageSize = size == null || size <= 0 ? PAGE_SIZE : Math.min(size, 100);
         PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortUnidades(sortBy, direction));
 
-        Page<UnidadMedidaResponseDTO> result = unidadMedidaRepository.findAll(pageable).map(this::mapToResponseDTO);
+        Page<UnidadMedidaResponseDTO> result = unidadMedidaRepository
+                .buscarPaginado(estado, normalizarBusqueda(busqueda), pageable)
+                .map(this::mapToResponseDTO);
 
         return new PageResponseDTO<>(
                 result.getContent(),
@@ -81,6 +89,10 @@ public class UnidadMedidaService {
                 result.getTotalElements(),
                 result.getTotalPages()
         );
+    }
+
+    private String normalizarBusqueda(String busqueda) {
+        return busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
     }
 
     private Sort construirSortUnidades(String sortBy, String direction) {

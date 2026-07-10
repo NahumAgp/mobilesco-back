@@ -165,11 +165,18 @@ public class MaterialServiceImpl implements MaterialUseCase {
         return mapToResponseDTOList(materialRepository.findAll());
     }
 
-    public PageResponseDTO<MaterialResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {
+    public PageResponseDTO<MaterialResponseDTO> obtenerPaginado(
+            int page,
+            String sortBy,
+            String direction,
+            Boolean activo,
+            String busqueda) {
         int pageNumber = Math.max(page, 0);
         PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortMateriales(sortBy, direction));
 
-        Page<MaterialResponseDTO> result = materialRepository.findAll(pageable).map(this::mapToResponseDTO);
+        Page<MaterialResponseDTO> result = materialRepository
+                .buscarPaginado(activo, normalizarBusqueda(busqueda), pageable)
+                .map(this::mapToResponseDTO);
 
         return new PageResponseDTO<>(
                 result.getContent(),
@@ -177,6 +184,10 @@ public class MaterialServiceImpl implements MaterialUseCase {
                 result.getSize(),
                 result.getTotalElements(),
                 result.getTotalPages());
+    }
+
+    private String normalizarBusqueda(String busqueda) {
+        return busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
     }
 
     public byte[] generarReporteExcel(Boolean activo, String busqueda, String sortBy, String direction) {

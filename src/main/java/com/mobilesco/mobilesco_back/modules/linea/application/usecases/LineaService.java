@@ -202,11 +202,18 @@ public class LineaService {
         return mapToResponseDTO(lineaRepository.save(linea));
     }
 
-    public PageResponseDTO<LineaResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {
+    public PageResponseDTO<LineaResponseDTO> obtenerPaginado(
+            int page,
+            String sortBy,
+            String direction,
+            Boolean activo,
+            String busqueda) {
         int pageNumber = Math.max(page, 0);
         PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortLineas(sortBy, direction));
 
-        Page<LineaResponseDTO> result = lineaRepository.findAll(pageable).map(this::mapToResponseDTO);
+        Page<LineaResponseDTO> result = lineaRepository
+                .buscarPaginado(activo, normalizarBusqueda(busqueda), pageable)
+                .map(this::mapToResponseDTO);
 
         return new PageResponseDTO<>(
                 result.getContent(),
@@ -215,6 +222,10 @@ public class LineaService {
                 result.getTotalElements(),
                 result.getTotalPages()
         );
+    }
+
+    private String normalizarBusqueda(String busqueda) {
+        return busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
     }
 
     public List<LineaResponseDTO> obtenerActivos() {

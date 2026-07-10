@@ -10,7 +10,11 @@ package com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persist
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 
@@ -25,4 +29,19 @@ public interface MaterialRepository extends JpaRepository<MaterialModel, Long> {
     boolean existsByCodigo(String codigo);
 
     boolean existsByNombre(String nombre);
+
+    @Query("""
+            SELECT m FROM MaterialModel m
+            WHERE (:activo IS NULL OR m.activo = :activo)
+              AND (
+                :busqueda IS NULL
+                OR LOWER(m.codigo) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(m.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(COALESCE(m.descripcion, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+              )
+            """)
+    Page<MaterialModel> buscarPaginado(
+            @Param("activo") Boolean activo,
+            @Param("busqueda") String busqueda,
+            Pageable pageable);
 }

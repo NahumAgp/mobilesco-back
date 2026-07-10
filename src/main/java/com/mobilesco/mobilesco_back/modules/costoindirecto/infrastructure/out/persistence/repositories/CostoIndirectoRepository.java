@@ -3,6 +3,8 @@ package com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.out.p
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,4 +28,22 @@ public interface CostoIndirectoRepository extends JpaRepository<CostoIndirectoMo
     
     @Query("SELECT c FROM CostoIndirectoModel c WHERE LOWER(c.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))")
     List<CostoIndirectoModel> buscarPorNombre(@Param("nombre") String nombre);
+
+    @Query("""
+            SELECT c
+            FROM CostoIndirectoModel c
+            WHERE (:activo IS NULL OR c.activo = :activo)
+              AND (
+                    :busqueda IS NULL
+                    OR LOWER(c.codigo) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                    OR LOWER(c.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                    OR LOWER(COALESCE(c.descripcion, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                    OR LOWER(CAST(c.tipo AS string)) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                    OR LOWER(CAST(c.periodicidad AS string)) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                  )
+            """)
+    Page<CostoIndirectoModel> buscarPaginado(
+            @Param("activo") Boolean activo,
+            @Param("busqueda") String busqueda,
+            Pageable pageable);
 }

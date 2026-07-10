@@ -47,6 +47,9 @@ public class CentroTrabajoModel {
     @Column(name = "costo_hora", nullable = false)
     private Double costoHora;          // $330 por hora (incluye energía, mantenimiento, depreciación)
 
+    @Column(name = "costo_minuto")
+    private Double costoMinuto;
+
     @Column(name = "capacidad_diaria")
     private Double capacidadDiaria;     // 200 cortes por día, 100 sillas por día
 
@@ -55,6 +58,9 @@ public class CentroTrabajoModel {
 
     @Column(name = "horas_disponibles_dia")
     private Double horasDisponiblesDia; // 8 horas, 16 horas (doble turno)
+
+    @Column(name = "enlace_drive_reporte", length = 500)
+    private String enlaceDriveReporte;
 
     @Column(name = "activo")
     @Builder.Default

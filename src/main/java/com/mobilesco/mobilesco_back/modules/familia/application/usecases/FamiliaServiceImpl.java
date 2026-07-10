@@ -80,16 +80,16 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
     // ========== CREATE ==========
 
     public synchronized FamiliaResponseDTO crear(FamiliaCreateDTO dto) {
-        if (familiaRepository.existsByNombreIgnoreCase(dto.getNombre())) {
-            throw new BadRequestException("Ya existe una familia con el nombre: " + dto.getNombre());
-        }
-
         LineaModel linea = lineaRepository.findById(dto.getLineaId())
                 .orElseThrow(() -> new NotFoundException("Linea no encontrada con ID: " + dto.getLineaId()));
+        String nombre = dto.getNombre().trim();
+        if (familiaRepository.existsByLineaIdAndNombreIgnoreCase(linea.getId(), nombre)) {
+            throw new BadRequestException("Ya existe una familia con el nombre: " + nombre + " en la linea seleccionada");
+        }
 
         FamiliaModel familia = new FamiliaModel();
-        familia.setCodigo(sugerirCodigo(dto.getNombre()));
-        familia.setNombre(dto.getNombre());
+        familia.setCodigo(sugerirCodigo(nombre, linea.getId()));
+        familia.setNombre(nombre);
         familia.setDescripcion(dto.getDescripcion());
         familia.setLinea(linea);
         familia.setActivo(true);
@@ -100,6 +100,18 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
 
     public String sugerirCodigo(String nombre) {
         return CatalogCodeGenerator.generate(nombre, familiaRepository.findAll().stream()
+                .map(FamiliaModel::getCodigo)
+                .toList());
+    }
+
+    public String sugerirCodigo(String nombre, Long lineaId) {
+        if (lineaId == null) {
+            return sugerirCodigo(nombre);
+        }
+        if (!lineaRepository.existsById(lineaId)) {
+            throw new NotFoundException("Linea no encontrada con ID: " + lineaId);
+        }
+        return CatalogCodeGenerator.generate(nombre, familiaRepository.findByLineaId(lineaId).stream()
                 .map(FamiliaModel::getCodigo)
                 .toList());
     }
@@ -185,11 +197,19 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
                         .collect(Collectors.toList()));
     }
 
-    public PageResponseDTO<FamiliaResponseDTO> obtenerPaginado(int page, String sortBy, String direction) {
+    public PageResponseDTO<FamiliaResponseDTO> obtenerPaginado(
+            int page,
+            String sortBy,
+            String direction,
+            Boolean activo,
+            String busqueda,
+            Long lineaId) {
         int pageNumber = Math.max(page, 0);
         PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortFamilias(sortBy, direction));
 
-        Page<FamiliaResponseDTO> result = familiaRepository.findAll(pageable).map(this::mapToResponseDTO);
+        Page<FamiliaResponseDTO> result = familiaRepository
+                .buscarPaginado(activo, normalizarBusqueda(busqueda), lineaId, pageable)
+                .map(this::mapToResponseDTO);
 
         return new PageResponseDTO<>(
                 result.getContent(),
@@ -198,6 +218,10 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
                 result.getTotalElements(),
                 result.getTotalPages()
         );
+    }
+
+    private String normalizarBusqueda(String busqueda) {
+        return busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
     }
 
     public List<FamiliaResponseDTO> obtenerActivos() {
@@ -252,29 +276,33 @@ public class FamiliaServiceImpl implements FamiliaUseCase {
         FamiliaModel existente = familiaRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + id));
 
-        if (dto.getCodigo() != null && !dto.getCodigo().equals(existente.getCodigo())) {
-            if (familiaRepository.existsByCodigoIgnoreCaseAndIdNot(dto.getCodigo(), id)) {
-                throw new BadRequestException("Ya existe una familia con el codigo: " + dto.getCodigo());
-            }
-            existente.setCodigo(dto.getCodigo());
+        LineaModel lineaDestino = dto.getLineaId() != null
+                ? lineaRepository.findById(dto.getLineaId())
+                        .orElseThrow(() -> new NotFoundException("Linea no encontrada con ID: " + dto.getLineaId()))
+                : existente.getLinea();
+        if (lineaDestino == null || lineaDestino.getId() == null) {
+            throw new BadRequestException("La familia debe estar asociada a una linea");
         }
 
-        if (dto.getNombre() != null && !dto.getNombre().equals(existente.getNombre())) {
-            if (familiaRepository.existsByNombreIgnoreCaseAndIdNot(dto.getNombre(), id)) {
-                throw new BadRequestException("Ya existe una familia con el nombre: " + dto.getNombre());
-            }
-            existente.setNombre(dto.getNombre());
+        String codigoDestino = dto.getCodigo() != null ? dto.getCodigo().trim() : existente.getCodigo();
+        String nombreDestino = dto.getNombre() != null ? dto.getNombre().trim() : existente.getNombre();
+
+        if (familiaRepository.existsByLineaIdAndCodigoIgnoreCaseAndIdNot(lineaDestino.getId(), codigoDestino, id)) {
+            throw new BadRequestException("Ya existe una familia con el codigo: " + codigoDestino + " en la linea seleccionada");
         }
+
+        if (familiaRepository.existsByLineaIdAndNombreIgnoreCaseAndIdNot(lineaDestino.getId(), nombreDestino, id)) {
+            throw new BadRequestException("Ya existe una familia con el nombre: " + nombreDestino + " en la linea seleccionada");
+        }
+
+        existente.setCodigo(codigoDestino);
+        existente.setNombre(nombreDestino);
 
         if (dto.getDescripcion() != null) {
             existente.setDescripcion(dto.getDescripcion());
         }
 
-        if (dto.getLineaId() != null) {
-            LineaModel linea = lineaRepository.findById(dto.getLineaId())
-                    .orElseThrow(() -> new NotFoundException("Linea no encontrada con ID: " + dto.getLineaId()));
-            existente.setLinea(linea);
-        }
+        existente.setLinea(lineaDestino);
 
         if (dto.getActivo() != null) {
             existente.setActivo(dto.getActivo());

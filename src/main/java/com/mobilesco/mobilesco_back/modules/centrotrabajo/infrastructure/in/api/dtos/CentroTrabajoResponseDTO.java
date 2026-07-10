@@ -17,9 +17,11 @@ public class CentroTrabajoResponseDTO {
     private String nombre;
     private String descripcion;
     private Double costoHora;
+    private Double costoMinuto;
     private Double capacidadDiaria;
     private String unidadCapacidad;
     private Double horasDisponiblesDia;
+    private String enlaceDriveReporte;
     private Boolean activo;
     private LocalDateTime fechaRegistro;
     private LocalDateTime fechaActualizacion;

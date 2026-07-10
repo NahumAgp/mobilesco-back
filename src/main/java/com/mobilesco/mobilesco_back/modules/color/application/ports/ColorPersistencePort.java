@@ -10,6 +10,9 @@ package com.mobilesco.mobilesco_back.modules.color.application.ports;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
 
 public interface ColorPersistencePort {
@@ -19,6 +22,8 @@ public interface ColorPersistencePort {
     List<ColorModel> findAll();
 
     List<ColorModel> findByActivo(Boolean activo);
+
+    Page<ColorModel> buscarPaginado(Boolean activo, String busqueda, Pageable pageable);
 
     Optional<ColorModel> findById(Long id);
 

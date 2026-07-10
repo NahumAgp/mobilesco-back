@@ -46,9 +46,11 @@ public class UnidadMedidaController {
                 @RequestParam(required = false) Integer page,
                 @RequestParam(required = false) Integer size,
                 @RequestParam(required = false) String sortBy,
-                @RequestParam(required = false, defaultValue = "asc") String direction) {
+                @RequestParam(required = false, defaultValue = "asc") String direction,
+                @RequestParam(required = false) Boolean estado,
+                @RequestParam(required = false) String busqueda) {
             if (page != null) {
-                return ResponseEntity.ok(unidadMedidaService.obtenerPaginado(page, size, sortBy, direction));
+                return ResponseEntity.ok(unidadMedidaService.obtenerPaginado(page, size, sortBy, direction, estado, busqueda));
             }
 
             return ResponseEntity.ok(unidadMedidaService.obtenerTodos());

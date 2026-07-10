@@ -9,6 +9,9 @@ package com.mobilesco.mobilesco_back.modules.color.application.usecases;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
+
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorCreateDTO;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorResponseDTO;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.in.api.dtos.ColorUpdateDTO;
@@ -20,6 +23,8 @@ public interface ColorUseCase {
     String sugerirCodigo(String nombre);
 
     List<ColorResponseDTO> obtenerTodos();
+
+    PageResponseDTO<ColorResponseDTO> obtenerPaginado(Boolean activo, String busqueda, Pageable pageable);
 
     List<ColorResponseDTO> obtenerActivos();
 

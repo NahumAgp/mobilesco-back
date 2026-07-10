@@ -22,7 +22,12 @@ public interface MaterialUseCase {
 
     List<MaterialResponseDTO> obtenerTodos();
 
-    PageResponseDTO<MaterialResponseDTO> obtenerPaginado(int page, String sortBy, String direction);
+    PageResponseDTO<MaterialResponseDTO> obtenerPaginado(
+            int page,
+            String sortBy,
+            String direction,
+            Boolean activo,
+            String busqueda);
 
     byte[] generarReporteExcel(Boolean activo, String busqueda, String sortBy, String direction);
 

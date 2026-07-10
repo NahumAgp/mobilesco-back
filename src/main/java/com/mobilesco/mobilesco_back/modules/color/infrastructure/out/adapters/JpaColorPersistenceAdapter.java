@@ -10,6 +10,8 @@ package com.mobilesco.mobilesco_back.modules.color.infrastructure.out.adapters;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
@@ -38,6 +40,11 @@ public class JpaColorPersistenceAdapter implements ColorPersistencePort {
     @Override
     public List<ColorModel> findByActivo(Boolean activo) {
         return colorRepository.findByActivo(activo);
+    }
+
+    @Override
+    public Page<ColorModel> buscarPaginado(Boolean activo, String busqueda, Pageable pageable) {
+        return colorRepository.buscarPaginado(activo, busqueda, pageable);
     }
 
     @Override

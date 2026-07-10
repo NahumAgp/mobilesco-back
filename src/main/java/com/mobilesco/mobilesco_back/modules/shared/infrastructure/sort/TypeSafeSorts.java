@@ -50,4 +50,46 @@ public final class TypeSafeSorts {
         return Sort.by(Sort.Order.desc(property.then(nestedProperty)))
                 .and(asc(type, idProperty));
     }
+
+    public static <T, U, V, W, I> Sort ascNestedWithId(
+            Class<T> type,
+            TypedPropertyPath<T, U> property,
+            PropertyReference<U, V> nestedProperty,
+            PropertyReference<V, W> nestedNestedProperty,
+            TypedPropertyPath<T, I> idProperty) {
+        return Sort.by(Sort.Order.asc(property.then(nestedProperty).then(nestedNestedProperty)))
+                .and(asc(type, idProperty));
+    }
+
+    public static <T, U, V, W, I> Sort descNestedWithId(
+            Class<T> type,
+            TypedPropertyPath<T, U> property,
+            PropertyReference<U, V> nestedProperty,
+            PropertyReference<V, W> nestedNestedProperty,
+            TypedPropertyPath<T, I> idProperty) {
+        return Sort.by(Sort.Order.desc(property.then(nestedProperty).then(nestedNestedProperty)))
+                .and(asc(type, idProperty));
+    }
+
+    public static <T, U, V, W, X, I> Sort ascNestedWithId(
+            Class<T> type,
+            TypedPropertyPath<T, U> property,
+            PropertyReference<U, V> nestedProperty,
+            PropertyReference<V, W> nestedNestedProperty,
+            PropertyReference<W, X> thirdNestedProperty,
+            TypedPropertyPath<T, I> idProperty) {
+        return Sort.by(Sort.Order.asc(property.then(nestedProperty).then(nestedNestedProperty).then(thirdNestedProperty)))
+                .and(asc(type, idProperty));
+    }
+
+    public static <T, U, V, W, X, I> Sort descNestedWithId(
+            Class<T> type,
+            TypedPropertyPath<T, U> property,
+            PropertyReference<U, V> nestedProperty,
+            PropertyReference<V, W> nestedNestedProperty,
+            PropertyReference<W, X> thirdNestedProperty,
+            TypedPropertyPath<T, I> idProperty) {
+        return Sort.by(Sort.Order.desc(property.then(nestedProperty).then(nestedNestedProperty).then(thirdNestedProperty)))
+                .and(asc(type, idProperty));
+    }
 }

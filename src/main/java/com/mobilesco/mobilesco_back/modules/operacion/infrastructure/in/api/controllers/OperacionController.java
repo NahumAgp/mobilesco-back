@@ -2,6 +2,7 @@ package com.mobilesco.mobilesco_back.modules.operacion.infrastructure.in.api.con
 
 import java.util.List;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,10 +16,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.modules.operacion.domain.models.OperacionModel;
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.in.api.dtos.OperacionCreateDTO;
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.in.api.dtos.OperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.in.api.dtos.OperacionUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.operacion.application.usecases.OperacionService;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -61,7 +64,21 @@ public class OperacionController {
 
     @Operation(summary = "Listar todas las operaciones")
     @GetMapping
-    public ResponseEntity<List<OperacionResponseDTO>> listar() {
+    public ResponseEntity<?> listar(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String centroTrabajo,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = size == null ? 10 : Math.max(1, Math.min(size, 100));
+            PageRequest pageable = PageRequest.of(
+                    pageNumber,
+                    pageSize,
+                    TypeSafeSorts.ascWithId(OperacionModel.class, OperacionModel::getNombre, OperacionModel::getId));
+            return ResponseEntity.ok(operacionService.listarPaginado(activo, busqueda, centroTrabajo, pageable));
+        }
         return ResponseEntity.ok(operacionService.listar());
     }
 

@@ -39,6 +39,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
     private final CategoriaPersistencePort categoriaRepository;
     private final NivelRepository nivelRepository;
 
+    @Override
     @Transactional
     public CategoriaResponseDTO crear(CategoriaCreateDTO dto) {
         log.info("Creando nueva categoría: {}", dto.getNombre());
@@ -61,6 +62,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
         return mapToResponseDTO(saved);
     }
 
+    @Override
     @Transactional
     public CategoriaResponseDTO actualizar(Long id, CategoriaUpdateDTO dto) {
         log.info("Actualizando categoría ID: {}", id);
@@ -88,6 +90,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
         return mapToResponseDTO(updated);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public CategoriaResponseDTO obtenerPorId(Long id) {
         CategoriaModel categoria = categoriaRepository.findById(id)
@@ -95,6 +98,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
         return mapToResponseDTO(categoria);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<CategoriaResponseDTO> listar() {
         return categoriaRepository.findAll()
@@ -103,6 +107,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public byte[] generarReporteExcel(Boolean activo, String busqueda, String sortBy, String direction) {
         List<CategoriaResponseDTO> categorias = categoriaRepository.findAll(construirSortCategorias(sortBy, direction))
@@ -125,7 +130,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
                 headers,
                 filtradas.stream()
                         .map(categoria -> new Object[] {
-                                categoria.getId() != null ? categoria.getId() : 0L,
+                                Objects.requireNonNullElse(categoria.getId(), 0L),
                                 nvl(categoria.getNombre()),
                                 nvl(categoria.getDescripcion()),
                                 Boolean.TRUE.equals(categoria.getActivo()) ? "Activo" : "Inactivo",
@@ -135,6 +140,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
                         .collect(Collectors.toList()));
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<CategoriaResponseDTO> listarActivos() {
         return categoriaRepository.findByActivoTrue()
@@ -143,6 +149,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
                 .collect(Collectors.toList());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public List<CategoriaResponseDTO> buscar(String nombre) {
         return categoriaRepository.buscarPorNombre(nombre)
@@ -192,7 +199,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
                         categoria.getId() != null ? String.valueOf(categoria.getId()) : null,
                         categoria.getNombre(),
                         categoria.getDescripcion(),
-                        categoria.getActivo() != null ? (categoria.getActivo() ? "activo" : "inactivo") : null,
+                        categoria.getActivo() == null ? null : (Boolean.TRUE.equals(categoria.getActivo()) ? "activo" : "inactivo"),
                         categoria.getFechaRegistro() != null ? categoria.getFechaRegistro().toString() : null,
                         categoria.getFechaActualizacion() != null ? categoria.getFechaActualizacion().toString() : null)
                 .filter(valor -> valor != null && !valor.isBlank())
@@ -204,6 +211,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
         return value == null ? "" : value;
     }
 
+    @Override
     @Transactional
     public CategoriaResponseDTO activar(Long id) {
         CategoriaModel categoria = categoriaRepository.findById(id)
@@ -215,6 +223,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
         return mapToResponseDTO(updated);
     }
 
+    @Override
     @Transactional
     public CategoriaResponseDTO desactivar(Long id) {
         CategoriaModel categoria = categoriaRepository.findById(id)
@@ -226,6 +235,7 @@ public class CategoriaServiceImpl implements CategoriaUseCase {
         return mapToResponseDTO(updated);
     }
 
+    @Override
     @Transactional
     public void eliminar(Long id) {
         log.info("Eliminando (desactivando) categoría ID: {}", id);

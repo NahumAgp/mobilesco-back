@@ -21,6 +21,9 @@ public class CentroTrabajoUpdateDTO {
     
     @Positive(message = "El costo por hora debe ser mayor a 0")
     private Double costoHora;
+
+    @Positive(message = "El costo por minuto debe ser mayor a 0")
+    private Double costoMinuto;
     
     @Positive(message = "La capacidad diaria debe ser mayor a 0")
     private Double capacidadDiaria;
@@ -30,6 +33,9 @@ public class CentroTrabajoUpdateDTO {
     
     @Positive(message = "Las horas disponibles deben ser mayor a 0")
     private Double horasDisponiblesDia;
+
+    @Size(max = 500, message = "El enlace de Drive no puede exceder 500 caracteres")
+    private String enlaceDriveReporte;
     
     private Boolean activo;
 }

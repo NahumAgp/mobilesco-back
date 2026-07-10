@@ -58,9 +58,18 @@ public class FamiliaController {
     public ResponseEntity<?> obtenerTodos(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false, defaultValue = "asc") String direction) {
+            @RequestParam(required = false, defaultValue = "asc") String direction,
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Long lineaId) {
         if (page != null) {
-            PageResponseDTO<FamiliaResponseDTO> resultado = familiaService.obtenerPaginado(page, sortBy, direction);
+            PageResponseDTO<FamiliaResponseDTO> resultado = familiaService.obtenerPaginado(
+                    page,
+                    sortBy,
+                    direction,
+                    activo,
+                    busqueda,
+                    lineaId);
             return ResponseEntity.ok(resultado);
         }
 
@@ -89,8 +98,10 @@ public class FamiliaController {
     }
 
     @GetMapping("/codigo-sugerido")
-    public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String nombre) {
-        return ResponseEntity.ok(Map.of("codigo", familiaService.sugerirCodigo(nombre)));
+    public ResponseEntity<Map<String, String>> sugerirCodigo(
+            @RequestParam String nombre,
+            @RequestParam(required = false) Long lineaId) {
+        return ResponseEntity.ok(Map.of("codigo", familiaService.sugerirCodigo(nombre, lineaId)));
     }
 
     @GetMapping("/activas")

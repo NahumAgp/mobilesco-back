@@ -5,9 +5,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.tipoinsumo.domain.models.TipoInsumoModel;
@@ -34,6 +37,19 @@ public class TipoInsumoService {
                 : tipoInsumoRepository.findAllByOrderByActivoDescNombreAsc();
 
         return tipos.stream().map(this::mapToResponseDTO).toList();
+    }
+
+    public PageResponseDTO<TipoInsumoResponseDTO> listarPaginado(boolean soloActivos, String busqueda, Pageable pageable) {
+        Page<TipoInsumoResponseDTO> page = tipoInsumoRepository
+                .buscarPaginado(soloActivos, limpiarTexto(busqueda), pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
     }
 
     public TipoInsumoCodigoPreviewDTO previsualizarCodigo(String nombre) {

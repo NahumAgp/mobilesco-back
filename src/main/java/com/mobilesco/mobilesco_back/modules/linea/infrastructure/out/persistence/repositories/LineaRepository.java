@@ -10,8 +10,11 @@ package com.mobilesco.mobilesco_back.modules.linea.infrastructure.out.persistenc
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 
@@ -37,4 +40,19 @@ public interface LineaRepository extends JpaRepository<LineaModel, Long> {
 
     @Query("SELECT l.codigo FROM LineaModel l")
     List<String> findAllCodigos();
+
+    @Query("""
+            SELECT l FROM LineaModel l
+            WHERE (:activo IS NULL OR l.activo = :activo)
+              AND (
+                :busqueda IS NULL
+                OR LOWER(l.codigo) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(l.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(COALESCE(l.descripcion, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+              )
+            """)
+    Page<LineaModel> buscarPaginado(
+            @Param("activo") Boolean activo,
+            @Param("busqueda") String busqueda,
+            Pageable pageable);
 }

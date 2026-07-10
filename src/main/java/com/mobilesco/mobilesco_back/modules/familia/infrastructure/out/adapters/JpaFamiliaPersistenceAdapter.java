@@ -49,6 +49,11 @@ public class JpaFamiliaPersistenceAdapter implements FamiliaPersistencePort {
     }
 
     @Override
+    public Page<FamiliaModel> buscarPaginado(Boolean activo, String busqueda, Long lineaId, Pageable pageable) {
+        return familiaRepository.buscarPaginado(activo, busqueda, lineaId, pageable);
+    }
+
+    @Override
     public List<FamiliaModel> findByActivo(Boolean activo) {
         return familiaRepository.findByActivo(activo);
     }
@@ -84,6 +89,16 @@ public class JpaFamiliaPersistenceAdapter implements FamiliaPersistencePort {
     }
 
     @Override
+    public boolean existsByLineaIdAndCodigoIgnoreCase(Long lineaId, String codigo) {
+        return familiaRepository.existsByLineaIdAndCodigoIgnoreCase(lineaId, codigo);
+    }
+
+    @Override
+    public boolean existsByLineaIdAndCodigoIgnoreCaseAndIdNot(Long lineaId, String codigo, Long id) {
+        return familiaRepository.existsByLineaIdAndCodigoIgnoreCaseAndIdNot(lineaId, codigo, id);
+    }
+
+    @Override
     public boolean existsByNombre(String nombre) {
         return familiaRepository.existsByNombre(nombre);
     }
@@ -96,6 +111,16 @@ public class JpaFamiliaPersistenceAdapter implements FamiliaPersistencePort {
     @Override
     public boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id) {
         return familiaRepository.existsByNombreIgnoreCaseAndIdNot(nombre, id);
+    }
+
+    @Override
+    public boolean existsByLineaIdAndNombreIgnoreCase(Long lineaId, String nombre) {
+        return familiaRepository.existsByLineaIdAndNombreIgnoreCase(lineaId, nombre);
+    }
+
+    @Override
+    public boolean existsByLineaIdAndNombreIgnoreCaseAndIdNot(Long lineaId, String nombre, Long id) {
+        return familiaRepository.existsByLineaIdAndNombreIgnoreCaseAndIdNot(lineaId, nombre, id);
     }
 
     @Override

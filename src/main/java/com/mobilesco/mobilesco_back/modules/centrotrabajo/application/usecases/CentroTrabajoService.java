@@ -3,6 +3,8 @@ package com.mobilesco.mobilesco_back.modules.centrotrabajo.application.usecases;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,15 +35,20 @@ public class CentroTrabajoService {
             throw new ValidationException("Ya existe un centro de trabajo con el código: " + dto.getCodigo());
         }
 
+        Double costoHora = resolverCostoHora(dto.getCostoHora(), dto.getCostoMinuto(), null);
+        Double costoMinuto = resolverCostoMinuto(dto.getCostoHora(), dto.getCostoMinuto(), null);
+
         // Crear entidad
         CentroTrabajoModel centro = CentroTrabajoModel.builder()
                 .codigo(dto.getCodigo())
                 .nombre(dto.getNombre())
                 .descripcion(dto.getDescripcion())
-                .costoHora(dto.getCostoHora())
+                .costoHora(costoHora)
+                .costoMinuto(costoMinuto)
                 .capacidadDiaria(dto.getCapacidadDiaria())
                 .unidadCapacidad(dto.getUnidadCapacidad())
                 .horasDisponiblesDia(dto.getHorasDisponiblesDia())
+                .enlaceDriveReporte(normalizarTexto(dto.getEnlaceDriveReporte()))
                 .activo(true)
                 .build();
 
@@ -69,8 +76,9 @@ public class CentroTrabajoService {
         centro.setNombre(dto.getNombre());
         centro.setDescripcion(dto.getDescripcion());
         
-        if (dto.getCostoHora() != null) {
-            centro.setCostoHora(dto.getCostoHora());
+        if (dto.getCostoHora() != null || dto.getCostoMinuto() != null) {
+            centro.setCostoHora(resolverCostoHora(dto.getCostoHora(), dto.getCostoMinuto(), centro.getCostoHora()));
+            centro.setCostoMinuto(resolverCostoMinuto(dto.getCostoHora(), dto.getCostoMinuto(), centro.getCostoMinuto()));
         }
         
         if (dto.getCapacidadDiaria() != null) {
@@ -83,6 +91,10 @@ public class CentroTrabajoService {
         
         if (dto.getHorasDisponiblesDia() != null) {
             centro.setHorasDisponiblesDia(dto.getHorasDisponiblesDia());
+        }
+
+        if (dto.getEnlaceDriveReporte() != null) {
+            centro.setEnlaceDriveReporte(normalizarTexto(dto.getEnlaceDriveReporte()));
         }
         
         if (dto.getActivo() != null) {
@@ -115,6 +127,17 @@ public class CentroTrabajoService {
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CentroTrabajoResponseDTO> listarPaginado(
+            String busqueda,
+            String estatus,
+            boolean soloActivos,
+            Pageable pageable) {
+        return centroTrabajoRepository
+                .buscarPaginado(normalizarTexto(busqueda), normalizarTexto(estatus), soloActivos, pageable)
+                .map(this::mapToResponseDTO);
     }
 
     @Transactional(readOnly = true)
@@ -152,12 +175,45 @@ public class CentroTrabajoService {
                 .nombre(centro.getNombre())
                 .descripcion(centro.getDescripcion())
                 .costoHora(centro.getCostoHora())
+                .costoMinuto(centro.getCostoMinuto())
                 .capacidadDiaria(centro.getCapacidadDiaria())
                 .unidadCapacidad(centro.getUnidadCapacidad())
                 .horasDisponiblesDia(centro.getHorasDisponiblesDia())
+                .enlaceDriveReporte(centro.getEnlaceDriveReporte())
                 .activo(centro.getActivo())
                 .fechaRegistro(centro.getFechaRegistro())
                 .fechaActualizacion(centro.getFechaActualizacion())
                 .build();
+    }
+
+    private Double resolverCostoHora(Double costoHora, Double costoMinuto, Double actual) {
+        if (costoHora != null) {
+            return costoHora;
+        }
+        if (costoMinuto != null) {
+            return costoMinuto * 60;
+        }
+        if (actual != null) {
+            return actual;
+        }
+        throw new ValidationException("Debe capturar costo por hora o costo por minuto");
+    }
+
+    private Double resolverCostoMinuto(Double costoHora, Double costoMinuto, Double actual) {
+        if (costoMinuto != null) {
+            return costoMinuto;
+        }
+        if (costoHora != null) {
+            return costoHora / 60;
+        }
+        return actual;
+    }
+
+    private String normalizarTexto(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        String limpio = valor.trim();
+        return limpio.isEmpty() ? null : limpio;
     }
 }

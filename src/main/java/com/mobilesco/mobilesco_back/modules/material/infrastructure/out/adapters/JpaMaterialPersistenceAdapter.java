@@ -49,6 +49,11 @@ public class JpaMaterialPersistenceAdapter implements MaterialPersistencePort {
     }
 
     @Override
+    public Page<MaterialModel> buscarPaginado(Boolean activo, String busqueda, Pageable pageable) {
+        return materialRepository.buscarPaginado(activo, busqueda, pageable);
+    }
+
+    @Override
     public List<MaterialModel> findByActivo(Boolean activo) {
         return materialRepository.findByActivo(activo);
     }

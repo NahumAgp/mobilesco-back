@@ -1,7 +1,6 @@
 package com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.controllers;
 
-import java.util.List;
-
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,10 +16,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.EmpleadoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.EmpleadoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.EmpleadoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.empleado.application.usecases.EmpleadoService;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,10 +44,23 @@ public class EmpleadoController {
 
     @GetMapping
     @Operation(summary = "Listar empleados")
-    public ResponseEntity<List<EmpleadoResponseDTO>> listar(
+    public ResponseEntity<?> listar(
             @RequestParam(required = false) Boolean activo,
-            @RequestParam(required = false) String nombre
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size
     ) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = size == null ? 10 : Math.max(1, Math.min(size, 100));
+            PageRequest pageable = PageRequest.of(
+                    pageNumber,
+                    pageSize,
+                    TypeSafeSorts.ascWithId(EmpleadoModel.class, EmpleadoModel::getNombre, EmpleadoModel::getId));
+            String termino = busqueda != null ? busqueda : nombre;
+            return ResponseEntity.ok(empleadoService.listarPaginado(activo, termino, pageable));
+        }
         return ResponseEntity.ok(empleadoService.listar(activo, nombre));
     }
 

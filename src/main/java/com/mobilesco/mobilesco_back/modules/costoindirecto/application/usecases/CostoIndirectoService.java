@@ -3,9 +3,12 @@ package com.mobilesco.mobilesco_back.modules.costoindirecto.application.usecases
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.BaseDistribucion;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.PeriodicidadCostoIndirecto;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CostoIndirectoCreateDTO;
@@ -143,6 +146,21 @@ public class CostoIndirectoService {
                 .stream()
                 .map(costo -> mapToResponseDTO(costo, minutosProductivosMes))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<CostoIndirectoResponseDTO> listarPaginado(Boolean activo, String busqueda, Pageable pageable) {
+        double minutosProductivosMes = obtenerConfiguracionModel().calcularMinutosProductivosMes();
+        Page<CostoIndirectoResponseDTO> page = costoIndirectoRepository
+                .buscarPaginado(activo, normalizarFiltro(busqueda), pageable)
+                .map(costo -> mapToResponseDTO(costo, minutosProductivosMes));
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
     }
 
     @Transactional(readOnly = true)
@@ -333,5 +351,12 @@ public class CostoIndirectoService {
             generado = String.format("CIF-%05d", siguiente++);
         } while (costoIndirectoRepository.existsByCodigoIgnoreCase(generado));
         return generado;
+    }
+
+    private String normalizarFiltro(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().replaceAll("\\s+", " ");
     }
 }

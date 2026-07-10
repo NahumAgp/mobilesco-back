@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,10 +23,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.in.api.dtos.NivelCreateDTO;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.in.api.dtos.NivelResponseDTO;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.in.api.dtos.NivelUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.nivel.application.usecases.NivelService;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import jakarta.validation.Valid;
 
@@ -50,7 +53,20 @@ public class NivelController {
     // ========== READ ==========
     
     @GetMapping
-    public ResponseEntity<List<NivelResponseDTO>> obtenerTodos() {
+    public ResponseEntity<?> obtenerTodos(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = size == null ? 10 : Math.max(1, Math.min(size, 100));
+            PageRequest pageable = PageRequest.of(
+                    pageNumber,
+                    pageSize,
+                    TypeSafeSorts.ascWithId(NivelModel.class, NivelModel::getNombre, NivelModel::getId));
+            return ResponseEntity.ok(nivelService.obtenerPaginado(activo, busqueda, pageable));
+        }
         return ResponseEntity.ok(nivelService.obtenerTodos());
     }
     

@@ -58,9 +58,11 @@ public class LineaController {
     public ResponseEntity<?> obtenerTodos(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false, defaultValue = "asc") String direction) {
+            @RequestParam(required = false, defaultValue = "asc") String direction,
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda) {
         if (page != null) {
-            PageResponseDTO<LineaResponseDTO> resultado = lineaService.obtenerPaginado(page, sortBy, direction);
+            PageResponseDTO<LineaResponseDTO> resultado = lineaService.obtenerPaginado(page, sortBy, direction, activo, busqueda);
             return ResponseEntity.ok(resultado);
         }
 

@@ -1,7 +1,6 @@
 package com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.controllers;
 
-import java.util.List;
-
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,16 +12,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.application.usecases.CostoIndirectoService;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.models.CostoIndirectoModel;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CifConfiguracionDTO;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CifEstadoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CifResumenDTO;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CostoIndirectoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CostoIndirectoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CostoIndirectoUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -40,7 +42,20 @@ public class CifController {
     private final CostoIndirectoService costoIndirectoService;
 
     @GetMapping("/conceptos")
-    public ResponseEntity<List<CostoIndirectoResponseDTO>> listarConceptos() {
+    public ResponseEntity<?> listarConceptos(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = size == null ? 10 : Math.max(1, Math.min(size, 100));
+            PageRequest pageable = PageRequest.of(
+                    pageNumber,
+                    pageSize,
+                    TypeSafeSorts.ascWithId(CostoIndirectoModel.class, CostoIndirectoModel::getNombre, CostoIndirectoModel::getId));
+            return ResponseEntity.ok(costoIndirectoService.listarPaginado(activo, busqueda, pageable));
+        }
         return ResponseEntity.ok(costoIndirectoService.listar());
     }
 

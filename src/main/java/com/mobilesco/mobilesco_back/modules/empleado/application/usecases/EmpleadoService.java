@@ -7,11 +7,14 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.EmpleadoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.EmpleadoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.empleado.infrastructure.in.api.dtos.EmpleadoUpdateDTO;
@@ -195,6 +198,19 @@ public class EmpleadoService {
         return obtenerTodos();
     }
 
+    public PageResponseDTO<EmpleadoResponseDTO> listarPaginado(Boolean activo, String busqueda, Pageable pageable) {
+        Page<EmpleadoResponseDTO> page = empleadoRepository
+                .buscarPaginado(activo, normalizarFiltro(busqueda), pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
+    }
+
     // =====================================================
     // 🔹 UPDATE
     // =====================================================
@@ -323,6 +339,13 @@ public class EmpleadoService {
         return usuarioActual.getRoles().stream()
                 .map(RolModel::getName)
                 .anyMatch(ROLES_GESTION_EMPLEADOS::contains);
+    }
+
+    private String normalizarFiltro(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().replaceAll("\\s+", " ");
     }
 
     // =====================================================

@@ -6,9 +6,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
@@ -71,6 +74,19 @@ public class NivelService {
     @Transactional(readOnly = true)
     public List<NivelResponseDTO> obtenerTodos() {
         return mapToResponseDTOList(nivelRepository.findAll());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<NivelResponseDTO> obtenerPaginado(Boolean activo, String busqueda, Pageable pageable) {
+        Page<NivelResponseDTO> page = nivelRepository.buscarPaginado(activo, normalizarFiltro(busqueda), pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
     }
 
     @Transactional(readOnly = true)
@@ -300,6 +316,13 @@ public class NivelService {
                 .filter(valor -> valor != null && !valor.isBlank())
                 .map(valor -> valor.toLowerCase(Locale.ROOT))
                 .anyMatch(valor -> valor.contains(termino));
+    }
+
+    private String normalizarFiltro(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().replaceAll("\\s+", " ");
     }
 
 }

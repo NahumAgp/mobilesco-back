@@ -3,9 +3,12 @@ package com.mobilesco.mobilesco_back.modules.operacion.application.usecases;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.in.api.dtos.OperacionCreateDTO;
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.in.api.dtos.OperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.in.api.dtos.OperacionUpdateDTO;
@@ -128,6 +131,24 @@ public OperacionResponseDTO crear(OperacionCreateDTO dto) {
     }
 
     @Transactional(readOnly = true)
+    public PageResponseDTO<OperacionResponseDTO> listarPaginado(
+            Boolean activo,
+            String busqueda,
+            String centroTrabajo,
+            Pageable pageable) {
+        Page<OperacionResponseDTO> page = operacionRepository
+                .buscarPaginado(activo, normalizarFiltro(busqueda), normalizarFiltro(centroTrabajo), pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
+    }
+
+    @Transactional(readOnly = true)
     public List<OperacionResponseDTO> listarActivos() {
         return operacionRepository.findByActivoTrue()
                 .stream()
@@ -172,5 +193,12 @@ public OperacionResponseDTO crear(OperacionCreateDTO dto) {
                 .tiempoOperacion(operacion.getTiempoOperacion())
                 .fechaActualizacion(operacion.getFechaActualizacion())
                 .build();
+    }
+
+    private String normalizarFiltro(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().replaceAll("\\s+", " ");
     }
 }

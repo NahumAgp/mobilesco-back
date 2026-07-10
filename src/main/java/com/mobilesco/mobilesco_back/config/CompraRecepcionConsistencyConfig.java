@@ -23,7 +23,6 @@ public class CompraRecepcionConsistencyConfig {
 
     @Bean
     @Order(2)
-    @SuppressWarnings("unused")
     CommandLineRunner normalizePendingPurchaseReceipts(
             CompraRepository compraRepository,
             DetalleCompraRepository detalleCompraRepository,

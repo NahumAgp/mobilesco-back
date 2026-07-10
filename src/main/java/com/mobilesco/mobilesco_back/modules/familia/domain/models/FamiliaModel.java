@@ -18,6 +18,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,17 +27,23 @@ import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 @Entity
 @Getter
 @Setter
-@Table(name = "familias")
+@Table(
+    name = "familias",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_familia_linea_codigo", columnNames = {"linea_id", "codigo"}),
+        @UniqueConstraint(name = "uk_familia_linea_nombre", columnNames = {"linea_id", "nombre"})
+    }
+)
 public class FamiliaModel {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 10)
+    @Column(nullable = false, length = 10)
     private String codigo;
 
-    @Column(unique = true, nullable = false, length = 100)
+    @Column(nullable = false, length = 100)
     private String nombre;
     
     private String descripcion;
