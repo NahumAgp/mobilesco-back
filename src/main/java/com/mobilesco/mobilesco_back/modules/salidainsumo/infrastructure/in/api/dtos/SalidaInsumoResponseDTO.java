@@ -14,10 +14,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SalidaInsumoResponseDTO {
     private Long id;
+    private String tipoSalida;
     private String ordenProduccion;
     private LocalDateTime fechaSalida;
     private String observaciones;
     private String responsable;
+    private String area;
     private Double cantidadTotal;
     private Boolean activo;
     private String usuario;

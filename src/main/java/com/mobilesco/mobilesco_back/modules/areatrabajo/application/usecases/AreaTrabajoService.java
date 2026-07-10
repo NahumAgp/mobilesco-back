@@ -11,8 +11,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.areatrabajo.domain.models.AreaTrabajoModel;
 import com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.in.api.dtos.AreaTrabajoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.in.api.dtos.AreaTrabajoResponseDTO;
@@ -103,6 +106,19 @@ public class AreaTrabajoService {
         return areas.stream().map(this::map).toList();
     }
 
+    public PageResponseDTO<AreaTrabajoResponseDTO> listarPaginado(Boolean activo, String busqueda, Pageable pageable) {
+        Page<AreaTrabajoResponseDTO> page = areaTrabajoRepository
+                .buscarPaginado(activo, normalizarFiltro(busqueda), pageable)
+                .map(this::map);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
+    }
+
     @Transactional
     public AreaTrabajoResponseDTO cambiarActivo(Long id, Boolean activo) {
         AreaTrabajoModel area = areaTrabajoRepository.findById(id)
@@ -130,6 +146,13 @@ public class AreaTrabajoService {
     private String normalizarTexto(String value) {
         if (value == null || value.isBlank()) {
             return "";
+        }
+        return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private String normalizarFiltro(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
         }
         return value.trim().replaceAll("\\s+", " ");
     }

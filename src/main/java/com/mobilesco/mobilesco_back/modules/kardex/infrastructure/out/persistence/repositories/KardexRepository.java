@@ -3,6 +3,8 @@ package com.mobilesco.mobilesco_back.modules.kardex.infrastructure.out.persisten
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,11 @@ public interface KardexRepository extends JpaRepository<MovimientoInsumoModel, L
     
     // Historial de un insumo específico
     List<MovimientoInsumoModel> findByInsumoIdOrderByFechaDesc(Long insumoId);
+
+    Page<MovimientoInsumoModel> findByInsumoId(Long insumoId, Pageable pageable);
+
+    Page<MovimientoInsumoModel> findByInsumoIdAndFechaBetween(
+        Long insumoId, LocalDateTime fechaInicio, LocalDateTime fechaFin, Pageable pageable);
     
     // Movimientos por tipo
     List<MovimientoInsumoModel> findByInsumoIdAndTipoOrderByFechaDesc(Long insumoId, String tipo);
@@ -27,6 +34,8 @@ public interface KardexRepository extends JpaRepository<MovimientoInsumoModel, L
     // Todos los movimientos de un período
     List<MovimientoInsumoModel> findByFechaBetweenOrderByFechaDesc(
         LocalDateTime fechaInicio, LocalDateTime fechaFin);
+
+    Page<MovimientoInsumoModel> findByFechaBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin, Pageable pageable);
     
     // Movimientos relacionados con una compra
     List<MovimientoInsumoModel> findByCompraIdOrderByFechaDescIdDesc(Long compraId);

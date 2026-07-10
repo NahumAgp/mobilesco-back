@@ -4,9 +4,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.kardex.infrastructure.in.api.dtos.MovimientoInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
@@ -125,6 +128,50 @@ public class KardexService {
         return mapToResponseDTO(saved);
     }
 
+    @Transactional
+    public MovimientoInsumoResponseDTO registrarReversaSalida(
+            Long insumoId,
+            Double cantidad,
+            Double costoUnitario,
+            Long salidaInsumoId,
+            String observaciones,
+            Double stockAnterior,
+            Double stockNuevo,
+            String usuario) {
+
+        log.info("Registrando reversa de salida - Insumo ID: {}, Salida ID: {}, Cantidad: {}",
+                insumoId, salidaInsumoId, cantidad);
+
+        InsumoModel insumo = insumoRepository.findById(insumoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado"));
+
+        Double cantidadSegura = cantidad != null ? cantidad : 0.0;
+        Double costoSeguro = costoUnitario != null ? costoUnitario : 0.0;
+        Double stockAnteriorSeguro = stockAnterior != null ? stockAnterior : 0.0;
+        Double stockNuevoSeguro = stockNuevo != null ? stockNuevo : stockAnteriorSeguro + cantidadSegura;
+
+        MovimientoInsumoModel movimiento = MovimientoInsumoModel.builder()
+                .insumo(insumo)
+                .fecha(LocalDateTime.now())
+                .tipo("ENTRADA")
+                .concepto("DEVOLUCION")
+                .cantidad(cantidadSegura)
+                .costoUnitario(costoSeguro)
+                .costoTotal(cantidadSegura * costoSeguro)
+                .referencia("Reversa salida #" + salidaInsumoId)
+                .observaciones(observaciones)
+                .stockAnterior(stockAnteriorSeguro)
+                .stockNuevo(stockNuevoSeguro)
+                .usuario(usuario)
+                .produccionId(salidaInsumoId)
+                .build();
+
+        MovimientoInsumoModel saved = kardexRepository.save(movimiento);
+        log.info("Reversa de salida registrada con ID: {}", saved.getId());
+
+        return mapToResponseDTO(saved);
+    }
+
     /**
      * REGISTRAR un ajuste manual
      */
@@ -192,6 +239,32 @@ public class KardexService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public PageResponseDTO<MovimientoInsumoResponseDTO> obtenerHistorialPorInsumoPaginado(
+            Long insumoId,
+            LocalDateTime fechaInicio,
+            LocalDateTime fechaFin,
+            Pageable pageable) {
+        if (!insumoRepository.existsById(insumoId)) {
+            throw new ResourceNotFoundException("Insumo no encontrado");
+        }
+
+        Page<MovimientoInsumoModel> movimientos = fechaInicio != null && fechaFin != null
+                ? kardexRepository.findByInsumoIdAndFechaBetween(insumoId, fechaInicio, fechaFin, pageable)
+                : kardexRepository.findByInsumoId(insumoId, pageable);
+
+        Page<MovimientoInsumoResponseDTO> page = movimientos
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
+    }
+
     /**
      * OBTENER movimientos por período
      */
@@ -203,6 +276,23 @@ public class KardexService {
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<MovimientoInsumoResponseDTO> obtenerMovimientosPorPeriodoPaginado(
+            LocalDateTime fechaInicio,
+            LocalDateTime fechaFin,
+            Pageable pageable) {
+        Page<MovimientoInsumoResponseDTO> page = kardexRepository.findByFechaBetween(fechaInicio, fechaFin, pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 
     /**

@@ -15,8 +15,8 @@ class KardexControllerTest {
 
     @Test
     void todosLosEndpointsDeKardexRequierenPermiso() throws Exception {
-        assertPreAuthorize("getHistorialPorInsumo", Long.class);
-        assertPreAuthorize("getMovimientosPorPeriodo", LocalDateTime.class, LocalDateTime.class);
+        assertPreAuthorize("getHistorialPorInsumo", Long.class, LocalDateTime.class, LocalDateTime.class, Integer.class, Integer.class);
+        assertPreAuthorize("getMovimientosPorPeriodo", LocalDateTime.class, LocalDateTime.class, Integer.class, Integer.class);
         assertPreAuthorize("getMovimientosPorCompra", Long.class);
         assertPreAuthorize("getCostoPromedio", Long.class);
         assertPreAuthorize("getConsumoEnPeriodo", Long.class, LocalDateTime.class, LocalDateTime.class);

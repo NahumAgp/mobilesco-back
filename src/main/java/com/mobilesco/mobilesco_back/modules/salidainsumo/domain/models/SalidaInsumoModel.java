@@ -33,7 +33,11 @@ public class SalidaInsumoModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "orden_produccion", nullable = false, length = 100)
+    @Column(name = "tipo_salida", nullable = false, length = 20)
+    @Builder.Default
+    private String tipoSalida = "DIRECTA";
+
+    @Column(name = "orden_produccion", length = 100)
     private String ordenProduccion;
 
     @Column(name = "fecha_salida", nullable = false)
@@ -55,6 +59,9 @@ public class SalidaInsumoModel {
     @Column(name = "responsable", length = 150)
     private String responsable;
 
+    @Column(name = "area", length = 120)
+    private String area;
+
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private LocalDateTime fechaRegistro;
 
@@ -75,6 +82,9 @@ public class SalidaInsumoModel {
         }
         if (cantidadTotal == null) {
             cantidadTotal = 0.0;
+        }
+        if (tipoSalida == null || tipoSalida.isBlank()) {
+            tipoSalida = "DIRECTA";
         }
     }
 

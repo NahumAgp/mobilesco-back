@@ -1,10 +1,10 @@
 package com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.in.api.controllers;
 
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,9 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.areatrabajo.application.usecases.AreaTrabajoService;
+import com.mobilesco.mobilesco_back.modules.areatrabajo.domain.models.AreaTrabajoModel;
 import com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.in.api.dtos.AreaTrabajoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.in.api.dtos.AreaTrabajoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.in.api.dtos.AreaTrabajoUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import jakarta.validation.Valid;
 
@@ -36,9 +38,21 @@ public class AreaTrabajoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AreaTrabajoResponseDTO>> listar(
-            @RequestParam(required = false) Boolean activo
+    public ResponseEntity<?> listar(
+            @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size
     ) {
+        if (page != null) {
+            int pageNumber = Math.max(page, 0);
+            int pageSize = size == null ? 10 : Math.max(1, Math.min(size, 100));
+            PageRequest pageable = PageRequest.of(
+                    pageNumber,
+                    pageSize,
+                    TypeSafeSorts.ascWithId(AreaTrabajoModel.class, AreaTrabajoModel::getNombre, AreaTrabajoModel::getId));
+            return ResponseEntity.ok(areaTrabajoService.listarPaginado(activo, busqueda, pageable));
+        }
         return ResponseEntity.ok(areaTrabajoService.listar(activo));
     }
 

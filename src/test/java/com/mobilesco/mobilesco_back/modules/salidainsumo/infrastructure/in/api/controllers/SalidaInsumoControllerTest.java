@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.lang.reflect.Method;
+import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +23,16 @@ class SalidaInsumoControllerTest {
 
     @Test
     void endpointsDeLecturaDeSalidasRequierenPermisoDeInventario() throws Exception {
-        assertPreAuthorize("listar", PERMISO_VER_INVENTARIO);
+        assertPreAuthorize(
+                "listar",
+                PERMISO_VER_INVENTARIO,
+                String.class,
+                String.class,
+                String.class,
+                LocalDate.class,
+                LocalDate.class,
+                Integer.class,
+                Integer.class);
         assertPreAuthorize("obtenerPorId", PERMISO_VER_INVENTARIO, Long.class);
     }
 

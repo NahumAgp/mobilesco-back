@@ -3,13 +3,17 @@ package com.mobilesco.mobilesco_back.modules.salidainsumo.application.usecases;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.in.api.dtos.DetalleSalidaInsumoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.in.api.dtos.DetalleSalidaInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.in.api.dtos.SalidaInsumoCreateDTO;
@@ -41,17 +45,30 @@ public class SalidaInsumoService {
 
     @Transactional
     public SalidaInsumoResponseDTO crear(SalidaInsumoCreateDTO dto) {
-        log.info("Creando salida de insumos para orden: {}", dto.getOrdenProduccion());
+        String tipoSalida = normalizarTipoSalida(dto.getTipoSalida());
+        String ordenProduccion = normalizarTexto(dto.getOrdenProduccion());
+
+        if ("DIRECTA".equals(tipoSalida) && ordenProduccion == null) {
+            throw new ValidationException("La orden de producción es obligatoria para salidas directas");
+        }
+
+        if ("INDIRECTA".equals(tipoSalida)) {
+            ordenProduccion = null;
+        }
+
+        log.info("Creando salida de insumos tipo: {}, orden: {}", tipoSalida, ordenProduccion);
 
         if (dto.getDetalles() == null || dto.getDetalles().isEmpty()) {
             throw new ValidationException("La salida debe tener al menos un insumo");
         }
 
         SalidaInsumoModel salida = SalidaInsumoModel.builder()
-                .ordenProduccion(dto.getOrdenProduccion().trim())
+                .tipoSalida(tipoSalida)
+                .ordenProduccion(ordenProduccion)
                 .fechaSalida(dto.getFechaSalida() != null ? dto.getFechaSalida() : LocalDateTime.now())
                 .observaciones(dto.getObservaciones())
                 .responsable(dto.getResponsable() != null ? dto.getResponsable().trim() : null)
+                .area(normalizarTexto(dto.getArea()))
                 .cantidadTotal(0.0)
                 .activo(true)
                 .usuario(obtenerUsuarioActual())
@@ -61,16 +78,13 @@ public class SalidaInsumoService {
         salida = salidaInsumoRepository.save(salida);
 
         double cantidadTotal = 0.0;
-        List<DetalleSalidaInsumoModel> detallesGuardados = new ArrayList<>();
-
         for (DetalleSalidaInsumoCreateDTO detalleDTO : dto.getDetalles()) {
             DetalleSalidaInsumoModel detalle = procesarDetalle(salida, detalleDTO);
-            detallesGuardados.add(detalle);
+            salida.getDetalles().add(detalle);
             cantidadTotal += detalle.getCantidad();
         }
 
         salida.setCantidadTotal(cantidadTotal);
-        salida.setDetalles(detallesGuardados);
         salida = salidaInsumoRepository.save(salida);
 
         return mapToResponseDTO(salida);
@@ -78,10 +92,36 @@ public class SalidaInsumoService {
 
     @Transactional(readOnly = true)
     public List<SalidaInsumoResponseDTO> listar() {
-        return salidaInsumoRepository.findAllByOrderByFechaSalidaDesc()
+        return salidaInsumoRepository.findByActivoTrueOrderByFechaSalidaDesc()
                 .stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<SalidaInsumoResponseDTO> listarPaginado(
+            String busqueda,
+            String area,
+            String responsable,
+            LocalDateTime fechaInicio,
+            LocalDateTime fechaFin,
+            Pageable pageable) {
+        Page<SalidaInsumoResponseDTO> page = salidaInsumoRepository
+                .buscarPaginado(
+                        normalizarTexto(busqueda),
+                        normalizarTexto(area),
+                        normalizarTexto(responsable),
+                        fechaInicio,
+                        fechaFin,
+                        pageable)
+                .map(this::mapToResponseDTO);
+
+        return new PageResponseDTO<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages());
     }
 
     @Transactional(readOnly = true)
@@ -89,6 +129,51 @@ public class SalidaInsumoService {
         SalidaInsumoModel salida = salidaInsumoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Salida de insumos no encontrada con id: " + id));
         return mapToResponseDTO(salida);
+    }
+
+    @Transactional
+    public void eliminar(Long id) {
+        SalidaInsumoModel salida = salidaInsumoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Salida de insumos no encontrada con id: " + id));
+
+        if (Boolean.FALSE.equals(salida.getActivo())) {
+            throw new ValidationException("La salida ya fue eliminada");
+        }
+
+        List<DetalleSalidaInsumoModel> detalles = detalleSalidaInsumoRepository.findBySalidaInsumoIdOrderByIdAsc(id);
+        if (detalles.isEmpty()) {
+            throw new ValidationException("La salida no tiene detalles para revertir");
+        }
+
+        String usuario = obtenerUsuarioActual();
+
+        for (DetalleSalidaInsumoModel detalle : detalles) {
+            InsumoModel insumo = insumoRepository.findByIdForUpdate(detalle.getInsumo().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + detalle.getInsumo().getId()));
+
+            Double cantidad = detalle.getCantidad() != null ? detalle.getCantidad() : 0.0;
+            Double stockAnterior = insumo.getStockActual() != null ? insumo.getStockActual() : 0.0;
+            Double stockNuevo = stockAnterior + cantidad;
+
+            insumo.setStockActual(stockNuevo);
+            insumoRepository.save(insumo);
+
+            kardexService.registrarReversaSalida(
+                    insumo.getId(),
+                    cantidad,
+                    detalle.getCostoUnitario(),
+                    salida.getId(),
+                    "Reversa por eliminacion de salida por error de captura",
+                    stockAnterior,
+                    stockNuevo,
+                    usuario);
+        }
+
+        salida.setActivo(false);
+        salida.setObservaciones(agregarNotaEliminacion(salida.getObservaciones(), usuario));
+        salidaInsumoRepository.save(salida);
+
+        log.info("Salida de insumos eliminada logicamente y stock revertido. ID: {}", id);
     }
 
     private DetalleSalidaInsumoModel procesarDetalle(SalidaInsumoModel salida, DetalleSalidaInsumoCreateDTO dto) {
@@ -184,10 +269,12 @@ public class SalidaInsumoService {
 
         return SalidaInsumoResponseDTO.builder()
                 .id(salida.getId())
+                .tipoSalida(salida.getTipoSalida())
                 .ordenProduccion(salida.getOrdenProduccion())
                 .fechaSalida(salida.getFechaSalida())
                 .observaciones(salida.getObservaciones())
                 .responsable(salida.getResponsable())
+                .area(salida.getArea())
                 .cantidadTotal(salida.getCantidadTotal())
                 .activo(salida.getActivo())
                 .usuario(salida.getUsuario())
@@ -195,6 +282,39 @@ public class SalidaInsumoService {
                 .fechaActualizacion(salida.getFechaActualizacion())
                 .detalles(detalles)
                 .build();
+    }
+
+    private String normalizarTexto(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        String limpio = valor.trim();
+        return limpio.isEmpty() ? null : limpio;
+    }
+
+    private String normalizarTipoSalida(String valor) {
+        String tipo = normalizarTexto(valor);
+        if (tipo == null) {
+            return "DIRECTA";
+        }
+
+        tipo = tipo.toUpperCase(Locale.ROOT);
+        if (!"DIRECTA".equals(tipo) && !"INDIRECTA".equals(tipo)) {
+            throw new ValidationException("El tipo de salida debe ser DIRECTA o INDIRECTA");
+        }
+
+        return tipo;
+    }
+
+    private String agregarNotaEliminacion(String observaciones, String usuario) {
+        String nota = "Eliminada por error de captura";
+        if (usuario != null && !usuario.isBlank()) {
+            nota += " por " + usuario;
+        }
+
+        String base = normalizarTexto(observaciones);
+        String resultado = base == null ? nota : base + " | " + nota;
+        return resultado.length() > 500 ? resultado.substring(0, 500) : resultado;
     }
 
     private DetalleSalidaInsumoResponseDTO mapDetalleToResponseDTO(DetalleSalidaInsumoModel detalle) {
