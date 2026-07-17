@@ -29,6 +29,8 @@ public class ProductoFichaDTO {
     private String urlImagenModelo;   // modelo.urlImagen
     private Long familiaId;
     private String familiaNombre;
+    private Long subfamiliaId;
+    private String subfamiliaNombre;
 
     private List<ImagenResponseDTO> imagenes;       // TODAS las imagenes de todas las variantes
     private List<ColorOpcionDTO> colores;           // distintos por id

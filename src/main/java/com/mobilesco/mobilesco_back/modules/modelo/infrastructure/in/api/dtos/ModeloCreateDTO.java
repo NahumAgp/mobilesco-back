@@ -41,6 +41,9 @@ public class ModeloCreateDTO {
     @JsonProperty("familia_id")
     private Long familiaId;
 
+    @JsonProperty("subfamilia_id")
+    private Long subfamiliaId;
+
     private Boolean activo;
 
     @Valid
@@ -97,6 +100,14 @@ public class ModeloCreateDTO {
 
     public void setFamiliaId(Long familiaId) {
         this.familiaId = familiaId;
+    }
+
+    public Long getSubfamiliaId() {
+        return subfamiliaId;
+    }
+
+    public void setSubfamiliaId(Long subfamiliaId) {
+        this.subfamiliaId = subfamiliaId;
     }
 
     public Boolean getActivo() {

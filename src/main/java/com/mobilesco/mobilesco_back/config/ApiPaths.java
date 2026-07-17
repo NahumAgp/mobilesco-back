@@ -28,6 +28,7 @@ public final class ApiPaths {
     //  PRODUCTOS
     public static final String LINEAS = API_VERSION + "/lineas"; 
     public static final String FAMILIAS = API_VERSION + "/familias";
+    public static final String SUBFAMILIAS = API_VERSION + "/subfamilias";
     public static final String MODELOS = API_VERSION + "/modelos";
     public static final String NIVELES = API_VERSION + "/niveles";
     public static final String COLORES = API_VERSION + "/colores";

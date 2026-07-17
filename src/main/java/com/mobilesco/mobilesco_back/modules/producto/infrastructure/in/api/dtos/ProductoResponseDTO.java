@@ -42,6 +42,8 @@ public class ProductoResponseDTO {
     private String modeloUrlImagen;
     private Long familiaId;
     private String familiaNombre;
+    private Long subfamiliaId;
+    private String subfamiliaNombre;
     private Long lineaId;
     private String lineaNombre;
 
@@ -140,6 +142,14 @@ public class ProductoResponseDTO {
 
     public void setFamiliaNombre(String familiaNombre) {
         this.familiaNombre = familiaNombre;
+    }
+
+    public void setSubfamiliaId(Long subfamiliaId) {
+        this.subfamiliaId = subfamiliaId;
+    }
+
+    public void setSubfamiliaNombre(String subfamiliaNombre) {
+        this.subfamiliaNombre = subfamiliaNombre;
     }
 
     public void setLineaId(Long lineaId) {

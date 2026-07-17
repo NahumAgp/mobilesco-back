@@ -28,6 +28,8 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
 
     boolean existsByFamiliaId(Long familiaId);
 
+    boolean existsBySubfamiliaId(Long subfamiliaId);
+
     boolean existsByCodigo(String codigo);
 
     boolean existsByFamiliaIdAndCodigoIgnoreCase(Long familiaId, String codigo);
@@ -54,6 +56,7 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
     @Query("""
             SELECT m FROM ModeloModel m
             LEFT JOIN m.familia f
+            LEFT JOIN m.subfamilia sf
             LEFT JOIN f.linea l
             WHERE (:activo IS NULL OR m.activo = :activo)
               AND (:familiaId IS NULL OR f.id = :familiaId)
@@ -64,6 +67,7 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
                 OR LOWER(COALESCE(m.descripcion, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
                 OR LOWER(COALESCE(m.descripcionCorta, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
                 OR LOWER(COALESCE(f.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                OR LOWER(COALESCE(sf.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
                 OR LOWER(COALESCE(l.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
               )
             """)

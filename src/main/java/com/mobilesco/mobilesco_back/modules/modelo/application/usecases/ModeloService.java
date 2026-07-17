@@ -41,6 +41,8 @@ import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.Mo
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
+import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
+import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.out.persistence.repositories.SubfamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.out.persistence.repositories.CategoriaRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
@@ -56,6 +58,7 @@ public class ModeloService {
     private final ModeloRepository modeloRepository;
     private final FamiliaRepository familiaRepository;
     private final MaterialRepository materialRepository;
+    private final SubfamiliaRepository subfamiliaRepository;
     private final ProductoRepository productoRepository;
     private final NivelRepository nivelRepository;
     private final CategoriaRepository categoriaRepository;
@@ -64,6 +67,7 @@ public class ModeloService {
     public ModeloService(ModeloRepository modeloRepository,
                          FamiliaRepository familiaRepository,
                          MaterialRepository materialRepository,
+                         SubfamiliaRepository subfamiliaRepository,
                          ProductoRepository productoRepository,
                          NivelRepository nivelRepository,
                          CategoriaRepository categoriaRepository,
@@ -71,6 +75,7 @@ public class ModeloService {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
         this.materialRepository = materialRepository;
+        this.subfamiliaRepository = subfamiliaRepository;
         this.productoRepository = productoRepository;
         this.nivelRepository = nivelRepository;
         this.categoriaRepository = categoriaRepository;
@@ -96,6 +101,11 @@ public class ModeloService {
                 dto.setLineaId(modelo.getFamilia().getLinea().getId());
                 dto.setLineaNombre(modelo.getFamilia().getLinea().getNombre());
             }
+        }
+        if (modelo.getSubfamilia() != null) {
+            dto.setSubfamiliaId(modelo.getSubfamilia().getId());
+            dto.setSubfamiliaNombre(modelo.getSubfamilia().getNombre());
+            dto.setSubfamiliaCodigo(modelo.getSubfamilia().getCodigo());
         }
         dto.setCategorias(nivelRepository.findByModeloIdOrderByCodigoAsc(modelo.getId()).stream()
                 .map(this::mapCategoria)
@@ -181,6 +191,7 @@ public class ModeloService {
         modelo.setUrlImagen(dto.getUrlImagen());
         modelo.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
         modelo.setFamilia(familia);
+        modelo.setSubfamilia(resolverSubfamilia(dto.getSubfamiliaId(), familia));
 
         ModeloModel guardado = modeloRepository.save(modelo);
         sincronizarCategorias(guardado, dto.getCategorias());
@@ -340,6 +351,12 @@ public class ModeloService {
         if (familiaDestino == null || familiaDestino.getId() == null) {
             throw new BadRequestException("El modelo debe estar asociado a una familia");
         }
+        SubfamiliaModel subfamiliaDestino = dto.getSubfamiliaId() != null
+                ? resolverSubfamilia(dto.getSubfamiliaId(), familiaDestino)
+                : dto.getFamiliaId() != null ? null : existente.getSubfamilia();
+        if (subfamiliaDestino != null && !Objects.equals(subfamiliaDestino.getFamilia().getId(), familiaDestino.getId())) {
+            subfamiliaDestino = null;
+        }
 
         String codigoDestino = dto.getCodigo() != null ? dto.getCodigo().trim() : existente.getCodigo();
         String nombreDestino = dto.getNombre() != null ? dto.getNombre().trim() : existente.getNombre();
@@ -368,6 +385,7 @@ public class ModeloService {
         }
 
         existente.setFamilia(familiaDestino);
+        existente.setSubfamilia(subfamiliaDestino);
 
         if (dto.getActivo() != null) {
             existente.setActivo(dto.getActivo());
@@ -462,6 +480,18 @@ public class ModeloService {
         dto.setFechaRegistro(material.getFechaRegistro());
         dto.setFechaActualizacion(material.getFechaActualizacion());
         return dto;
+    }
+
+    private SubfamiliaModel resolverSubfamilia(Long subfamiliaId, FamiliaModel familia) {
+        if (subfamiliaId == null) {
+            return null;
+        }
+        SubfamiliaModel subfamilia = subfamiliaRepository.findById(subfamiliaId)
+                .orElseThrow(() -> new NotFoundException("Subfamilia no encontrada con ID: " + subfamiliaId));
+        if (subfamilia.getFamilia() == null || !Objects.equals(subfamilia.getFamilia().getId(), familia.getId())) {
+            throw new BadRequestException("La subfamilia seleccionada no pertenece a la familia del modelo");
+        }
+        return subfamilia;
     }
 
     private void sincronizarMateriales(ModeloModel modelo, List<Long> materialIds) {

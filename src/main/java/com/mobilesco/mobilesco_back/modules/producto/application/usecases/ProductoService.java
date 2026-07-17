@@ -495,6 +495,8 @@ public class ProductoService {
         response.setModeloUrlImagen(modelo != null ? modelo.getUrlImagen() : null);
         response.setFamiliaId(familia != null ? familia.getId() : null);
         response.setFamiliaNombre(familia != null ? familia.getNombre() : null);
+        response.setSubfamiliaId(modelo != null && modelo.getSubfamilia() != null ? modelo.getSubfamilia().getId() : null);
+        response.setSubfamiliaNombre(modelo != null && modelo.getSubfamilia() != null ? modelo.getSubfamilia().getNombre() : null);
         response.setLineaId(linea != null ? linea.getId() : null);
         response.setLineaNombre(linea != null ? linea.getNombre() : null);
         response.setNivelId(producto.getNivel() != null ? producto.getNivel().getId() : null);
@@ -607,6 +609,8 @@ public class ProductoService {
                         .urlImagenModelo(modelo.getUrlImagen())
                         .familiaId(modelo.getFamilia() != null ? modelo.getFamilia().getId() : null)
                         .familiaNombre(modelo.getFamilia() != null ? modelo.getFamilia().getNombre() : null)
+                        .subfamiliaId(modelo.getSubfamilia() != null ? modelo.getSubfamilia().getId() : null)
+                        .subfamiliaNombre(modelo.getSubfamilia() != null ? modelo.getSubfamilia().getNombre() : null)
                         .build())
                 .collect(Collectors.toList());
     }
@@ -686,6 +690,8 @@ public class ProductoService {
                 .urlImagenModelo(modelo.getUrlImagen())
                 .familiaId(familia != null ? familia.getId() : null)
                 .familiaNombre(familia != null ? familia.getNombre() : null)
+                .subfamiliaId(modelo.getSubfamilia() != null ? modelo.getSubfamilia().getId() : null)
+                .subfamiliaNombre(modelo.getSubfamilia() != null ? modelo.getSubfamilia().getNombre() : null)
                 .imagenes(imagenes)
                 .colores(new ArrayList<>(colores.values()))
                 .tamanos(new ArrayList<>(tamanos.values()))
@@ -855,6 +861,7 @@ public class ProductoService {
 
         String lineaCodigo = modelo.getFamilia().getLinea().getCodigo();
         String familiaCodigo = modelo.getFamilia().getCodigo();
+        String subfamiliaCodigo = modelo.getSubfamilia() != null ? modelo.getSubfamilia().getCodigo() : "";
         String modeloCodigo = modelo.getCodigo();
         String nivelCodigo = nivel.getCodigo();
         String materialCodigo = material.getCodigo();
@@ -865,7 +872,7 @@ public class ProductoService {
             throw new ValidationException("Faltan codigos requeridos para generar el sku del producto");
         }
 
-        return (lineaCodigo + familiaCodigo + modeloCodigo + "-" + nivelCodigo + "-" + materialCodigo + "-" + colorCodigo).toUpperCase();
+        return (lineaCodigo + familiaCodigo + subfamiliaCodigo + modeloCodigo + "-" + nivelCodigo + "-" + materialCodigo + "-" + colorCodigo).toUpperCase();
     }
 
     private void validarNivelDelModelo(ModeloModel modelo, NivelModel nivel) {

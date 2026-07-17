@@ -31,12 +31,16 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaResponseDTO.ProductoCreadoDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
+import com.mobilesco.mobilesco_back.modules.subfamilia.application.usecases.SubfamiliaService;
+import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.in.api.dtos.SubfamiliaCreateDTO;
+import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.in.api.dtos.SubfamiliaResponseDTO;
 
 @Service
 public class ProductoCreacionCompletaService {
 
     private final LineaService lineaService;
     private final FamiliaUseCase familiaService;
+    private final SubfamiliaService subfamiliaService;
     private final ModeloService modeloService;
     private final NivelService nivelService;
     private final MaterialUseCase materialService;
@@ -46,6 +50,7 @@ public class ProductoCreacionCompletaService {
     public ProductoCreacionCompletaService(
             LineaService lineaService,
             FamiliaUseCase familiaService,
+            SubfamiliaService subfamiliaService,
             ModeloService modeloService,
             NivelService nivelService,
             MaterialUseCase materialService,
@@ -53,6 +58,7 @@ public class ProductoCreacionCompletaService {
             ProductoService productoService) {
         this.lineaService = lineaService;
         this.familiaService = familiaService;
+        this.subfamiliaService = subfamiliaService;
         this.modeloService = modeloService;
         this.nivelService = nivelService;
         this.materialService = materialService;
@@ -64,6 +70,7 @@ public class ProductoCreacionCompletaService {
     public ProductoCreacionCompletaResponseDTO crear(ProductoCreacionCompletaDTO dto) {
         Map<String, Long> lineas = new HashMap<>();
         Map<String, Long> familias = new HashMap<>();
+        Map<String, Long> subfamilias = new HashMap<>();
         Map<String, Long> modelos = new HashMap<>();
         Map<String, Long> categorias = new HashMap<>();
         Map<String, Long> materiales = new HashMap<>();
@@ -84,6 +91,16 @@ public class ProductoCreacionCompletaService {
             registrarRef(familias, borrador.getRef(), creada.getId(), "familia");
         });
 
+        dto.getSubfamilias().forEach(borrador -> {
+            SubfamiliaCreateDTO payload = new SubfamiliaCreateDTO();
+            payload.setCodigo(borrador.getCodigo());
+            payload.setNombre(borrador.getNombre());
+            payload.setDescripcion(borrador.getDescripcion());
+            payload.setFamiliaId(resolverId(borrador.getFamiliaId(), borrador.getFamiliaRef(), familias, "familia"));
+            SubfamiliaResponseDTO creada = subfamiliaService.crear(payload);
+            registrarRef(subfamilias, borrador.getRef(), creada.getId(), "subfamilia");
+        });
+
         ModeloResponseDTO modeloResultado = null;
         if (dto.getModelo() != null) {
             ModeloCreateDTO payload = new ModeloCreateDTO();
@@ -97,6 +114,10 @@ public class ProductoCreacionCompletaService {
                     dto.getModelo().getFamiliaRef(),
                     familias,
                     "familia"));
+            payload.setSubfamiliaId(resolverIdOpcional(
+                    dto.getModelo().getSubfamiliaId(),
+                    dto.getModelo().getSubfamiliaRef(),
+                    subfamilias));
             payload.setCategorias(new ArrayList<>(dto.getModelo().getCategorias()));
             modeloResultado = modeloService.crear(payload);
             registrarRef(modelos, dto.getModelo().getRef(), modeloResultado.getId(), "modelo");
@@ -175,6 +196,12 @@ public class ProductoCreacionCompletaService {
             throw new BadRequestException("No se pudo resolver la referencia de " + tipo + ": " + ref);
         }
         return resuelto;
+    }
+
+    private Long resolverIdOpcional(Long id, String ref, Map<String, Long> refs) {
+        if (id != null) return id;
+        if (ref == null || ref.isBlank()) return null;
+        return refs.get(ref);
     }
 
     private void registrarRef(Map<String, Long> refs, String ref, Long id, String tipo) {

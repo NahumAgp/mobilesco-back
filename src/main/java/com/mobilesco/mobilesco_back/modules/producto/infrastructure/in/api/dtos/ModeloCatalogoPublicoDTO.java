@@ -26,4 +26,6 @@ public class ModeloCatalogoPublicoDTO {
     private String urlImagenModelo;   // modelo.urlImagen (ruta publica /uploads/...)
     private Long familiaId;
     private String familiaNombre;
+    private Long subfamiliaId;
+    private String subfamiliaNombre;
 }

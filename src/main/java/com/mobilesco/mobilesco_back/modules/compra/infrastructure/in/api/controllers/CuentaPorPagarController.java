@@ -1,6 +1,11 @@
 package com.mobilesco.mobilesco_back.modules.compra.infrastructure.in.api.controllers;
 
+import java.time.LocalDate;
+
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,10 +45,12 @@ public class CuentaPorPagarController {
     public ResponseEntity<?> listar(
             @RequestParam(required = false) String estado,
             @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
         if (page == null && size == null) {
-            return ResponseEntity.ok(cuentaPorPagarService.listar(estado));
+            return ResponseEntity.ok(cuentaPorPagarService.listar(estado, busqueda, fechaInicio, fechaFin));
         }
 
         int pageNumber = page != null && page >= 0 ? page : 0;
@@ -53,7 +60,23 @@ public class CuentaPorPagarController {
                 pageSize,
                 TypeSafeSorts.descWithId(CuentaPorPagarModel.class, CuentaPorPagarModel::getFechaCuenta, CuentaPorPagarModel::getId));
 
-        return ResponseEntity.ok(cuentaPorPagarService.listarPaginado(estado, busqueda, pageable));
+        return ResponseEntity.ok(cuentaPorPagarService.listarPaginado(estado, busqueda, fechaInicio, fechaFin, pageable));
+    }
+
+    @Operation(summary = "Exportar reporte de cuentas por pagar a Excel")
+    @GetMapping("/reporte/excel")
+    @PreAuthorize(PERMISO_VER_COMPRAS)
+    public ResponseEntity<byte[]> exportarExcel(
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
+        byte[] excel = cuentaPorPagarService.generarReporteExcel(estado, busqueda, fechaInicio, fechaFin);
+        String filename = "cuentas-por-pagar.xlsx";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(excel);
     }
 
     @Operation(summary = "Obtener detalle de cuenta por pagar")

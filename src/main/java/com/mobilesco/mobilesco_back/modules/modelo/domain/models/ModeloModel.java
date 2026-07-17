@@ -16,6 +16,7 @@ import java.util.Set;
 
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
+import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
 
 @Entity
 @Getter
@@ -61,6 +62,10 @@ public class ModeloModel {
     @ManyToOne
     @JoinColumn(name = "familia_id")
     private FamiliaModel familia;
+
+    @ManyToOne
+    @JoinColumn(name = "subfamilia_id")
+    private SubfamiliaModel subfamilia;
 
     @ManyToMany
     @JoinTable(

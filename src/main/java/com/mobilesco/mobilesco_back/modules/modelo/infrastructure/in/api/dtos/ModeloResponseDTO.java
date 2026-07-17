@@ -29,6 +29,9 @@ public class ModeloResponseDTO {
 
     private Long familiaId;
     private String familiaNombre;
+    private Long subfamiliaId;
+    private String subfamiliaNombre;
+    private String subfamiliaCodigo;
     private Long lineaId;
     private String lineaNombre;
     private List<ModeloCategoriaDTO> categorias;
@@ -120,6 +123,30 @@ public class ModeloResponseDTO {
 
     public void setFamiliaNombre(String familiaNombre) {
         this.familiaNombre = familiaNombre;
+    }
+
+    public Long getSubfamiliaId() {
+        return subfamiliaId;
+    }
+
+    public void setSubfamiliaId(Long subfamiliaId) {
+        this.subfamiliaId = subfamiliaId;
+    }
+
+    public String getSubfamiliaNombre() {
+        return subfamiliaNombre;
+    }
+
+    public void setSubfamiliaNombre(String subfamiliaNombre) {
+        this.subfamiliaNombre = subfamiliaNombre;
+    }
+
+    public String getSubfamiliaCodigo() {
+        return subfamiliaCodigo;
+    }
+
+    public void setSubfamiliaCodigo(String subfamiliaCodigo) {
+        this.subfamiliaCodigo = subfamiliaCodigo;
     }
 
     public Long getLineaId() {

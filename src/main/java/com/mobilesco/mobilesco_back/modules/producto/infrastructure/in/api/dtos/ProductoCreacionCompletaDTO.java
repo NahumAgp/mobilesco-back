@@ -24,6 +24,9 @@ public class ProductoCreacionCompletaDTO {
     private List<FamiliaBorradorDTO> familias = new ArrayList<>();
 
     @Valid
+    private List<SubfamiliaBorradorDTO> subfamilias = new ArrayList<>();
+
+    @Valid
     private ModeloBorradorDTO modelo;
 
     @Valid
@@ -59,6 +62,18 @@ public class ProductoCreacionCompletaDTO {
     }
 
     @Data
+    public static class SubfamiliaBorradorDTO {
+        @NotBlank(message = "La referencia temporal de la subfamilia es obligatoria")
+        private String ref;
+        @NotBlank(message = "El nombre de la subfamilia es obligatorio")
+        private String nombre;
+        private String codigo;
+        private String descripcion;
+        private Long familiaId;
+        private String familiaRef;
+    }
+
+    @Data
     public static class ModeloBorradorDTO {
         @NotBlank(message = "La referencia temporal del modelo es obligatoria")
         private String ref;
@@ -70,6 +85,8 @@ public class ProductoCreacionCompletaDTO {
         private Boolean activo = true;
         private Long familiaId;
         private String familiaRef;
+        private Long subfamiliaId;
+        private String subfamiliaRef;
         @Valid
         @NotEmpty(message = "El modelo debe tener al menos una categoria")
         private List<CategoriaBorradorDTO> categorias = new ArrayList<>();

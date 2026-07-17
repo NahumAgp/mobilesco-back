@@ -42,11 +42,13 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaDTO.VarianteBorradorDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
+import com.mobilesco.mobilesco_back.modules.subfamilia.application.usecases.SubfamiliaService;
 
 class ProductoCreacionCompletaServiceTest {
 
     private LineaService lineaService;
     private FamiliaUseCase familiaService;
+    private SubfamiliaService subfamiliaService;
     private ModeloService modeloService;
     private NivelService nivelService;
     private MaterialUseCase materialService;
@@ -58,6 +60,7 @@ class ProductoCreacionCompletaServiceTest {
     void setUp() {
         lineaService = mock(LineaService.class);
         familiaService = mock(FamiliaUseCase.class);
+        subfamiliaService = mock(SubfamiliaService.class);
         modeloService = mock(ModeloService.class);
         nivelService = mock(NivelService.class);
         materialService = mock(MaterialUseCase.class);
@@ -66,6 +69,7 @@ class ProductoCreacionCompletaServiceTest {
         service = new ProductoCreacionCompletaService(
                 lineaService,
                 familiaService,
+                subfamiliaService,
                 modeloService,
                 nivelService,
                 materialService,
