@@ -32,6 +32,7 @@ public final class PermisoCatalog {
             new Definition("VIEW_CIF", "Ver CIF", "Costos", "CIF", "Consultar costos indirectos de fabricacion.", "/cif", "VIEW"),
             new Definition("VIEW_PURCHASES", "Ver compras", "Compras", "Compras", "Consultar compras.", "/compras", "VIEW"),
             new Definition("VIEW_KARDEX", "Ver kardex", "Almacen", "Kardex", "Consultar movimientos de inventario.", "/kardex", "VIEW"),
+            new Definition("VIEW_CUSTOMERS", "Ver clientes", "Ventas", "Clientes", "Consultar y administrar el catálogo comercial de clientes.", "/clientes", "VIEW"),
             new Definition("VIEW_QUOTES", "Ver cotizaciones", "Ventas", "Cotizaciones", "Consultar cotizaciones.", "/cotizaciones", "VIEW"),
             new Definition("ACTION_INSUMOS_COSTS", "Gestionar costos de insumos", "Almacen", "Insumos", "Editar costos de insumos.", "/insumos/costos", "ACTION")
     );
@@ -52,7 +53,7 @@ public final class PermisoCatalog {
             Map.entry("SUPER_ADMIN", ALL_CODES),
             Map.entry("DIRECTOR_GENERAL", ALL_CODES),
             Map.entry("SUBDIRECCION_ADMINISTRATIVA", ALL_CODES),
-            Map.entry("ASISTENTE_GERENCIAL", Set.of("VIEW_DASHBOARD", "VIEW_EMPLOYEES", "VIEW_SUPPLIERS", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "VIEW_PURCHASES", "VIEW_QUOTES")),
+            Map.entry("ASISTENTE_GERENCIAL", Set.of("VIEW_DASHBOARD", "VIEW_EMPLOYEES", "VIEW_SUPPLIERS", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "VIEW_PURCHASES", "VIEW_CUSTOMERS", "VIEW_QUOTES")),
             Map.entry("SUPERVISOR_PRODUCCION", Set.of("VIEW_DASHBOARD", "VIEW_EMPLOYEES", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "VIEW_WORK_CENTERS", "VIEW_OPERATIONS")),
             Map.entry("JEFE_HERRERIA", Set.of("VIEW_DASHBOARD", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "VIEW_WORK_CENTERS", "VIEW_OPERATIONS")),
             Map.entry("JEFE_CARPINTERIA", Set.of("VIEW_DASHBOARD", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "VIEW_WORK_CENTERS", "VIEW_OPERATIONS")),
