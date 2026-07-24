@@ -69,6 +69,7 @@ public class ProductoService {
     private final ProductoOperacionRepository productoOperacionRepository;
     private final ImagenService imagenService;
     private final CostoIndirectoService costoIndirectoService;
+    private final ProductoPlantillaModeloService productoPlantillaModeloService;
 
     public ProductoService(
             ProductoRepository productoRepository,
@@ -79,7 +80,8 @@ public class ProductoService {
             ProductoInsumoRepository productoInsumoRepository,
             ProductoOperacionRepository productoOperacionRepository,
             ImagenService imagenService,
-            CostoIndirectoService costoIndirectoService) {
+            CostoIndirectoService costoIndirectoService,
+            ProductoPlantillaModeloService productoPlantillaModeloService) {
         this.productoRepository = productoRepository;
         this.modeloRepository = modeloRepository;
         this.nivelRepository = nivelRepository;
@@ -89,6 +91,7 @@ public class ProductoService {
         this.productoOperacionRepository = productoOperacionRepository;
         this.imagenService = imagenService;
         this.costoIndirectoService = costoIndirectoService;
+        this.productoPlantillaModeloService = productoPlantillaModeloService;
     }
 
     @Transactional
@@ -130,6 +133,7 @@ public class ProductoService {
                 .build();
 
         ProductoModel saved = productoRepository.save(producto);
+        productoPlantillaModeloService.aplicarAProducto(saved);
         return mapToResponseDTO(saved);
     }
 

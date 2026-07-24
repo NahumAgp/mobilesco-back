@@ -38,16 +38,23 @@ import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persiste
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCreateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCategoriaDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloInsumoDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloOperacionDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
 import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.out.persistence.repositories.SubfamiliaRepository;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
+import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
+import com.mobilesco.mobilesco_back.modules.operacion.domain.models.OperacionModel;
+import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.out.persistence.repositories.OperacionRepository;
 import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.out.persistence.repositories.CategoriaRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
+import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoPlantillaModeloService;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
 
 @Service
@@ -63,6 +70,9 @@ public class ModeloService {
     private final NivelRepository nivelRepository;
     private final CategoriaRepository categoriaRepository;
     private final AlmacenamientoImagenesService almacenamientoImagenesService;
+    private final InsumoRepository insumoRepository;
+    private final OperacionRepository operacionRepository;
+    private final ProductoPlantillaModeloService productoPlantillaModeloService;
 
     public ModeloService(ModeloRepository modeloRepository,
                          FamiliaRepository familiaRepository,
@@ -71,7 +81,10 @@ public class ModeloService {
                          ProductoRepository productoRepository,
                          NivelRepository nivelRepository,
                          CategoriaRepository categoriaRepository,
-                         AlmacenamientoImagenesService almacenamientoImagenesService) {
+                         AlmacenamientoImagenesService almacenamientoImagenesService,
+                         InsumoRepository insumoRepository,
+                         OperacionRepository operacionRepository,
+                         ProductoPlantillaModeloService productoPlantillaModeloService) {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
         this.materialRepository = materialRepository;
@@ -80,6 +93,9 @@ public class ModeloService {
         this.nivelRepository = nivelRepository;
         this.categoriaRepository = categoriaRepository;
         this.almacenamientoImagenesService = almacenamientoImagenesService;
+        this.insumoRepository = insumoRepository;
+        this.operacionRepository = operacionRepository;
+        this.productoPlantillaModeloService = productoPlantillaModeloService;
     }
 
     private ModeloResponseDTO mapToResponseDTO(ModeloModel modelo) {
@@ -123,6 +139,31 @@ public class ModeloService {
                     return Long.compare(idIzq, idDer);
                 })
                 .map(this::mapMaterial)
+                .toList());
+        dto.setInsumos(modelo.getInsumos().stream()
+                .sorted((izq, der) -> nvl(izq.getNombre()).compareToIgnoreCase(nvl(der.getNombre())))
+                .map(insumo -> ModeloInsumoDTO.builder()
+                        .id(insumo.getId())
+                        .codigo(insumo.getCodigo())
+                        .nombre(insumo.getNombre())
+                        .unidadMedida(insumo.getUnidadMedida() != null ? insumo.getUnidadMedida().getSimbolo() : null)
+                        .activo(insumo.getActivo())
+                        .build())
+                .toList());
+        dto.setOperaciones(java.util.stream.IntStream.range(0, modelo.getOperaciones().size())
+                .mapToObj(index -> {
+                    OperacionModel operacion = modelo.getOperaciones().get(index);
+                    return ModeloOperacionDTO.builder()
+                            .id(operacion.getId())
+                            .codigo(operacion.getCodigo())
+                            .nombre(operacion.getNombre())
+                            .centroTrabajoNombre(operacion.getCentroTrabajo() != null
+                                    ? operacion.getCentroTrabajo().getNombre()
+                                    : null)
+                            .orden(index + 1)
+                            .activo(operacion.getActivo())
+                            .build();
+                })
                 .toList());
 
         return dto;
@@ -178,8 +219,10 @@ public class ModeloService {
     public synchronized ModeloResponseDTO crear(ModeloCreateDTO dto) {
         FamiliaModel familia = familiaRepository.findById(dto.getFamiliaId())
                 .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + dto.getFamiliaId()));
+        SubfamiliaModel subfamilia = resolverSubfamilia(dto.getSubfamiliaId(), familia);
         String nombre = dto.getNombre().trim();
-        if (modeloRepository.existsByFamiliaIdAndNombreIgnoreCase(familia.getId(), nombre)) {
+        boolean nombreDuplicado = modeloRepository.existsByFamiliaIdAndNombreIgnoreCase(familia.getId(), nombre);
+        if (nombreDuplicado) {
             throw new BadRequestException("Ya existe un modelo con el nombre: " + nombre + " en la familia seleccionada");
         }
 
@@ -191,11 +234,13 @@ public class ModeloService {
         modelo.setUrlImagen(dto.getUrlImagen());
         modelo.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
         modelo.setFamilia(familia);
-        modelo.setSubfamilia(resolverSubfamilia(dto.getSubfamiliaId(), familia));
+        modelo.setSubfamilia(subfamilia);
 
         ModeloModel guardado = modeloRepository.save(modelo);
         sincronizarCategorias(guardado, dto.getCategorias());
         sincronizarMateriales(guardado, dto.getMateriales());
+        sincronizarInsumos(guardado, dto.getInsumos());
+        sincronizarOperaciones(guardado, dto.getOperaciones());
         guardado = modeloRepository.save(guardado);
         return mapToResponseDTO(guardado);
     }
@@ -351,21 +396,23 @@ public class ModeloService {
         if (familiaDestino == null || familiaDestino.getId() == null) {
             throw new BadRequestException("El modelo debe estar asociado a una familia");
         }
+        String codigoDestino = dto.getCodigo() != null ? dto.getCodigo().trim() : existente.getCodigo();
+        String nombreDestino = dto.getNombre() != null ? dto.getNombre().trim() : existente.getNombre();
+
         SubfamiliaModel subfamiliaDestino = dto.getSubfamiliaId() != null
                 ? resolverSubfamilia(dto.getSubfamiliaId(), familiaDestino)
-                : dto.getFamiliaId() != null ? null : existente.getSubfamilia();
+                : existente.getSubfamilia();
         if (subfamiliaDestino != null && !Objects.equals(subfamiliaDestino.getFamilia().getId(), familiaDestino.getId())) {
             subfamiliaDestino = null;
         }
 
-        String codigoDestino = dto.getCodigo() != null ? dto.getCodigo().trim() : existente.getCodigo();
-        String nombreDestino = dto.getNombre() != null ? dto.getNombre().trim() : existente.getNombre();
-
-        if (modeloRepository.existsByFamiliaIdAndCodigoIgnoreCaseAndIdNot(familiaDestino.getId(), codigoDestino, id)) {
+        boolean codigoDuplicado = modeloRepository.existsByFamiliaIdAndCodigoIgnoreCaseAndIdNot(familiaDestino.getId(), codigoDestino, id);
+        if (codigoDuplicado) {
             throw new BadRequestException("Ya existe un modelo con el codigo: " + codigoDestino + " en la familia seleccionada");
         }
 
-        if (modeloRepository.existsByFamiliaIdAndNombreIgnoreCaseAndIdNot(familiaDestino.getId(), nombreDestino, id)) {
+        boolean nombreDuplicadoActualizacion = modeloRepository.existsByFamiliaIdAndNombreIgnoreCaseAndIdNot(familiaDestino.getId(), nombreDestino, id);
+        if (nombreDuplicadoActualizacion) {
             throw new BadRequestException("Ya existe un modelo con el nombre: " + nombreDestino + " en la familia seleccionada");
         }
 
@@ -398,7 +445,14 @@ public class ModeloService {
         if (dto.getMateriales() != null) {
             sincronizarMateriales(actualizado, dto.getMateriales());
         }
+        if (dto.getInsumos() != null) {
+            sincronizarInsumos(actualizado, dto.getInsumos());
+        }
+        if (dto.getOperaciones() != null) {
+            sincronizarOperaciones(actualizado, dto.getOperaciones());
+        }
         actualizado = modeloRepository.save(actualizado);
+        productoPlantillaModeloService.propagarAdiciones(actualizado);
         return mapToResponseDTO(actualizado);
     }
 
@@ -514,6 +568,42 @@ public class ModeloService {
 
         modelo.getMateriales().clear();
         modelo.getMateriales().addAll(materiales);
+    }
+
+    private void sincronizarInsumos(ModeloModel modelo, List<Long> insumoIds) {
+        if (insumoIds == null) {
+            return;
+        }
+        Set<InsumoModel> insumos = new LinkedHashSet<>();
+        Set<Long> idsUnicos = new HashSet<>();
+        for (Long insumoId : insumoIds) {
+            if (insumoId == null || !idsUnicos.add(insumoId)) {
+                continue;
+            }
+            InsumoModel insumo = insumoRepository.findById(insumoId)
+                    .orElseThrow(() -> new NotFoundException("Insumo no encontrado con ID: " + insumoId));
+            insumos.add(insumo);
+        }
+        modelo.getInsumos().clear();
+        modelo.getInsumos().addAll(insumos);
+    }
+
+    private void sincronizarOperaciones(ModeloModel modelo, List<Long> operacionIds) {
+        if (operacionIds == null) {
+            return;
+        }
+        List<OperacionModel> operaciones = new java.util.ArrayList<>();
+        Set<Long> idsUnicos = new HashSet<>();
+        for (Long operacionId : operacionIds) {
+            if (operacionId == null || !idsUnicos.add(operacionId)) {
+                continue;
+            }
+            OperacionModel operacion = operacionRepository.findById(operacionId)
+                    .orElseThrow(() -> new NotFoundException("Operacion no encontrada con ID: " + operacionId));
+            operaciones.add(operacion);
+        }
+        modelo.getOperaciones().clear();
+        modelo.getOperaciones().addAll(operaciones);
     }
 
     private void sincronizarCategorias(ModeloModel modelo, List<ModeloCategoriaDTO> categorias) {

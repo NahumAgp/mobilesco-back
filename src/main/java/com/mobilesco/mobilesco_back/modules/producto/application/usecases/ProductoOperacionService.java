@@ -146,6 +146,26 @@ public class ProductoOperacionService {
     }
 
     @Transactional
+    public ProductoOperacionResponseDTO actualizarOperacion(
+            Long productoId,
+            Long operacionId,
+            ProductoOperacionCreateDTO dto) {
+        Long productoIdValidado = validarProductoId(productoId);
+        Long operacionIdValidado = validarOperacionId(operacionId);
+        ProductoOperacionModel productoOperacion = productoOperacionRepository
+                .findByProductoIdAndOperacionId(productoIdValidado, operacionIdValidado)
+                .orElseThrow(() -> new ResourceNotFoundException("Operacion no encontrada en el producto"));
+
+        productoOperacion.setCantidad(dto.getCantidad());
+        productoOperacion.setObservaciones(dto.getObservaciones());
+        if (dto.getOrden() != null) {
+            productoOperacion.setOrden(dto.getOrden());
+        }
+        productoOperacion.calcularTotales();
+        return mapToResponseDTO(productoOperacionRepository.save(productoOperacion));
+    }
+
+    @Transactional
     public void reordenarOperaciones(Long productoId, List<Long> operacionesIdsEnOrden) {
         Long productoIdValidado = validarProductoId(productoId);
         if (operacionesIdsEnOrden == null) {

@@ -129,6 +129,14 @@ public class ProductoBomController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/operaciones/{operacionId}")
+    public ResponseEntity<ProductoOperacionResponseDTO> actualizarOperacion(
+            @PathVariable Long productoId,
+            @PathVariable Long operacionId,
+            @Valid @RequestBody ProductoOperacionCreateDTO dto) {
+        return ResponseEntity.ok(productoOperacionService.actualizarOperacion(productoId, operacionId, dto));
+    }
+
     @PutMapping("/operaciones/reordenar")
     public ResponseEntity<Void> reordenarOperaciones(
             @PathVariable Long productoId,

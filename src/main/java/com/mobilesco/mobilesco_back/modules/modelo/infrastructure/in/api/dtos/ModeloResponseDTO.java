@@ -36,6 +36,8 @@ public class ModeloResponseDTO {
     private String lineaNombre;
     private List<ModeloCategoriaDTO> categorias;
     private List<MaterialResponseDTO> materiales;
+    private List<ModeloInsumoDTO> insumos;
+    private List<ModeloOperacionDTO> operaciones;
 
     public Long getId() {
         return id;
@@ -179,5 +181,21 @@ public class ModeloResponseDTO {
 
     public void setMateriales(List<MaterialResponseDTO> materiales) {
         this.materiales = materiales;
+    }
+
+    public List<ModeloInsumoDTO> getInsumos() {
+        return insumos;
+    }
+
+    public void setInsumos(List<ModeloInsumoDTO> insumos) {
+        this.insumos = insumos;
+    }
+
+    public List<ModeloOperacionDTO> getOperaciones() {
+        return operaciones;
+    }
+
+    public void setOperaciones(List<ModeloOperacionDTO> operaciones) {
+        this.operaciones = operaciones;
     }
 }

@@ -19,6 +19,7 @@ import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.out.persist
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
+import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persistence.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCategoriaDTO;
@@ -27,6 +28,8 @@ import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.Mo
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
+import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.out.persistence.repositories.OperacionRepository;
+import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoPlantillaModeloService;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.out.persistence.repositories.SubfamiliaRepository;
@@ -41,6 +44,9 @@ class ModeloServiceTest {
     private NivelRepository nivelRepository;
     private CategoriaRepository categoriaRepository;
     private AlmacenamientoImagenesService almacenamientoImagenesService;
+    private InsumoRepository insumoRepository;
+    private OperacionRepository operacionRepository;
+    private ProductoPlantillaModeloService productoPlantillaModeloService;
     private ModeloService modeloService;
 
     @BeforeEach
@@ -53,6 +59,9 @@ class ModeloServiceTest {
         nivelRepository = mock(NivelRepository.class);
         categoriaRepository = mock(CategoriaRepository.class);
         almacenamientoImagenesService = mock(AlmacenamientoImagenesService.class);
+        insumoRepository = mock(InsumoRepository.class);
+        operacionRepository = mock(OperacionRepository.class);
+        productoPlantillaModeloService = mock(ProductoPlantillaModeloService.class);
         modeloService = new ModeloService(
                 modeloRepository,
                 familiaRepository,
@@ -61,7 +70,10 @@ class ModeloServiceTest {
                 productoRepository,
                 nivelRepository,
                 categoriaRepository,
-                almacenamientoImagenesService);
+                almacenamientoImagenesService,
+                insumoRepository,
+                operacionRepository,
+                productoPlantillaModeloService);
     }
 
     @Test

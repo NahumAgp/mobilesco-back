@@ -49,6 +49,12 @@ public class ModeloUpdateDTO {
     @JsonProperty("materiales")
     private List<Long> materiales;
 
+    @JsonProperty("insumos")
+    private List<Long> insumos;
+
+    @JsonProperty("operaciones")
+    private List<Long> operaciones;
+
     public String getCodigo() {
         return codigo;
     }
@@ -127,5 +133,21 @@ public class ModeloUpdateDTO {
 
     public void setMateriales(List<Long> materiales) {
         this.materiales = materiales;
+    }
+
+    public List<Long> getInsumos() {
+        return insumos;
+    }
+
+    public void setInsumos(List<Long> insumos) {
+        this.insumos = insumos;
+    }
+
+    public List<Long> getOperaciones() {
+        return operaciones;
+    }
+
+    public void setOperaciones(List<Long> operaciones) {
+        this.operaciones = operaciones;
     }
 }

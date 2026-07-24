@@ -30,6 +30,8 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
 
     boolean existsBySubfamiliaId(Long subfamiliaId);
 
+    List<ModeloModel> findBySubfamiliaId(Long subfamiliaId);
+
     boolean existsByCodigo(String codigo);
 
     boolean existsByFamiliaIdAndCodigoIgnoreCase(Long familiaId, String codigo);
@@ -39,6 +41,14 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
     boolean existsByFamiliaIdAndNombreIgnoreCase(Long familiaId, String nombre);
 
     boolean existsByFamiliaIdAndNombreIgnoreCaseAndIdNot(Long familiaId, String nombre, Long id);
+
+    boolean existsBySubfamiliaIdAndCodigoIgnoreCase(Long subfamiliaId, String codigo);
+
+    boolean existsBySubfamiliaIdAndCodigoIgnoreCaseAndIdNot(Long subfamiliaId, String codigo, Long id);
+
+    boolean existsBySubfamiliaIdAndNombreIgnoreCase(Long subfamiliaId, String nombre);
+
+    boolean existsBySubfamiliaIdAndNombreIgnoreCaseAndIdNot(Long subfamiliaId, String nombre, Long id);
 
     @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM ModeloModel m JOIN m.materiales material WHERE material.id = :materialId")
     boolean existsByMaterialesId(@Param("materialId") Long materialId);

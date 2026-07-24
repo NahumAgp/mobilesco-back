@@ -216,10 +216,12 @@ public class ProductoInsumoService {
     Double costoUnitario = obtenerCostoCotizacionOpcional(pi.getInsumo());
     
     // Calcular cantidad con desperdicio
-    Double cantidadConDesperdicio = pi.getCantidad() * (1 + (pi.getDesperdicioPorcentaje() != null ? pi.getDesperdicioPorcentaje() : 0) / 100);
+    Double cantidadConDesperdicio = pi.getCantidad() == null
+            ? null
+            : pi.getCantidad() * (1 + (pi.getDesperdicioPorcentaje() != null ? pi.getDesperdicioPorcentaje() : 0) / 100);
     
     // Calcular subtotal
-    Double subtotal = cantidadConDesperdicio * costoUnitario;
+    Double subtotal = cantidadConDesperdicio == null ? null : cantidadConDesperdicio * costoUnitario;
     
     return ProductoInsumoResponseDTO.builder()
             .id(pi.getId())

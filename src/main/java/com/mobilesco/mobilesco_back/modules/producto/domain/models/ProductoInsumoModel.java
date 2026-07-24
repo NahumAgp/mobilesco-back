@@ -50,7 +50,7 @@ public class ProductoInsumoModel {
                 foreignKey = @ForeignKey(name = "fk_bom_insumo"))
     private InsumoModel insumo;
 
-    @Column(name = "cantidad", nullable = false)
+    @Column(name = "cantidad")
     private Double cantidad;  // En unidad de medida del insumo
 
     @Column(name = "desperdicio_porcentaje")

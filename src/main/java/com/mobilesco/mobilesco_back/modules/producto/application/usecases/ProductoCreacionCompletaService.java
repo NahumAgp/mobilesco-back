@@ -119,6 +119,12 @@ public class ProductoCreacionCompletaService {
                     dto.getModelo().getSubfamiliaRef(),
                     subfamilias));
             payload.setCategorias(new ArrayList<>(dto.getModelo().getCategorias()));
+            payload.setInsumos(dto.getModelo().getInsumos() == null
+                    ? List.of()
+                    : new ArrayList<>(dto.getModelo().getInsumos()));
+            payload.setOperaciones(dto.getModelo().getOperaciones() == null
+                    ? List.of()
+                    : new ArrayList<>(dto.getModelo().getOperaciones()));
             modeloResultado = modeloService.crear(payload);
             registrarRef(modelos, dto.getModelo().getRef(), modeloResultado.getId(), "modelo");
             registrarCategoriasCreadas(dto.getModelo().getCategorias(), modeloResultado.getCategorias(), categorias);

@@ -50,7 +50,7 @@ public class ProductoOperacionModel {
                 foreignKey = @ForeignKey(name = "fk_prodop_operacion"))
     private OperacionModel operacion;
 
-    @Column(nullable = false)
+    @Column
     private Integer cantidad;  // Veces que se repite
 
     @Column(name = "tiempo_total")
@@ -94,6 +94,9 @@ public class ProductoOperacionModel {
         if (operacion != null && cantidad != null) {
             this.tiempoTotal = cantidad * operacion.getTiempoOperacion();
             this.importeActividad = this.tiempoTotal * operacion.getCostoMinuto();
+        } else {
+            this.tiempoTotal = null;
+            this.importeActividad = null;
         }
     }
 }

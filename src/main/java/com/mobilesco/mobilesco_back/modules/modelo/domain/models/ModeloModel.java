@@ -11,11 +11,15 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
+import com.mobilesco.mobilesco_back.modules.operacion.domain.models.OperacionModel;
 import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
 
 @Entity
@@ -75,6 +79,25 @@ public class ModeloModel {
             uniqueConstraints = @UniqueConstraint(name = "uk_modelo_material", columnNames = {"modelo_id", "material_id"})
     )
     private Set<MaterialModel> materiales = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "modelo_insumo",
+            joinColumns = @JoinColumn(name = "modelo_id"),
+            inverseJoinColumns = @JoinColumn(name = "insumo_id"),
+            uniqueConstraints = @UniqueConstraint(name = "uk_modelo_insumo", columnNames = {"modelo_id", "insumo_id"})
+    )
+    private Set<InsumoModel> insumos = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "modelo_operacion",
+            joinColumns = @JoinColumn(name = "modelo_id"),
+            inverseJoinColumns = @JoinColumn(name = "operacion_id"),
+            uniqueConstraints = @UniqueConstraint(name = "uk_modelo_operacion", columnNames = {"modelo_id", "operacion_id"})
+    )
+    @OrderColumn(name = "orden")
+    private List<OperacionModel> operaciones = new ArrayList<>();
     
     @PrePersist
     protected void onCreate() {

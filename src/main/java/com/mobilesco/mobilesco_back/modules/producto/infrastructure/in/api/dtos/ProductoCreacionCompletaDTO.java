@@ -87,6 +87,8 @@ public class ProductoCreacionCompletaDTO {
         private String familiaRef;
         private Long subfamiliaId;
         private String subfamiliaRef;
+        private List<Long> insumos = new ArrayList<>();
+        private List<Long> operaciones = new ArrayList<>();
         @Valid
         @NotEmpty(message = "El modelo debe tener al menos una categoria")
         private List<CategoriaBorradorDTO> categorias = new ArrayList<>();
