@@ -26,6 +26,7 @@ public class OperacionUpdateDTO {
     @Column(name = "tiempo_operacion", nullable = false)
     private Double tiempoOperacion;  // Tiempo estándar en minutos por unidad
     
+    @NotNull(message = "El centro de trabajo es requerido")
     private Long centroTrabajoId;
     
     @NotNull(message = "El costo por minuto es requerido")
