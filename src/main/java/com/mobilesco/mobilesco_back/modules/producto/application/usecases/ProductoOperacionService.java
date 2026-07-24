@@ -1,6 +1,11 @@
 package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -9,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.AplicacionOperacionesNivelResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
@@ -163,6 +169,85 @@ public class ProductoOperacionService {
         }
         productoOperacion.calcularTotales();
         return mapToResponseDTO(productoOperacionRepository.save(productoOperacion));
+    }
+
+    @Transactional
+    public AplicacionOperacionesNivelResponseDTO aplicarCantidadesMismoNivel(
+            Long productoId,
+            List<ProductoOperacionCreateDTO> operacionesDTO) {
+        Long productoIdValidado = validarProductoId(productoId);
+        ProductoModel productoOrigen = productoRepository.findById(productoIdValidado)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+
+        if (productoOrigen.getModelo() == null || productoOrigen.getNivel() == null) {
+            throw new ValidationException(
+                    "El producto debe tener modelo y nivel asignados para aplicar las operaciones a sus variantes");
+        }
+        if (operacionesDTO == null || operacionesDTO.isEmpty()) {
+            throw new ValidationException("Captura al menos una cantidad de operación");
+        }
+
+        Map<Long, ProductoOperacionCreateDTO> cantidades = new LinkedHashMap<>();
+        for (ProductoOperacionCreateDTO dto : operacionesDTO) {
+            if (cantidades.putIfAbsent(dto.getOperacionId(), dto) != null) {
+                throw new ValidationException("No se puede repetir la misma operación");
+            }
+        }
+
+        Map<Long, ProductoOperacionModel> operacionesOrigen = productoOperacionRepository
+                .findByProductoIdOrderByOrdenAsc(productoIdValidado)
+                .stream()
+                .collect(Collectors.toMap(item -> item.getOperacion().getId(), Function.identity()));
+        for (Long operacionId : cantidades.keySet()) {
+            if (!operacionesOrigen.containsKey(operacionId)) {
+                throw new ValidationException(
+                        "La operación " + operacionId + " no pertenece al producto de origen");
+            }
+        }
+
+        List<ProductoModel> productos = productoRepository.findByModeloIdAndNivelId(
+                productoOrigen.getModelo().getId(), productoOrigen.getNivel().getId());
+        if (productos.stream().noneMatch(producto -> producto.getId().equals(productoIdValidado))) {
+            productos = new ArrayList<>(productos);
+            productos.add(productoOrigen);
+        }
+
+        for (ProductoModel producto : productos) {
+            Map<Long, ProductoOperacionModel> operacionesProducto = new HashMap<>();
+            productoOperacionRepository.findByProductoIdOrderByOrdenAsc(producto.getId())
+                    .forEach(item -> operacionesProducto.put(item.getOperacion().getId(), item));
+
+            List<ProductoOperacionModel> actualizadas = new ArrayList<>();
+            for (Map.Entry<Long, ProductoOperacionCreateDTO> entry : cantidades.entrySet()) {
+                ProductoOperacionCreateDTO dto = entry.getValue();
+                ProductoOperacionModel origen = operacionesOrigen.get(entry.getKey());
+                ProductoOperacionModel destino = operacionesProducto.get(entry.getKey());
+                if (destino == null) {
+                    destino = ProductoOperacionModel.builder()
+                            .producto(producto)
+                            .operacion(origen.getOperacion())
+                            .observaciones(origen.getObservaciones())
+                            .activo(true)
+                            .build();
+                }
+                destino.setCantidad(dto.getCantidad());
+                destino.setOrden(dto.getOrden() == null ? origen.getOrden() : dto.getOrden());
+                if (dto.getObservaciones() != null) {
+                    destino.setObservaciones(dto.getObservaciones());
+                }
+                destino.calcularTotales();
+                actualizadas.add(destino);
+            }
+            productoOperacionRepository.saveAll(actualizadas);
+        }
+
+        return AplicacionOperacionesNivelResponseDTO.builder()
+                .modeloId(productoOrigen.getModelo().getId())
+                .nivelId(productoOrigen.getNivel().getId())
+                .nivelNombre(productoOrigen.getNivel().getNombre())
+                .productosActualizados(productos.size())
+                .productosSku(productos.stream().map(ProductoModel::getSku).sorted().toList())
+                .build();
     }
 
     @Transactional

@@ -30,6 +30,7 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.AplicacionInsumosNivelResponseDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.AplicacionOperacionesNivelResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoInsumoService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoOperacionService;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
@@ -143,6 +144,13 @@ public class ProductoBomController {
             @PathVariable Long operacionId,
             @Valid @RequestBody ProductoOperacionCreateDTO dto) {
         return ResponseEntity.ok(productoOperacionService.actualizarOperacion(productoId, operacionId, dto));
+    }
+
+    @PutMapping("/operaciones/aplicar-mismo-nivel")
+    public ResponseEntity<AplicacionOperacionesNivelResponseDTO> aplicarOperacionesMismoNivel(
+            @PathVariable Long productoId,
+            @RequestBody List<@Valid ProductoOperacionCreateDTO> operaciones) {
+        return ResponseEntity.ok(productoOperacionService.aplicarCantidadesMismoNivel(productoId, operaciones));
     }
 
     @PutMapping("/operaciones/reordenar")
