@@ -49,6 +49,7 @@ public final class ApiPaths {
     public static final String DETALLES_COMPRA = API_VERSION + "/detalles-compra";
     public static final String SALIDAS_INSUMOS = API_VERSION + "/salidas-insumos";
     public static final String KARDEX = API_VERSION + "/kardex";
+    public static final String REQUISICIONES_ALMACEN = API_VERSION + "/requisiciones-almacen";
     
     public static final String PRODUCTOS = API_VERSION + "/productos";
     public static final String CLIENTES = API_VERSION + "/clientes";
