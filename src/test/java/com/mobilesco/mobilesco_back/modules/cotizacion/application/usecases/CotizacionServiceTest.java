@@ -77,6 +77,27 @@ class CotizacionServiceTest {
         verify(cotizacionRepository, never()).save(any());
     }
 
+    @Test
+    void permiteCrearCotizacionSinClienteComoPublicoGeneral() {
+        ProductoModel producto = ProductoModel.builder().id(9L).sku("ESC-001").nombre("Pupitre").activo(true).build();
+        when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
+        when(productoService.obtenerEstructuraCostos(9L)).thenReturn(costosCompletos());
+        doAnswer(inv -> {
+            CotizacionModel c = inv.getArgument(0);
+            c.setId(13L);
+            return c;
+        }).when(cotizacionRepository).saveAndFlush(any(CotizacionModel.class));
+        when(cotizacionRepository.save(any(CotizacionModel.class))).thenAnswer(inv -> inv.getArgument(0));
+        CotizacionRequestDTO dto = solicitud();
+        dto.setClienteId(null);
+
+        var respuesta = service.crear(dto);
+
+        assertNull(respuesta.getClienteId());
+        assertEquals("Público general", respuesta.getClienteNombre());
+        verify(clienteRepository, never()).findById(any());
+    }
+
     private CotizacionRequestDTO solicitud() {
         CotizacionRequestDTO dto = new CotizacionRequestDTO();
         dto.setClienteId(7L);

@@ -26,8 +26,8 @@ public class CotizacionModel {
     @Column(nullable = false, length = 30)
     private String folio;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "cliente_id", nullable = false, foreignKey = @ForeignKey(name = "fk_cotizacion_cliente"))
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "cliente_id", nullable = true, foreignKey = @ForeignKey(name = "fk_cotizacion_cliente"))
     private ClienteModel cliente;
 
     @Enumerated(EnumType.STRING)

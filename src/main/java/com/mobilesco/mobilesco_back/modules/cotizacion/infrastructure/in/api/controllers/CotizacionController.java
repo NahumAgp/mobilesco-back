@@ -41,7 +41,7 @@ public class CotizacionController {
     @GetMapping("/productos")
     public List<ProductoCotizableDTO> buscarProductos(
             @RequestParam(required = false) String busqueda,
-            @RequestParam(defaultValue = "NOMBRE") String tipo) {
+            @RequestParam(defaultValue = "TODOS") String tipo) {
         return cotizacionService.buscarProductos(busqueda, tipo);
     }
 

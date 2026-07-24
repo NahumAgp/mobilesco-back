@@ -12,11 +12,12 @@ import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.EstadoCotiz
 public interface CotizacionRepository extends JpaRepository<CotizacionModel, Long> {
     @Query("""
             SELECT c FROM CotizacionModel c
+            LEFT JOIN c.cliente cliente
             WHERE (:estado IS NULL OR c.estado = :estado)
               AND (:busqueda IS NULL
                    OR LOWER(c.folio) LIKE LOWER(CONCAT('%', :busqueda, '%'))
-                   OR LOWER(COALESCE(c.cliente.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
-                   OR LOWER(COALESCE(c.cliente.razonSocial, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')))
+                   OR LOWER(COALESCE(cliente.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+                   OR LOWER(COALESCE(cliente.razonSocial, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')))
             """)
     Page<CotizacionModel> buscar(@Param("estado") EstadoCotizacion estado,
             @Param("busqueda") String busqueda, Pageable pageable);

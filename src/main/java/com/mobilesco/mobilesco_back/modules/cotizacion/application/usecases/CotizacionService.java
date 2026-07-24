@@ -58,9 +58,9 @@ public class CotizacionService {
 
     @Transactional
     public CotizacionResponseDTO crear(CotizacionRequestDTO dto) {
-        ClienteModel cliente = clienteRepository.findById(dto.getClienteId())
+        ClienteModel cliente = dto.getClienteId() == null ? null : clienteRepository.findById(dto.getClienteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
-        if (!Boolean.TRUE.equals(cliente.getActivo())) {
+        if (cliente != null && !Boolean.TRUE.equals(cliente.getActivo())) {
             throw new ValidationException("El cliente seleccionado está inactivo");
         }
         validarPorcentajes(dto);
@@ -190,8 +190,11 @@ public class CotizacionService {
     private CotizacionResponseDTO mapear(CotizacionModel c) {
         ClienteModel cliente = c.getCliente();
         return CotizacionResponseDTO.builder()
-                .id(c.getId()).folio(c.getFolio()).clienteId(cliente.getId()).clienteNombre(nombreCliente(cliente))
-                .clienteWhatsapp(cliente.getWhatsapp()).clienteCorreo(cliente.getCorreo()).estado(c.getEstado())
+                .id(c.getId()).folio(c.getFolio())
+                .clienteId(cliente == null ? null : cliente.getId())
+                .clienteNombre(cliente == null ? "Público general" : nombreCliente(cliente))
+                .clienteWhatsapp(cliente == null ? null : cliente.getWhatsapp())
+                .clienteCorreo(cliente == null ? null : cliente.getCorreo()).estado(c.getEstado())
                 .fechaEmision(c.getFechaEmision()).fechaVencimiento(c.getFechaVencimiento())
                 .margenPorcentaje(c.getMargenPorcentaje()).descuentoPorcentaje(c.getDescuentoPorcentaje())
                 .flete(c.getFlete()).ivaPorcentaje(c.getIvaPorcentaje()).subtotalCostos(c.getSubtotalCostos())

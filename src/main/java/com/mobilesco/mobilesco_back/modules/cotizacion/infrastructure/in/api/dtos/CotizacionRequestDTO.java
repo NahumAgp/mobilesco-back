@@ -11,7 +11,6 @@ import lombok.Data;
 
 @Data
 public class CotizacionRequestDTO {
-    @NotNull
     private Long clienteId;
     private EstadoCotizacion estado = EstadoCotizacion.PENDIENTE;
     @Min(1)
