@@ -21,6 +21,8 @@ import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.
 import com.mobilesco.mobilesco_back.modules.empleado.domain.models.EmpleadoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
+import com.mobilesco.mobilesco_back.modules.notificacion.application.usecases.NotificacionService;
+import com.mobilesco.mobilesco_back.modules.notificacion.domain.models.TipoNotificacion;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.EstadoRequisicionAlmacen;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.RequisicionAlmacenDetalleModel;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.RequisicionAlmacenModel;
@@ -48,6 +50,7 @@ public class RequisicionAlmacenService {
     private final RequisicionAlmacenRepository requisicionRepository;
     private final InsumoRepository insumoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final NotificacionService notificacionService;
 
     @Transactional
     public RequisicionResponseDTO crear(RequisicionCreateDTO dto, String emailUsuario) {
@@ -71,7 +74,17 @@ public class RequisicionAlmacenService {
             requisicion.agregarDetalle(crearDetalle(insumo, partida));
         }
 
-        return map(requisicionRepository.save(requisicion), true);
+        RequisicionAlmacenModel guardada = requisicionRepository.save(requisicion);
+        notificacionService.notificarRoles(
+                Set.of("SUBDIRECCION_ADMINISTRATIVA"),
+                TipoNotificacion.ACCION_REQUERIDA,
+                "Nueva requisición de almacén",
+                guardada.getFolio() + " fue enviada por " + guardada.getSolicitanteNombre(),
+                "ALMACEN",
+                "REQUISICION_ALMACEN",
+                guardada.getId(),
+                "/almacen/requisiciones/" + guardada.getId());
+        return map(guardada, true);
     }
 
     @Transactional(readOnly = true)
@@ -145,7 +158,42 @@ public class RequisicionAlmacenService {
                 EstadoRequisicionAlmacen.CANCELADA).contains(destino)) {
             requisicion.setFechaResolucion(LocalDateTime.now());
         }
-        return map(requisicionRepository.save(requisicion), true);
+        RequisicionAlmacenModel guardada = requisicionRepository.save(requisicion);
+        notificarCambioEstado(guardada, destino);
+        return map(guardada, true);
+    }
+
+    private void notificarCambioEstado(
+            RequisicionAlmacenModel requisicion,
+            EstadoRequisicionAlmacen estado) {
+        String ruta = "/almacen/requisiciones/" + requisicion.getId();
+        if (estado == EstadoRequisicionAlmacen.CANCELADA) {
+            notificacionService.notificarRoles(
+                    Set.of("SUBDIRECCION_ADMINISTRATIVA"),
+                    TipoNotificacion.INFORMACION,
+                    "Requisición cancelada",
+                    requisicion.getFolio() + " fue cancelada por el solicitante",
+                    "ALMACEN",
+                    "REQUISICION_ALMACEN",
+                    requisicion.getId(),
+                    ruta);
+            return;
+        }
+
+        TipoNotificacion tipo = switch (estado) {
+            case AUTORIZADA -> TipoNotificacion.EXITO;
+            case RECHAZADA -> TipoNotificacion.ALERTA;
+            default -> TipoNotificacion.INFORMACION;
+        };
+        notificacionService.notificarUsuario(
+                requisicion.getSolicitante(),
+                tipo,
+                "Requisición " + estado.getEtiqueta().toLowerCase(Locale.ROOT),
+                requisicion.getFolio() + " cambió a " + estado.getEtiqueta(),
+                "ALMACEN",
+                "REQUISICION_ALMACEN",
+                requisicion.getId(),
+                ruta);
     }
 
     private void validarTransicionAdministrativa(

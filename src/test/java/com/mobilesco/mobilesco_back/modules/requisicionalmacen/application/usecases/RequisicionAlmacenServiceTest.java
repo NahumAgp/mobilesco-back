@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,8 @@ import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories.UsuarioRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
+import com.mobilesco.mobilesco_back.modules.notificacion.application.usecases.NotificacionService;
+import com.mobilesco.mobilesco_back.modules.notificacion.domain.models.TipoNotificacion;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.EstadoRequisicionAlmacen;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.RequisicionAlmacenModel;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.in.api.dtos.RequisicionCreateDTO;
@@ -39,12 +44,18 @@ class RequisicionAlmacenServiceTest {
     private UsuarioRepository usuarioRepository;
     @Mock
     private UsuarioModel usuario;
+    @Mock
+    private NotificacionService notificacionService;
 
     private RequisicionAlmacenService service;
 
     @BeforeEach
     void setUp() {
-        service = new RequisicionAlmacenService(requisicionRepository, insumoRepository, usuarioRepository);
+        service = new RequisicionAlmacenService(
+                requisicionRepository,
+                insumoRepository,
+                usuarioRepository,
+                notificacionService);
     }
 
     @Test
@@ -95,7 +106,11 @@ class RequisicionAlmacenServiceTest {
                 .build();
         when(insumoRepository.findById(2L)).thenReturn(Optional.of(insumo));
         when(requisicionRepository.save(any(RequisicionAlmacenModel.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> {
+                    RequisicionAlmacenModel guardada = invocation.getArgument(0);
+                    guardada.setId(100L);
+                    return guardada;
+                });
 
         RequisicionResponseDTO resultado = service.crear(
                 request(partida(2L, 8.0)),
@@ -105,6 +120,15 @@ class RequisicionAlmacenServiceTest {
         assertEquals("Subdirección Administrativa", resultado.getDestinatario());
         assertEquals(1.0, resultado.getPartidas().get(0).getStockActualSnapshot());
         assertEquals(5.0, resultado.getPartidas().get(0).getStockMinimoSnapshot());
+        verify(notificacionService).notificarRoles(
+                eq(Set.of("SUBDIRECCION_ADMINISTRATIVA")),
+                eq(TipoNotificacion.ACCION_REQUERIDA),
+                eq("Nueva requisición de almacén"),
+                any(),
+                eq("ALMACEN"),
+                eq("REQUISICION_ALMACEN"),
+                any(),
+                any());
     }
 
     @Test
