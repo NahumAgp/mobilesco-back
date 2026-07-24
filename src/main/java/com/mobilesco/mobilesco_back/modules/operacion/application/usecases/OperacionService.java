@@ -49,7 +49,7 @@ public OperacionResponseDTO crear(OperacionCreateDTO dto) {
             .nombre(dto.getNombre())
             .descripcion(dto.getDescripcion())
             .tiempoOperacion(tiempoOperacion)  // 🔴 AHORA SÍ SE ASIGNA
-            .costoHora(dto.getCostoHora())
+            .costoHora(null)
             .costoMinuto(dto.getCostoMinuto())
             .centroTrabajo(centroTrabajo)
             .activo(true)
@@ -96,6 +96,7 @@ public OperacionResponseDTO crear(OperacionCreateDTO dto) {
         
         if (dto.getCostoMinuto() != null) {
             operacion.setCostoMinuto(dto.getCostoMinuto());
+            operacion.setCostoHora(dto.getCostoMinuto() * 60);
         }
         
         if (dto.getActivo() != null) {

@@ -26,7 +26,10 @@ public class OperacionCreateDTO {
     @Positive(message = "El tiempo debe ser mayor a 0")
     private Double tiempoOperacion;  // 🔴 ESTE CAMPO ES EL QUE FALTA
     
-    private Double costoHora; 
+    private Double costoHora;
+
+    @NotNull(message = "El costo por minuto es requerido")
+    @Positive(message = "El costo por minuto debe ser mayor a 0")
     private Double costoMinuto;
     
     @NotNull(message = "El centro de trabajo es requerido")
