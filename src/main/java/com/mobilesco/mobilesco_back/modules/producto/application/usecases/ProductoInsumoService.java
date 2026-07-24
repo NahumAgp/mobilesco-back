@@ -1,7 +1,11 @@
 package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -12,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoResponseDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.AplicacionInsumosNivelResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ResourceNotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
@@ -205,6 +210,79 @@ public class ProductoInsumoService {
         log.info("Insumo actualizado correctamente");
         
         return mapToResponseDTO(updated);
+    }
+
+    @Transactional
+    public AplicacionInsumosNivelResponseDTO aplicarCantidadesMismoNivel(
+            Long productoId,
+            List<ProductoInsumoCreateDTO> insumosDTO) {
+        ProductoModel productoOrigen = productoRepository.findById(productoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+
+        if (productoOrigen.getModelo() == null || productoOrigen.getNivel() == null) {
+            throw new ValidationException(
+                    "El producto debe tener modelo y nivel asignados para aplicar las cantidades a sus variantes");
+        }
+        if (insumosDTO == null || insumosDTO.isEmpty()) {
+            throw new ValidationException("Captura al menos una cantidad de insumo");
+        }
+
+        Map<Long, ProductoInsumoCreateDTO> cantidades = new LinkedHashMap<>();
+        for (ProductoInsumoCreateDTO dto : insumosDTO) {
+            if (cantidades.putIfAbsent(dto.getInsumoId(), dto) != null) {
+                throw new ValidationException("No se puede repetir el mismo insumo");
+            }
+        }
+
+        Map<Long, ProductoInsumoModel> insumosOrigen = productoInsumoRepository.findByProductoId(productoId)
+                .stream()
+                .collect(Collectors.toMap(item -> item.getInsumo().getId(), Function.identity()));
+        for (Long insumoId : cantidades.keySet()) {
+            if (!insumosOrigen.containsKey(insumoId)) {
+                throw new ValidationException("El insumo " + insumoId + " no pertenece al producto de origen");
+            }
+        }
+
+        List<ProductoModel> productos = productoRepository.findByModeloIdAndNivelId(
+                productoOrigen.getModelo().getId(), productoOrigen.getNivel().getId());
+        if (productos.stream().noneMatch(producto -> producto.getId().equals(productoId))) {
+            productos = new ArrayList<>(productos);
+            productos.add(productoOrigen);
+        }
+
+        for (ProductoModel producto : productos) {
+            Map<Long, ProductoInsumoModel> insumosProducto = new HashMap<>();
+            productoInsumoRepository.findByProductoId(producto.getId())
+                    .forEach(item -> insumosProducto.put(item.getInsumo().getId(), item));
+
+            List<ProductoInsumoModel> actualizados = new ArrayList<>();
+            for (Map.Entry<Long, ProductoInsumoCreateDTO> entry : cantidades.entrySet()) {
+                ProductoInsumoCreateDTO dto = entry.getValue();
+                ProductoInsumoModel origen = insumosOrigen.get(entry.getKey());
+                ProductoInsumoModel destino = insumosProducto.get(entry.getKey());
+                if (destino == null) {
+                    destino = ProductoInsumoModel.builder()
+                            .producto(producto)
+                            .insumo(origen.getInsumo())
+                            .observaciones(origen.getObservaciones())
+                            .build();
+                }
+                destino.setCantidad(dto.getCantidad());
+                destino.setDesperdicioPorcentaje(dto.getDesperdicioPorcentaje() == null
+                        ? 0.0
+                        : dto.getDesperdicioPorcentaje());
+                actualizados.add(destino);
+            }
+            productoInsumoRepository.saveAll(actualizados);
+        }
+
+        return AplicacionInsumosNivelResponseDTO.builder()
+                .modeloId(productoOrigen.getModelo().getId())
+                .nivelId(productoOrigen.getNivel().getId())
+                .nivelNombre(productoOrigen.getNivel().getNombre())
+                .productosActualizados(productos.size())
+                .productosSku(productos.stream().map(ProductoModel::getSku).sorted().toList())
+                .build();
     }
 
     // =====================================================

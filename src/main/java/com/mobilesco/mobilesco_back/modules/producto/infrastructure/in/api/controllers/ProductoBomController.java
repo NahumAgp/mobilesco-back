@@ -29,6 +29,7 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoOperacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoInsumoResponseDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.AplicacionInsumosNivelResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoInsumoService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoOperacionService;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
@@ -88,6 +89,13 @@ public class ProductoBomController {
             @PathVariable Long insumoId,
             @Valid @RequestBody ProductoInsumoCreateDTO dto) {
         return ResponseEntity.ok(productoInsumoService.actualizarInsumo(productoId, insumoId, dto));
+    }
+
+    @PutMapping("/insumos/aplicar-mismo-nivel")
+    public ResponseEntity<AplicacionInsumosNivelResponseDTO> aplicarCantidadesMismoNivel(
+            @PathVariable Long productoId,
+            @RequestBody List<@Valid ProductoInsumoCreateDTO> insumos) {
+        return ResponseEntity.ok(productoInsumoService.aplicarCantidadesMismoNivel(productoId, insumos));
     }
 
     @DeleteMapping("/insumos/{insumoId}")

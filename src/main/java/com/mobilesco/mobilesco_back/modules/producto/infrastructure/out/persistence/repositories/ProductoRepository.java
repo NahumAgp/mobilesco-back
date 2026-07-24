@@ -34,6 +34,8 @@ public interface ProductoRepository extends JpaRepository<ProductoModel, Long> {
     
     List<ProductoModel> findByModeloId(Long modeloId);
 
+    List<ProductoModel> findByModeloIdAndNivelId(Long modeloId, Long nivelId);
+
     boolean existsByModeloId(Long modeloId);
 
     boolean existsByNivelId(Long nivelId);
