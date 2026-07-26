@@ -41,6 +41,7 @@ import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persiste
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.CatalogoFacetasDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ModeloCatalogoPublicoDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoEstructuraCostosDTO;
@@ -601,10 +602,17 @@ public class ProductoService {
 
     /**
      * Listado ligero para alimentar el grid del catalogo PUBLICO (solo modelos activos).
+     * Filtros opcionales y combinables: familia, subfamilia, color y tamano (nivel).
+     * Un modelo entra si tiene al menos una variante activa que cumpla a la vez color y tamano.
      */
     @Transactional(readOnly = true)
-    public List<ModeloCatalogoPublicoDTO> listarCatalogoPublico() {
-        return modeloRepository.findByActivo(true).stream()
+    public List<ModeloCatalogoPublicoDTO> listarCatalogoPublico(Long familiaId, Long subfamiliaId,
+                                                                Long colorId, Long tamanoId) {
+        Map<Long, List<ProductoModel>> variantesPorModelo = variantesActivasPorModelo();
+
+        return modelosActivosFiltrados(familiaId, subfamiliaId)
+                .filter(modelo -> cumpleFiltrosDeVariante(
+                        variantesPorModelo.get(modelo.getId()), colorId, tamanoId))
                 .map(modelo -> ModeloCatalogoPublicoDTO.builder()
                         .modeloId(modelo.getId())
                         .codigo(modelo.getCodigo())
@@ -617,6 +625,107 @@ public class ProductoService {
                         .subfamiliaNombre(modelo.getSubfamilia() != null ? modelo.getSubfamilia().getNombre() : null)
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Facetas del catalogo PUBLICO: opciones de subfamilia, color y tamano con conteo de muebles.
+     * El conteo es de MODELOS activos con al menos una variante activa que tenga la opcion.
+     * La faceta de subfamilias respeta solo familiaId (para poder listar las subfamilias hermanas);
+     * colores y tamanos respetan familiaId y subfamiliaId.
+     */
+    @Transactional(readOnly = true)
+    public CatalogoFacetasDTO obtenerFacetasPublicas(Long familiaId, Long subfamiliaId) {
+        Map<Long, List<ProductoModel>> variantesPorModelo = variantesActivasPorModelo();
+
+        Map<Long, CatalogoFacetasDTO.SubfamiliaFacetaDTO> subfamilias = new LinkedHashMap<>();
+        Map<Long, Long> conteoSubfamilias = new LinkedHashMap<>();
+        modelosActivosFiltrados(familiaId, null).forEach(modelo -> {
+            if (modelo.getSubfamilia() == null || modelo.getSubfamilia().getId() == null) {
+                return;
+            }
+            Long id = modelo.getSubfamilia().getId();
+            subfamilias.computeIfAbsent(id, k -> CatalogoFacetasDTO.SubfamiliaFacetaDTO.builder()
+                    .id(id)
+                    .nombre(modelo.getSubfamilia().getNombre())
+                    .build());
+            conteoSubfamilias.merge(id, 1L, Long::sum);
+        });
+        subfamilias.forEach((id, faceta) -> faceta.setConteo(conteoSubfamilias.get(id)));
+
+        Map<Long, CatalogoFacetasDTO.ColorFacetaDTO> colores = new LinkedHashMap<>();
+        Map<Long, Long> conteoColores = new LinkedHashMap<>();
+        Map<Long, CatalogoFacetasDTO.TamanoFacetaDTO> tamanos = new LinkedHashMap<>();
+        Map<Long, Long> conteoTamanos = new LinkedHashMap<>();
+
+        modelosActivosFiltrados(familiaId, subfamiliaId).forEach(modelo -> {
+            List<ProductoModel> variantes = variantesPorModelo.getOrDefault(modelo.getId(), List.of());
+
+            Map<Long, ColorModel> coloresDelModelo = new LinkedHashMap<>();
+            Map<Long, NivelModel> tamanosDelModelo = new LinkedHashMap<>();
+            for (ProductoModel variante : variantes) {
+                if (variante.getColor() != null && variante.getColor().getId() != null) {
+                    coloresDelModelo.putIfAbsent(variante.getColor().getId(), variante.getColor());
+                }
+                if (variante.getNivel() != null && variante.getNivel().getId() != null) {
+                    tamanosDelModelo.putIfAbsent(variante.getNivel().getId(), variante.getNivel());
+                }
+            }
+
+            coloresDelModelo.forEach((id, color) -> {
+                colores.computeIfAbsent(id, k -> CatalogoFacetasDTO.ColorFacetaDTO.builder()
+                        .id(id)
+                        .nombre(color.getNombre())
+                        .hex(color.getHex())
+                        .build());
+                conteoColores.merge(id, 1L, Long::sum);
+            });
+            tamanosDelModelo.forEach((id, nivel) -> {
+                tamanos.computeIfAbsent(id, k -> CatalogoFacetasDTO.TamanoFacetaDTO.builder()
+                        .id(id)
+                        .nombre(nivel.getNombre())
+                        .build());
+                conteoTamanos.merge(id, 1L, Long::sum);
+            });
+        });
+        colores.forEach((id, faceta) -> faceta.setConteo(conteoColores.get(id)));
+        tamanos.forEach((id, faceta) -> faceta.setConteo(conteoTamanos.get(id)));
+
+        return CatalogoFacetasDTO.builder()
+                .subfamilias(new ArrayList<>(subfamilias.values()))
+                .colores(new ArrayList<>(colores.values()))
+                .tamanos(new ArrayList<>(tamanos.values()))
+                .build();
+    }
+
+    // Variantes activas agrupadas por id de modelo (base comun del listado publico y las facetas).
+    private Map<Long, List<ProductoModel>> variantesActivasPorModelo() {
+        return productoRepository.findByActivoTrue().stream()
+                .filter(producto -> producto.getModelo() != null && producto.getModelo().getId() != null)
+                .collect(Collectors.groupingBy(producto -> producto.getModelo().getId()));
+    }
+
+    private Stream<ModeloModel> modelosActivosFiltrados(Long familiaId, Long subfamiliaId) {
+        return modeloRepository.findByActivo(true).stream()
+                .filter(modelo -> familiaId == null
+                        || (modelo.getFamilia() != null && familiaId.equals(modelo.getFamilia().getId())))
+                .filter(modelo -> subfamiliaId == null
+                        || (modelo.getSubfamilia() != null && subfamiliaId.equals(modelo.getSubfamilia().getId())));
+    }
+
+    // Sin filtros de color/tamano todo modelo cumple; con filtros, debe existir una variante activa
+    // que satisfaga AMBOS a la vez.
+    private boolean cumpleFiltrosDeVariante(List<ProductoModel> variantes, Long colorId, Long tamanoId) {
+        if (colorId == null && tamanoId == null) {
+            return true;
+        }
+        if (variantes == null || variantes.isEmpty()) {
+            return false;
+        }
+        return variantes.stream().anyMatch(variante ->
+                (colorId == null || (variante.getColor() != null
+                        && colorId.equals(variante.getColor().getId())))
+                && (tamanoId == null || (variante.getNivel() != null
+                        && tamanoId.equals(variante.getNivel().getId()))));
     }
 
     // Construye la ficha agregada (imagenes, colores, tamanos, materiales y variantes) a partir

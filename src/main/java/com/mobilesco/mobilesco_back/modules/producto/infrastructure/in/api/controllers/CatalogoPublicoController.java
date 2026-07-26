@@ -14,10 +14,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoService;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.CatalogoFacetasDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ModeloCatalogoPublicoDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoFichaDTO;
 
@@ -33,10 +35,22 @@ public class CatalogoPublicoController {
 
     private final ProductoService productoService;
 
-    @Operation(summary = "Listar muebles (modelos activos) del catalogo publico")
+    @Operation(summary = "Listar muebles (modelos activos) del catalogo publico, con filtros opcionales")
     @GetMapping("/modelos")
-    public ResponseEntity<List<ModeloCatalogoPublicoDTO>> listarModelos() {
-        return ResponseEntity.ok(productoService.listarCatalogoPublico());
+    public ResponseEntity<List<ModeloCatalogoPublicoDTO>> listarModelos(
+            @RequestParam(required = false) Long familiaId,
+            @RequestParam(required = false) Long subfamiliaId,
+            @RequestParam(required = false) Long colorId,
+            @RequestParam(required = false) Long tamanoId) {
+        return ResponseEntity.ok(productoService.listarCatalogoPublico(familiaId, subfamiliaId, colorId, tamanoId));
+    }
+
+    @Operation(summary = "Facetas del catalogo publico (subfamilias, colores y tamanos con conteo de muebles)")
+    @GetMapping("/facetas")
+    public ResponseEntity<CatalogoFacetasDTO> obtenerFacetas(
+            @RequestParam(required = false) Long familiaId,
+            @RequestParam(required = false) Long subfamiliaId) {
+        return ResponseEntity.ok(productoService.obtenerFacetasPublicas(familiaId, subfamiliaId));
     }
 
     @Operation(summary = "Ficha publica del mueble (modelo) con sus variantes activas")
