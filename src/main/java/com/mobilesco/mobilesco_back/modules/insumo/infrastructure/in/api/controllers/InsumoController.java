@@ -45,6 +45,8 @@ public class InsumoController {
             "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','JEFE_ALMACEN','ALMACEN','SUBDIRECCION_ADMINISTRATIVA')";
     private static final String PERMISO_VER_INVENTARIO = "hasAuthority('VIEW_INVENTORY')";
     private static final String PERMISO_GESTION_COSTOS_INSUMOS = "hasAuthority('ACTION_INSUMOS_COSTS')";
+    private static final String ROLES_AJUSTE_MANUAL_STOCK =
+            "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')";
 
     private final InsumoService insumoService;
 
@@ -179,7 +181,7 @@ public class InsumoController {
 
     @Operation(summary = "Ajustar stock manualmente", description = "Entrada o salida de stock con motivo")
     @PostMapping("/{id}/ajustar-stock")
-    @PreAuthorize(ROLES_GESTION_INSUMOS)
+    @PreAuthorize(ROLES_AJUSTE_MANUAL_STOCK)
     public ResponseEntity<InsumoResponseDTO> ajustarStock(
             @PathVariable Long id,
             @RequestParam Double cantidad,

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 
 import com.mobilesco.mobilesco_back.modules.cliente.domain.models.ClienteModel;
 import com.mobilesco.mobilesco_back.modules.cliente.infrastructure.out.persistence.repositories.ClienteRepository;
@@ -96,6 +97,26 @@ class CotizacionServiceTest {
         assertNull(respuesta.getClienteId());
         assertEquals("Público general", respuesta.getClienteNombre());
         verify(clienteRepository, never()).findById(any());
+    }
+
+    @Test
+    void buscarProductosMantieneLosIncompletosComoNoCotizables() {
+        ProductoModel producto = ProductoModel.builder()
+                .id(9L)
+                .sku("ESC-001")
+                .nombre("Pupitre")
+                .activo(true)
+                .build();
+        when(productoRepository.buscarPaginado(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(producto)));
+        when(productoService.obtenerEstructuraCostos(9L))
+                .thenThrow(new ValidationException("No cotizable: falta operaciones"));
+
+        var resultados = service.buscarProductos("Pupitre", null);
+
+        assertEquals(1, resultados.size());
+        assertFalse(resultados.get(0).isCotizable());
+        assertTrue(resultados.get(0).getFaltantes().get(0).contains("operaciones"));
     }
 
     private CotizacionRequestDTO solicitud() {

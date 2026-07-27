@@ -3,6 +3,7 @@ package com.mobilesco.mobilesco_back.config;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.boot.CommandLineRunner;
@@ -30,6 +31,9 @@ public class DataSeeder {
     private static final String DEV_EMAIL = "dev.mobilesco@outlook.com";
     private static final String DEV_PASSWORD = "Admin123!";
     private static final String DEV_PHONE = "7712345678";
+    private static final Map<String, Set<String>> PERMISOS_OBLIGATORIOS_POR_ROL = Map.of(
+            "JEFE_ALMACEN", Set.of("VIEW_WAREHOUSE_REQUISITIONS")
+    );
 
     @Bean
     @Order(1)
@@ -45,6 +49,7 @@ public class DataSeeder {
             seedPermisos(permisoRepository);
             RolModel adminRole = seedRoles(roleRepo);
             asignarPermisosDefault(roleRepo, permisoRepository);
+            asegurarPermisosObligatorios(roleRepo, permisoRepository);
             EmpleadoModel empleadoDev = seedEmpleadoDev(empleadoRepo);
             seedUsuarioDev(userRepo, passwordEncoder, adminRole, empleadoDev);
             seedTiposInsumo(tipoInsumoRepository);
@@ -105,6 +110,20 @@ public class DataSeeder {
                 roleRepo.save(rol);
             }
         });
+    }
+
+    private void asegurarPermisosObligatorios(
+            RolRepository roleRepo,
+            PermisoRepository permisoRepository) {
+        PERMISOS_OBLIGATORIOS_POR_ROL.forEach((nombreRol, codigos) ->
+                roleRepo.findByName(nombreRol).ifPresent(rol -> {
+                    Set<PermisoModel> permisos = new HashSet<>(rol.getPermisos());
+                    boolean cambio = permisos.addAll(permisoRepository.findByCodeIn(codigos));
+                    if (cambio) {
+                        rol.setPermisos(permisos);
+                        roleRepo.save(rol);
+                    }
+                }));
     }
 
     private EmpleadoModel seedEmpleadoDev(EmpleadoRepository empleadoRepo) {

@@ -28,8 +28,12 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping(ApiPaths.AREAS_TRABAJO)
-@PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_EMPLOYEES')")
 public class AreaTrabajoController {
+
+    private static final String PERMISO_GESTION_AREAS =
+            "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_EMPLOYEES')";
+    private static final String PERMISO_CONSULTA_AREAS_PARA_SALIDAS =
+            PERMISO_GESTION_AREAS + " or hasRole('JEFE_ALMACEN')";
 
     private final AreaTrabajoService areaTrabajoService;
 
@@ -38,6 +42,7 @@ public class AreaTrabajoController {
     }
 
     @GetMapping
+    @PreAuthorize(PERMISO_CONSULTA_AREAS_PARA_SALIDAS)
     public ResponseEntity<?> listar(
             @RequestParam(required = false) Boolean activo,
             @RequestParam(required = false) String busqueda,
@@ -57,21 +62,25 @@ public class AreaTrabajoController {
     }
 
     @GetMapping("/codigo-sugerido")
+    @PreAuthorize(PERMISO_CONSULTA_AREAS_PARA_SALIDAS)
     public ResponseEntity<Map<String, String>> sugerirCodigo(@RequestParam String nombre) {
         return ResponseEntity.ok(Map.of("codigo", areaTrabajoService.sugerirCodigo(nombre)));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(PERMISO_CONSULTA_AREAS_PARA_SALIDAS)
     public ResponseEntity<AreaTrabajoResponseDTO> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(areaTrabajoService.obtenerPorId(id));
     }
 
     @PostMapping
+    @PreAuthorize(PERMISO_CONSULTA_AREAS_PARA_SALIDAS)
     public ResponseEntity<AreaTrabajoResponseDTO> crear(@Valid @RequestBody AreaTrabajoCreateDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(areaTrabajoService.crear(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize(PERMISO_GESTION_AREAS)
     public ResponseEntity<AreaTrabajoResponseDTO> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody AreaTrabajoUpdateDTO dto
@@ -80,11 +89,13 @@ public class AreaTrabajoController {
     }
 
     @PatchMapping("/{id}/activar")
+    @PreAuthorize(PERMISO_GESTION_AREAS)
     public ResponseEntity<AreaTrabajoResponseDTO> activar(@PathVariable Long id) {
         return ResponseEntity.ok(areaTrabajoService.cambiarActivo(id, true));
     }
 
     @PatchMapping("/{id}/desactivar")
+    @PreAuthorize(PERMISO_GESTION_AREAS)
     public ResponseEntity<AreaTrabajoResponseDTO> desactivar(@PathVariable Long id) {
         return ResponseEntity.ok(areaTrabajoService.cambiarActivo(id, false));
     }

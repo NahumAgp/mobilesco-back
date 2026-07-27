@@ -43,7 +43,6 @@ public class CotizacionService {
         return mapear(buscarCotizacion(id));
     }
 
-    @Transactional(readOnly = true)
     public List<ProductoCotizableDTO> buscarProductos(String busqueda, String tipo) {
         String texto = busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
         Page<ProductoModel> pagina = productoRepository.buscarPaginado(

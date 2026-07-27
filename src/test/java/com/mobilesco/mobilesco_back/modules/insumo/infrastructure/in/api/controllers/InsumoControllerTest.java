@@ -18,13 +18,14 @@ class InsumoControllerTest {
     private static final String PERMISO_VER_INVENTARIO = "hasAuthority('VIEW_INVENTORY')";
     private static final String PERMISO_GESTION_COSTOS_INSUMOS = "hasAuthority('ACTION_INSUMOS_COSTS')";
     private static final String ROLES_GESTION_INSUMOS = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','JEFE_ALMACEN','ALMACEN','SUBDIRECCION_ADMINISTRATIVA')";
+    private static final String ROLES_AJUSTE_MANUAL_STOCK = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')";
 
     @Test
     void endpointsDeGestionDeInsumosEstanProtegidos() throws Exception {
         assertPreAuthorize("crear", ROLES_GESTION_INSUMOS, InsumoCreateDTO.class);
         assertPreAuthorize("actualizar", ROLES_GESTION_INSUMOS, Long.class, InsumoUpdateDTO.class);
         assertPreAuthorize("actualizarEstado", ROLES_GESTION_INSUMOS, Long.class, InsumoEstadoUpdateDTO.class);
-        assertPreAuthorize("ajustarStock", ROLES_GESTION_INSUMOS, Long.class, Double.class, String.class, String.class);
+        assertPreAuthorize("ajustarStock", ROLES_AJUSTE_MANUAL_STOCK, Long.class, Double.class, String.class, String.class);
         assertPreAuthorize("eliminar", ROLES_GESTION_INSUMOS, Long.class);
     }
 
