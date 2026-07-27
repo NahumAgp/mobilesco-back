@@ -35,7 +35,8 @@ public final class PermisoCatalog {
             new Definition("VIEW_KARDEX", "Ver kardex", "Almacen", "Kardex", "Consultar movimientos de inventario.", "/kardex", "VIEW"),
             new Definition("VIEW_CUSTOMERS", "Ver clientes", "Ventas", "Clientes", "Consultar y administrar el catálogo comercial de clientes.", "/clientes", "VIEW"),
             new Definition("VIEW_QUOTES", "Ver cotizaciones", "Ventas", "Cotizaciones", "Consultar cotizaciones.", "/cotizaciones", "VIEW"),
-            new Definition("ACTION_INSUMOS_COSTS", "Gestionar costos de insumos", "Almacen", "Insumos", "Editar costos de insumos.", "/insumos/costos", "ACTION")
+            new Definition("ACTION_INSUMOS_COSTS", "Gestionar costos de insumos", "Almacen", "Insumos", "Editar costos de insumos.", "/insumos/costos", "ACTION"),
+            new Definition("ACTION_STOCK_ADJUSTMENTS", "Ajustar stock", "Almacen", "Insumos", "Realizar ajustes manuales de inventario con registro en Kardex.", "/insumos", "ACTION")
     );
 
     public static final Set<String> ALL_CODES = DEFINITIONS.stream()
@@ -59,7 +60,7 @@ public final class PermisoCatalog {
             Map.entry("JEFE_HERRERIA", Set.of("VIEW_DASHBOARD", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "VIEW_WORK_CENTERS", "VIEW_OPERATIONS")),
             Map.entry("JEFE_CARPINTERIA", Set.of("VIEW_DASHBOARD", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "VIEW_WORK_CENTERS", "VIEW_OPERATIONS")),
             Map.entry("JEFE_ARMADO", Set.of("VIEW_DASHBOARD", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "VIEW_WORK_CENTERS", "VIEW_OPERATIONS")),
-            Map.entry("JEFE_ALMACEN", Set.of("VIEW_DASHBOARD", "VIEW_INVENTORY", "VIEW_WAREHOUSE_REQUISITIONS", "VIEW_KARDEX", "VIEW_PURCHASES", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG")),
+            Map.entry("JEFE_ALMACEN", Set.of("VIEW_DASHBOARD", "VIEW_INVENTORY", "VIEW_WAREHOUSE_REQUISITIONS", "VIEW_KARDEX", "VIEW_PURCHASES", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG", "ACTION_STOCK_ADJUSTMENTS")),
             Map.entry("JEFE_LOGISTICA", Set.of("VIEW_DASHBOARD", "VIEW_INVENTORY", "VIEW_KARDEX", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG")),
             Map.entry("TECNICO", BASIC_CODES),
             Map.entry("AYUDANTE_GENERAL", BASIC_CODES),

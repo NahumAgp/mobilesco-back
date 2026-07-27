@@ -32,7 +32,7 @@ public class DataSeeder {
     private static final String DEV_PASSWORD = "Admin123!";
     private static final String DEV_PHONE = "7712345678";
     private static final Map<String, Set<String>> PERMISOS_OBLIGATORIOS_POR_ROL = Map.of(
-            "JEFE_ALMACEN", Set.of("VIEW_WAREHOUSE_REQUISITIONS")
+            "JEFE_ALMACEN", Set.of("VIEW_WAREHOUSE_REQUISITIONS", "ACTION_STOCK_ADJUSTMENTS")
     );
 
     @Bean
