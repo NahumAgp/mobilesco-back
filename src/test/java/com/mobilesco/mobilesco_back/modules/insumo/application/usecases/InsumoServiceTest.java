@@ -140,4 +140,13 @@ class InsumoServiceTest {
         assertThrows(ValidationException.class, () -> service.ajustarStock(1L, 5.0, "SALIDA", "Ajuste"));
         verifyNoInteractions(kardexService);
     }
+
+    @Test
+    void ajustarStockRechazaMotivoVacio() {
+        assertThrows(
+                ValidationException.class,
+                () -> service.ajustarStock(1L, 1.0, "ENTRADA", "   "));
+
+        verifyNoInteractions(insumoRepository, kardexService);
+    }
 }

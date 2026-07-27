@@ -593,12 +593,16 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     public InsumoResponseDTO ajustarStock(Long id, Double cantidad, String tipo, String motivo) {
         log.info("Ajustando stock - Insumo ID: {}, Cantidad: {}, Tipo: {}", id, cantidad, tipo);
         
-        InsumoModel insumo = insumoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
-
         if (cantidad == null || cantidad <= 0) {
             throw new ValidationException("La cantidad debe ser mayor a 0");
         }
+        if (motivo == null || motivo.isBlank()) {
+            throw new ValidationException("El motivo del ajuste es obligatorio");
+        }
+        String motivoNormalizado = motivo.trim();
+
+        InsumoModel insumo = insumoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
 
         double stockAnterior = insumo.getStockActual() != null ? insumo.getStockActual() : 0.0;
         double stockNuevo;
@@ -630,7 +634,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 updated.getId(),
                 stockAnterior,
                 stockNuevo,
-                motivo,
+                motivoNormalizado,
                 obtenerUsuarioActual()
         );
 
