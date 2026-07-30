@@ -116,7 +116,7 @@ public class V2__verify_baseline_schema extends BaseJavaMigration {
     public void migrate(Context context) throws Exception {
         Connection connection = context.getConnection();
         DatabaseMetaData metadata = connection.getMetaData();
-        Map<String, String> actualTables = readTables(metadata);
+        Map<String, String> actualTables = readTables(connection, metadata);
         List<String> problems = new ArrayList<>();
 
         REQUIRED_TABLES.stream()
@@ -129,7 +129,7 @@ public class V2__verify_baseline_schema extends BaseJavaMigration {
             if (actualTable == null) {
                 continue;
             }
-            Map<String, ColumnMetadata> columns = readColumns(metadata, actualTable);
+            Map<String, ColumnMetadata> columns = readColumns(connection, metadata, actualTable);
             requirement.getValue().stream()
                     .sorted()
                     .filter(column -> !columns.containsKey(column))
@@ -143,7 +143,7 @@ public class V2__verify_baseline_schema extends BaseJavaMigration {
             if (actualTable == null) {
                 continue;
             }
-            ColumnMetadata column = readColumns(metadata, actualTable).get(ref.column());
+            ColumnMetadata column = readColumns(connection, metadata, actualTable).get(ref.column());
             if (column != null && column.nullable() != expectation.getValue()) {
                 problems.add("column `" + ref.table() + "`.`" + ref.column() + "` must be "
                         + (expectation.getValue() ? "nullable" : "NOT NULL"));
@@ -155,7 +155,7 @@ public class V2__verify_baseline_schema extends BaseJavaMigration {
             if (actualTable == null) {
                 continue;
             }
-            List<List<String>> uniqueIndexes = readUniqueIndexes(metadata, actualTable);
+            List<List<String>> uniqueIndexes = readUniqueIndexes(connection, metadata, actualTable);
             for (List<String> expectedColumns : requirement.getValue()) {
                 if (!uniqueIndexes.contains(expectedColumns)) {
                     problems.add("missing unique index on `" + requirement.getKey() + "` ("
@@ -176,9 +176,10 @@ public class V2__verify_baseline_schema extends BaseJavaMigration {
         }
     }
 
-    private Map<String, String> readTables(DatabaseMetaData metadata) throws SQLException {
+    private Map<String, String> readTables(Connection connection, DatabaseMetaData metadata) throws SQLException {
         Map<String, String> tables = new HashMap<>();
-        try (ResultSet resultSet = metadata.getTables(null, null, "%", new String[] {"TABLE"})) {
+        try (ResultSet resultSet = metadata.getTables(
+                connection.getCatalog(), connection.getSchema(), "%", new String[] {"TABLE"})) {
             while (resultSet.next()) {
                 String name = resultSet.getString("TABLE_NAME");
                 tables.put(name.toLowerCase(Locale.ROOT), name);
@@ -187,9 +188,11 @@ public class V2__verify_baseline_schema extends BaseJavaMigration {
         return tables;
     }
 
-    private Map<String, ColumnMetadata> readColumns(DatabaseMetaData metadata, String table) throws SQLException {
+    private Map<String, ColumnMetadata> readColumns(
+            Connection connection, DatabaseMetaData metadata, String table) throws SQLException {
         Map<String, ColumnMetadata> columns = new HashMap<>();
-        try (ResultSet resultSet = metadata.getColumns(null, null, table, "%")) {
+        try (ResultSet resultSet = metadata.getColumns(
+                connection.getCatalog(), connection.getSchema(), table, "%")) {
             while (resultSet.next()) {
                 String name = resultSet.getString("COLUMN_NAME").toLowerCase(Locale.ROOT);
                 boolean nullable = resultSet.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls;
@@ -199,9 +202,11 @@ public class V2__verify_baseline_schema extends BaseJavaMigration {
         return columns;
     }
 
-    private List<List<String>> readUniqueIndexes(DatabaseMetaData metadata, String table) throws SQLException {
+    private List<List<String>> readUniqueIndexes(
+            Connection connection, DatabaseMetaData metadata, String table) throws SQLException {
         Map<String, List<IndexedColumn>> indexes = new LinkedHashMap<>();
-        try (ResultSet resultSet = metadata.getIndexInfo(null, null, table, true, false)) {
+        try (ResultSet resultSet = metadata.getIndexInfo(
+                connection.getCatalog(), connection.getSchema(), table, true, false)) {
             while (resultSet.next()) {
                 String indexName = resultSet.getString("INDEX_NAME");
                 String columnName = resultSet.getString("COLUMN_NAME");
