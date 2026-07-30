@@ -9,10 +9,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,43 +31,121 @@ public class AlmacenamientoImagenesService {
     @Value("${app.uploads.dir}")
     private String uploadsDir;
 
-    private static final Set<String> TIPOS_PERMITIDOS = Set.of(
-            "image/jpeg",
-            "image/png",
-            "image/webp"
+    @Value("${app.uploads.max-image-bytes:20971520}")
+    private long maxImageBytes;
+
+    @Value("${app.uploads.max-image-pixels:25000000}")
+    private long maxImagePixels;
+
+    @Value("${app.uploads.max-filename-length:128}")
+    private int maxFilenameLength;
+
+    private static final Map<String, String> FORMATOS_PERMITIDOS = Map.of(
+            "jpeg", "image/jpeg",
+            "png", "image/png",
+            "webp", "image/webp"
+    );
+    private static final Set<String> EXTENSIONES_PERMITIDAS = Set.of("jpg", "jpeg", "png", "webp");
+    private static final Pattern NOMBRE_SEGURO = Pattern.compile(
+            "[\\p{L}\\p{N}][\\p{L}\\p{N} ._()-]*"
     );
 
-    private void validarArchivoImagen(MultipartFile archivo) {
+    private BufferedImage leerImagenValidada(MultipartFile archivo) throws IOException {
         if (archivo == null || archivo.isEmpty()) {
             throw new IllegalArgumentException(
                     "No se recibio archivo. En Postman usa Body -> form-data, key=archivo (File)."
             );
         }
 
-        String tipo = archivo.getContentType();
-        if (tipo == null || !TIPOS_PERMITIDOS.contains(tipo)) {
+        String nombreOriginal = archivo.getOriginalFilename();
+        validarNombre(nombreOriginal);
+
+        String tipoDeclarado = archivo.getContentType();
+        if (tipoDeclarado == null || !FORMATOS_PERMITIDOS.containsValue(tipoDeclarado.toLowerCase(Locale.ROOT))) {
             throw new IllegalArgumentException("Tipo no permitido. Sube JPG, PNG o WEBP.");
         }
 
-        long maxBytes = 20L * 1024 * 1024;
-        if (archivo.getSize() > maxBytes) {
-            throw new IllegalArgumentException("La imagen supera el maximo permitido (20MB).");
+        if (archivo.getSize() > maxImageBytes) {
+            throw new IllegalArgumentException("La imagen supera el maximo permitido.");
+        }
+
+        try (ImageInputStream input = ImageIO.createImageInputStream(archivo.getInputStream())) {
+            if (input == null) {
+                throw new IllegalArgumentException("No se pudo leer el archivo.");
+            }
+
+            var lectores = ImageIO.getImageReaders(input);
+            if (!lectores.hasNext()) {
+                throw new IllegalArgumentException("El contenido real no es una imagen JPG, PNG o WEBP valida.");
+            }
+
+            ImageReader lector = lectores.next();
+            try {
+                lector.setInput(input, true, true);
+                String formatoReal = normalizarFormato(lector.getFormatName());
+                String tipoReal = FORMATOS_PERMITIDOS.get(formatoReal);
+                if (tipoReal == null) {
+                    throw new IllegalArgumentException("El formato real de la imagen no esta permitido.");
+                }
+                if (!tipoReal.equals(tipoDeclarado.toLowerCase(Locale.ROOT))) {
+                    throw new IllegalArgumentException("El tipo declarado no coincide con el contenido real.");
+                }
+                validarExtension(nombreOriginal, formatoReal);
+
+                int ancho = lector.getWidth(0);
+                int alto = lector.getHeight(0);
+                if (ancho <= 0 || alto <= 0 || (long) ancho * alto > maxImagePixels) {
+                    throw new IllegalArgumentException("Las dimensiones de la imagen superan el limite permitido.");
+                }
+
+                BufferedImage imagen = lector.read(0);
+                if (imagen == null) {
+                    throw new IllegalArgumentException("El archivo no es una imagen valida o compatible.");
+                }
+                return imagen;
+            } finally {
+                lector.dispose();
+            }
         }
     }
 
+    private void validarNombre(String nombre) {
+        if (nombre == null || nombre.isBlank() || nombre.length() > maxFilenameLength) {
+            throw new IllegalArgumentException("El nombre del archivo es invalido.");
+        }
+        if (!nombre.equals(Paths.get(nombre).getFileName().toString())
+                || nombre.contains("/") || nombre.contains("\\")
+                || !NOMBRE_SEGURO.matcher(nombre).matches()) {
+            throw new IllegalArgumentException("El nombre del archivo contiene caracteres o rutas no permitidas.");
+        }
+    }
+
+    private void validarExtension(String nombre, String formatoReal) {
+        int punto = nombre.lastIndexOf('.');
+        if (punto <= 0 || punto == nombre.length() - 1) {
+            throw new IllegalArgumentException("El archivo debe incluir una extension valida.");
+        }
+        String extension = nombre.substring(punto + 1).toLowerCase(Locale.ROOT);
+        if (!EXTENSIONES_PERMITIDAS.contains(extension)
+                || ("jpeg".equals(formatoReal) && !Set.of("jpg", "jpeg").contains(extension))
+                || (!"jpeg".equals(formatoReal) && !formatoReal.equals(extension))) {
+            throw new IllegalArgumentException("La extension no coincide con el contenido real de la imagen.");
+        }
+    }
+
+    private String normalizarFormato(String formato) {
+        String normalizado = formato.toLowerCase(Locale.ROOT);
+        return "jpg".equals(normalizado) ? "jpeg" : normalizado;
+    }
+
     public String guardarFotoPerfilEmpleado(Long empleadoId, MultipartFile archivo) throws IOException {
-        validarArchivoImagen(archivo);
+        BufferedImage img = leerImagenValidada(archivo);
 
         Path carpeta = Paths.get(uploadsDir, "empleados", empleadoId.toString(), "perfil");
         Files.createDirectories(carpeta);
 
         String nombre = UUID.randomUUID().toString();
         Path destinoJpg = carpeta.resolve(nombre + ".jpg");
-
-        BufferedImage img = ImageIO.read(archivo.getInputStream());
-        if (img == null) {
-            throw new IllegalArgumentException("El archivo no es una imagen valida o no es compatible.");
-        }
 
         Thumbnails.of(img)
                 .scale(1.0)
@@ -73,18 +156,13 @@ public class AlmacenamientoImagenesService {
     }
 
     public String guardarImagenProducto(Long productoId, MultipartFile archivo) throws IOException {
-        validarArchivoImagen(archivo);
+        BufferedImage img = leerImagenValidada(archivo);
 
         Path carpeta = Paths.get(uploadsDir, "productos", "catalogo", productoId.toString());
         Files.createDirectories(carpeta);
 
         String nombre = UUID.randomUUID().toString();
         Path destinoJpg = carpeta.resolve(nombre + ".jpg");
-
-        BufferedImage img = ImageIO.read(archivo.getInputStream());
-        if (img == null) {
-            throw new IllegalArgumentException("El archivo no es una imagen valida o no es compatible.");
-        }
 
         Thumbnails.of(img)
                 .scale(1.0)
@@ -95,18 +173,13 @@ public class AlmacenamientoImagenesService {
     }
 
     public String guardarImagenModelo(Long modeloId, MultipartFile archivo) throws IOException {
-        validarArchivoImagen(archivo);
+        BufferedImage img = leerImagenValidada(archivo);
 
         Path carpeta = Paths.get(uploadsDir, "modelos", modeloId.toString());
         Files.createDirectories(carpeta);
 
         String nombre = UUID.randomUUID().toString();
         Path destinoJpg = carpeta.resolve(nombre + ".jpg");
-
-        BufferedImage img = ImageIO.read(archivo.getInputStream());
-        if (img == null) {
-            throw new IllegalArgumentException("El archivo no es una imagen valida o no es compatible.");
-        }
 
         Thumbnails.of(img)
                 .scale(1.0)

@@ -2,6 +2,7 @@ package com.mobilesco.mobilesco_back.security;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,6 +20,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+    @Value("${app.openapi.public-access:false}")
+    private boolean openApiPublicAccess;
+
     @Bean
 public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
@@ -53,15 +57,24 @@ public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthF
         .cors(cors -> {})
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/register").permitAll()
-            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-            .requestMatchers("/uploads/**").permitAll()
-            // Catalogo publico: solo lectura, sin autenticacion
-            .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
-            //.requestMatchers("/api/v1/proveedores/**").permitAll()
-            .anyRequest().authenticated()
-        )
+        .authorizeHttpRequests(auth -> {
+            auth.requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/register").permitAll();
+            if (openApiPublicAccess) {
+                auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
+            } else {
+                auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN");
+            }
+            auth
+                // Solo los recursos que forman parte del catalogo son publicos.
+                .requestMatchers(HttpMethod.GET,
+                        "/uploads/modelos/**",
+                        "/uploads/productos/catalogo/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
+                // Las demas cargas, incluidas fotos de empleados, requieren autenticacion.
+                .requestMatchers("/uploads/**").authenticated()
+                .anyRequest().authenticated();
+        })
         // 👇 Aquí agregamos el filtro JWT
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

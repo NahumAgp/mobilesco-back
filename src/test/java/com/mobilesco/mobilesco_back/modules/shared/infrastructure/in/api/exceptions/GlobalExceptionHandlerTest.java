@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.http.HttpMethod;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 
@@ -40,5 +42,31 @@ class GlobalExceptionHandlerTest {
         assertEquals("Conflict", response.getBody().get("error"));
         assertEquals("El registro fue modificado por otro usuario. Vuelve a intentarlo.", response.getBody().get("message"));
         assertEquals(false, response.getBody().get("success"));
+    }
+
+    @Test
+    void archivoInvalidoDevuelveBadRequest() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleIllegalArgument(new IllegalArgumentException("archivo invalido"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("archivo invalido", response.getBody().get("message"));
+    }
+
+    @Test
+    void recursoInexistenteDevuelveNotFound() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleNoResource(new NoResourceFoundException(
+                        HttpMethod.GET,
+                        "/v3/api-docs",
+                        "/v3/api-docs"
+                ));
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("Recurso no encontrado", response.getBody().get("message"));
     }
 }
