@@ -49,15 +49,19 @@ Endpoints principales:
 
 ### Compatibilidad MySQL
 
-- Al arrancar, el backend alinea la collation de `proveedor.tipo_insumo` y `tipo_insumo_catalogo` a `utf8mb4_unicode_ci`.
-- Esto evita errores de MySQL por mezcla de collations en instalaciones existentes.
+- Flyway crea las instalaciones nuevas con `utf8mb4_unicode_ci`.
+- La adopcion de una base existente valida las collations criticas y detiene el arranque si requieren una migracion explicita.
 
 ## Nota de compatibilidad
 
 - Al editar un tipo de insumo se conserva el codigo actual para no romper relaciones existentes.
 
-## Despliegue en VPS
+## Migraciones de base de datos
 
-- En `prod` el backend usa `spring.jpa.hibernate.ddl-auto=validate`.
-- Antes de levantar el servicio en VPS, asegúrate de aplicar los cambios de esquema SQL necesarios.
-- Esto evita que Hibernate modifique la base automaticamente y hace el despliegue mas predecible.
+- Flyway es la unica autoridad de cambios de esquema.
+- Hibernate usa `ddl-auto=validate` en todos los ambientes.
+- Las instalaciones nuevas ejecutan las migraciones automaticamente.
+- Las instalaciones existentes requieren backup, preflight y un baseline controlado.
+- No edites una migracion aplicada ni uses `flyway repair` como rollback.
+
+Consulta [la guia operativa](../docs/database-migrations.md) antes de adoptar Flyway o desplegar una migracion.
