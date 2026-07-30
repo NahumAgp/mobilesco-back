@@ -10,13 +10,19 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
+import com.mobilesco.mobilesco_back.modules.color.infrastructure.out.persistence.repositories.ColorRepository;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.linea.infrastructure.out.persistence.repositories.LineaRepository;
+import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
+import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persistence.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoReclasificacionRequestDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoReclasificacionResponseDTO;
@@ -35,6 +41,9 @@ public class ProductoReclasificacionService {
     private final LineaRepository lineaRepository;
     private final FamiliaRepository familiaRepository;
     private final SubfamiliaRepository subfamiliaRepository;
+    private final NivelRepository nivelRepository;
+    private final MaterialRepository materialRepository;
+    private final ColorRepository colorRepository;
     private final CotizacionRepository cotizacionRepository;
 
     public ProductoReclasificacionService(
@@ -43,20 +52,25 @@ public class ProductoReclasificacionService {
             LineaRepository lineaRepository,
             FamiliaRepository familiaRepository,
             SubfamiliaRepository subfamiliaRepository,
+            NivelRepository nivelRepository,
+            MaterialRepository materialRepository,
+            ColorRepository colorRepository,
             CotizacionRepository cotizacionRepository) {
         this.productoRepository = productoRepository;
         this.modeloRepository = modeloRepository;
         this.lineaRepository = lineaRepository;
         this.familiaRepository = familiaRepository;
         this.subfamiliaRepository = subfamiliaRepository;
+        this.nivelRepository = nivelRepository;
+        this.materialRepository = materialRepository;
+        this.colorRepository = colorRepository;
         this.cotizacionRepository = cotizacionRepository;
     }
 
     @Transactional(readOnly = true)
     public ProductoReclasificacionResponseDTO previsualizar(
             Long productoId, ProductoReclasificacionRequestDTO request) {
-        Contexto contexto = preparar(productoId, request);
-        return construirRespuesta(contexto);
+        return construirRespuesta(preparar(productoId, request));
     }
 
     @Transactional
@@ -68,9 +82,14 @@ public class ProductoReclasificacionService {
             throw new ValidationException(respuesta.getMotivoBloqueo());
         }
 
-        contexto.modelo().setFamilia(contexto.familia());
-        contexto.modelo().setSubfamilia(contexto.subfamilia());
-        modeloRepository.save(contexto.modelo());
+        contexto.modeloDestino().setFamilia(contexto.familia());
+        contexto.modeloDestino().setSubfamilia(contexto.subfamilia());
+        modeloRepository.save(contexto.modeloDestino());
+
+        contexto.productoEditado().setModelo(contexto.modeloDestino());
+        contexto.productoEditado().setNivel(contexto.nivel());
+        contexto.productoEditado().setMaterial(contexto.material());
+        contexto.productoEditado().setColor(contexto.color());
 
         for (int i = 0; i < contexto.productos().size(); i++) {
             contexto.productos().get(i).setSku(respuesta.getCambiosSku().get(i).getSkuNuevo());
@@ -82,10 +101,22 @@ public class ProductoReclasificacionService {
     private Contexto preparar(Long productoId, ProductoReclasificacionRequestDTO request) {
         ProductoModel producto = productoRepository.findById(productoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
-        ModeloModel modelo = producto.getModelo();
-        if (modelo == null) {
+        ModeloModel modeloOrigen = producto.getModelo();
+        if (modeloOrigen == null) {
             throw new ValidationException("El producto no tiene un modelo base que pueda reclasificarse.");
         }
+
+        ModeloModel modeloDestino = modeloRepository.findById(request.getModeloId())
+                .orElseThrow(() -> new ResourceNotFoundException("Modelo no encontrado"));
+        NivelModel nivel = nivelRepository.findById(request.getNivelId())
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
+        if (nivel.getModelo() == null || !Objects.equals(nivel.getModelo().getId(), modeloDestino.getId())) {
+            throw new ValidationException("La categoría seleccionada no pertenece al modelo indicado.");
+        }
+        MaterialModel material = materialRepository.findById(request.getMaterialId())
+                .orElseThrow(() -> new ResourceNotFoundException("Material no encontrado"));
+        ColorModel color = colorRepository.findById(request.getColorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Color no encontrado"));
 
         LineaModel linea = lineaRepository.findById(request.getLineaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Línea no encontrada"));
@@ -108,30 +139,57 @@ public class ProductoReclasificacionService {
         }
 
         if (modeloRepository.existsByFamiliaIdAndCodigoIgnoreCaseAndIdNot(
-                familia.getId(), modelo.getCodigo(), modelo.getId())) {
+                familia.getId(), modeloDestino.getCodigo(), modeloDestino.getId())) {
             throw new ValidationException(
-                    "Ya existe otro modelo con el código " + modelo.getCodigo() + " en la familia seleccionada.");
+                    "Ya existe otro modelo con el código " + modeloDestino.getCodigo() + " en la familia seleccionada.");
         }
         if (modeloRepository.existsByFamiliaIdAndNombreIgnoreCaseAndIdNot(
-                familia.getId(), modelo.getNombre(), modelo.getId())) {
+                familia.getId(), modeloDestino.getNombre(), modeloDestino.getId())) {
             throw new ValidationException(
-                    "Ya existe otro modelo con el nombre " + modelo.getNombre() + " en la familia seleccionada.");
+                    "Ya existe otro modelo con el nombre " + modeloDestino.getNombre() + " en la familia seleccionada.");
         }
 
-        List<ProductoModel> productos = productoRepository.findByModeloId(modelo.getId());
-        return new Contexto(modelo, linea, familia, subfamilia, productos);
+        List<ProductoModel> productos = new ArrayList<>(productoRepository.findByModeloId(modeloDestino.getId()));
+        productos.removeIf(item -> Objects.equals(item.getId(), producto.getId()));
+        productos.add(producto);
+        return new Contexto(
+                producto,
+                modeloOrigen,
+                modeloDestino,
+                nivel,
+                material,
+                color,
+                linea,
+                familia,
+                subfamilia,
+                productos);
     }
 
     private ProductoReclasificacionResponseDTO construirRespuesta(Contexto contexto) {
-        boolean cambio = !Objects.equals(id(contexto.modelo().getFamilia()), contexto.familia().getId())
-                || !Objects.equals(id(contexto.modelo().getSubfamilia()), id(contexto.subfamilia()));
+        boolean cambioRuta = !Objects.equals(id(contexto.modeloDestino().getFamilia()), contexto.familia().getId())
+                || !Objects.equals(id(contexto.modeloDestino().getSubfamilia()), id(contexto.subfamilia()));
+        boolean cambioProducto = !Objects.equals(id(contexto.productoEditado().getModelo()), contexto.modeloDestino().getId())
+                || !Objects.equals(id(contexto.productoEditado().getNivel()), contexto.nivel().getId())
+                || !Objects.equals(id(contexto.productoEditado().getMaterial()), contexto.material().getId())
+                || !Objects.equals(id(contexto.productoEditado().getColor()), contexto.color().getId());
+        boolean cambio = cambioRuta || cambioProducto;
+
         List<CambioSkuDTO> cambios = new ArrayList<>();
         Set<String> nuevosSku = new HashSet<>();
+        Set<Long> idsAfectados = new HashSet<>();
+        contexto.productos().forEach(item -> idsAfectados.add(item.getId()));
         String motivo = null;
 
         for (ProductoModel producto : contexto.productos()) {
-            String skuNuevo = generarSku(contexto.linea(), contexto.familia(), contexto.subfamilia(),
-                    contexto.modelo(), producto);
+            boolean esProductoEditado = Objects.equals(producto.getId(), contexto.productoEditado().getId());
+            String skuNuevo = generarSku(
+                    contexto.linea(),
+                    contexto.familia(),
+                    contexto.subfamilia(),
+                    contexto.modeloDestino(),
+                    esProductoEditado ? contexto.nivel() : producto.getNivel(),
+                    esProductoEditado ? contexto.material() : producto.getMaterial(),
+                    esProductoEditado ? contexto.color() : producto.getColor());
             cambios.add(CambioSkuDTO.builder()
                     .productoId(producto.getId())
                     .nombre(producto.getNombre())
@@ -140,34 +198,46 @@ public class ProductoReclasificacionService {
                     .build());
 
             if (!nuevosSku.add(skuNuevo.toLowerCase(Locale.ROOT))) {
-                motivo = "La nueva clasificación produciría SKUs duplicados.";
+                motivo = "Los cambios producirían SKUs duplicados.";
             }
             ProductoModel ocupante = productoRepository.findBySkuIgnoreCase(skuNuevo).orElse(null);
-            if (ocupante != null && !Objects.equals(ocupante.getModelo().getId(), contexto.modelo().getId())) {
+            if (ocupante != null && !idsAfectados.contains(ocupante.getId())) {
                 motivo = "Ya existe otro producto con el SKU " + skuNuevo + ".";
             }
         }
 
         List<Long> ids = contexto.productos().stream().map(ProductoModel::getId).toList();
         if (cambio && !ids.isEmpty() && cotizacionRepository.existsByProductoIdsInCotizaciones(ids)) {
-            motivo = "Una o más variantes del modelo ya aparecen en cotizaciones y no pueden reclasificarse.";
+            motivo = "Una o más variantes afectadas ya aparecen en cotizaciones y no pueden modificar su SKU.";
         }
 
+        long variantesAfectadas = cambios.stream()
+                .filter(item -> !item.getSkuAnterior().equalsIgnoreCase(item.getSkuNuevo()))
+                .count();
         return ProductoReclasificacionResponseDTO.builder()
-                .productoBaseId(contexto.modelo().getId())
-                .productoBaseNombre(contexto.modelo().getNombre())
-                .rutaActual(ruta(contexto.modelo().getFamilia(), contexto.modelo().getSubfamilia(), contexto.modelo()))
-                .rutaDestino(ruta(contexto.familia(), contexto.subfamilia(), contexto.modelo()))
-                .variantesAfectadas(cambio ? contexto.productos().size() : 0)
+                .productoBaseId(contexto.modeloDestino().getId())
+                .productoBaseNombre(contexto.modeloDestino().getNombre())
+                .rutaActual(ruta(
+                        contexto.modeloOrigen().getFamilia(),
+                        contexto.modeloOrigen().getSubfamilia(),
+                        contexto.modeloOrigen()))
+                .rutaDestino(ruta(contexto.familia(), contexto.subfamilia(), contexto.modeloDestino()))
+                .variantesAfectadas((int) variantesAfectadas)
                 .permitido(motivo == null)
                 .motivoBloqueo(motivo)
                 .cambiosSku(cambios)
                 .build();
     }
 
-    private String generarSku(LineaModel linea, FamiliaModel familia, SubfamiliaModel subfamilia,
-            ModeloModel modelo, ProductoModel producto) {
-        if (producto.getNivel() == null || producto.getMaterial() == null || producto.getColor() == null) {
+    private String generarSku(
+            LineaModel linea,
+            FamiliaModel familia,
+            SubfamiliaModel subfamilia,
+            ModeloModel modelo,
+            NivelModel nivel,
+            MaterialModel material,
+            ColorModel color) {
+        if (nivel == null || material == null || color == null) {
             throw new ValidationException(
                     "Una variante del modelo no tiene categoría, material o color y no puede regenerar su SKU.");
         }
@@ -176,9 +246,9 @@ public class ProductoReclasificacionService {
                 + codigo(familia.getCodigo(), "familia")
                 + codigoSubfamilia
                 + codigo(modelo.getCodigo(), "modelo")
-                + "-" + codigo(producto.getNivel().getCodigo(), "categoría")
-                + "-" + codigo(producto.getMaterial().getCodigo(), "material")
-                + "-" + codigo(producto.getColor().getCodigo(), "color")).toUpperCase(Locale.ROOT);
+                + "-" + codigo(nivel.getCodigo(), "categoría")
+                + "-" + codigo(material.getCodigo(), "material")
+                + "-" + codigo(color.getCodigo(), "color")).toUpperCase(Locale.ROOT);
     }
 
     private String ruta(FamiliaModel familia, SubfamiliaModel subfamilia, ModeloModel modelo) {
@@ -191,6 +261,10 @@ public class ProductoReclasificacionService {
     private Long id(Object item) {
         if (item instanceof FamiliaModel familia) return familia.getId();
         if (item instanceof SubfamiliaModel subfamilia) return subfamilia.getId();
+        if (item instanceof ModeloModel modelo) return modelo.getId();
+        if (item instanceof NivelModel nivel) return nivel.getId();
+        if (item instanceof MaterialModel material) return material.getId();
+        if (item instanceof ColorModel color) return color.getId();
         return null;
     }
 
@@ -202,7 +276,12 @@ public class ProductoReclasificacionService {
     }
 
     private record Contexto(
-            ModeloModel modelo,
+            ProductoModel productoEditado,
+            ModeloModel modeloOrigen,
+            ModeloModel modeloDestino,
+            NivelModel nivel,
+            MaterialModel material,
+            ColorModel color,
             LineaModel linea,
             FamiliaModel familia,
             SubfamiliaModel subfamilia,
