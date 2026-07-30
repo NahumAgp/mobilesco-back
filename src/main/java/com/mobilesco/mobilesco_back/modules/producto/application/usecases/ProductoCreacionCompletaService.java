@@ -3,6 +3,7 @@ package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
@@ -154,7 +155,7 @@ public class ProductoCreacionCompletaService {
         List<ProductoCreadoDTO> productos = new ArrayList<>();
         for (VarianteBorradorDTO borrador : dto.getVariantes()) {
             ProductoCreateDTO payload = new ProductoCreateDTO();
-            payload.setNombre(borrador.getNombre());
+            payload.setNombre(normalizarNombreProducto(borrador.getNombre()));
             payload.setDescripcion(borrador.getDescripcion());
             payload.setDescripcionCorta(borrador.getDescripcionCorta());
             payload.setPesoVolumetrico(borrador.getPesoVolumetrico());
@@ -181,6 +182,12 @@ public class ProductoCreacionCompletaService {
         }
 
         return new ProductoCreacionCompletaResponseDTO(modeloResultado, productos);
+    }
+
+    private String normalizarNombreProducto(String nombre) {
+        return nombre == null
+                ? null
+                : nombre.trim().replaceAll("\\s+", " ").toUpperCase(Locale.ROOT);
     }
 
     private void registrarCategoriasCreadas(

@@ -134,6 +134,7 @@ class ProductoCreacionCompletaServiceTest {
         assertEquals(40L, payload.getNivelId());
         assertEquals(50L, payload.getMaterialId());
         assertEquals(60L, payload.getColorId());
+        assertEquals("PRODUCTO COMPLETO", payload.getNombre());
         assertEquals("var-completa", response.getProductos().get(0).getClientRef());
     }
 
