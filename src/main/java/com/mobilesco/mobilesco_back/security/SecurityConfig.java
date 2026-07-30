@@ -1,5 +1,6 @@
 package com.mobilesco.mobilesco_back.security;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -24,25 +25,19 @@ public class SecurityConfig {
     private boolean openApiPublicAccess;
 
     @Bean
-public CorsConfigurationSource corsConfigurationSource() {
+public CorsConfigurationSource corsConfigurationSource(
+        @Value("${security.cors.allowed-origins}") String allowedOrigins) {
     CorsConfiguration config = new CorsConfiguration();
 
-    config.setAllowedOrigins(List.of(
-        "http://localhost",
-        "http://localhost:8081",
-        "http://localhost:5173",
-        "http://localhost:80",
-        "https://mobilesco.cloud",
-        "https://www.mobilesco.cloud",
-        "https://erp.mobilesco.cloud",
-        // Web publica que consume el catalogo publico (/api/v1/public/**)
-        "https://mobilesco.com.mx",
-        "https://www.mobilesco.com.mx"
-    ));
+    config.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+        .map(String::trim)
+        .filter(origin -> !origin.isEmpty())
+        .toList());
 
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-    config.setAllowedHeaders(List.of("*"));
+    config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-CSRF-TOKEN"));
     config.setAllowCredentials(true);
+    config.setMaxAge(3600L);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
@@ -55,10 +50,16 @@ public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthF
 
     http
         .cors(cors -> {})
+        // Access uses a bearer token. Refresh/logout perform a double-submit
+        // CSRF check in AuthController because their credential is a cookie.
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> {
-            auth.requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/register").permitAll();
+            auth.requestMatchers(
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/refresh",
+                    "/api/v1/auth/logout",
+                    "/api/v1/auth/register").permitAll();
             if (openApiPublicAccess) {
                 auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
             } else {

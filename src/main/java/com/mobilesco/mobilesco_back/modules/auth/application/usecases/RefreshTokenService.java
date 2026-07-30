@@ -7,6 +7,7 @@ import java.util.Base64;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.RefreshTokenModel;
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
@@ -56,15 +57,22 @@ public class RefreshTokenService {
      * - Crea uno nuevo (rotación)
      * - Regresa: usuario + nuevo refresh raw
      */
+    @Transactional(noRollbackFor = BadCredentialsException.class)
     public RotationResult rotate(String oldRefreshRaw) {
         String oldHash = TokenHash.sha256Hex(oldRefreshRaw);
 
-        RefreshTokenModel old = refreshRepo.findByTokenHash(oldHash)
+        RefreshTokenModel old = refreshRepo.findByTokenHashForUpdate(oldHash)
                 .orElseThrow(() -> new BadCredentialsException("Refresh token inválido"));
 
         LocalDateTime now = LocalDateTime.now();
-        if (!old.isActive(now)) {
-            throw new BadCredentialsException("Refresh token expirado o revocado");
+        if (old.getRevokedAt() != null) {
+            revokeReplacementChain(old.getReplacedBy(), now);
+            throw new BadCredentialsException("Se detectó la reutilización de un refresh token");
+        }
+        if (!old.getExpiresAt().isAfter(now)) {
+            old.setRevokedAt(now);
+            refreshRepo.save(old);
+            throw new BadCredentialsException("Refresh token expirado");
         }
 
         // 1) revocar el token viejo
@@ -104,7 +112,17 @@ public class RefreshTokenService {
         });
     }
 
-    // Genera un token aleatorio fuerte (imposible de adivinar)
+    private void revokeReplacementChain(RefreshTokenModel token, LocalDateTime now) {
+        RefreshTokenModel current = token;
+        while (current != null) {
+            if (current.getRevokedAt() == null) {
+                current.setRevokedAt(now);
+                refreshRepo.save(current);
+            }
+            current = current.getReplacedBy();
+        }
+    }
+
     private String randomToken() {
         byte[] bytes = new byte[32];
         new SecureRandom().nextBytes(bytes);
