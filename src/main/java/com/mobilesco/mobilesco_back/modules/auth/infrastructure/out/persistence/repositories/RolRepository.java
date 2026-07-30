@@ -1,6 +1,8 @@
 package com.mobilesco.mobilesco_back.modules.auth.infrastructure.out.persistence.repositories;
 
 import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,13 +16,17 @@ import com.mobilesco.mobilesco_back.modules.auth.domain.models.RolModel;
 public interface RolRepository extends JpaRepository<RolModel, Long> {
     Optional<RolModel> findByName(String name);
 
+    List<RolModel> findByNameIn(Collection<String> names);
+
     boolean existsByName(String name);
+
+    @Query("select r.name from RolModel r order by r.name")
+    List<String> findAllNamesOrderByName();
 
     @Override
     @EntityGraph(attributePaths = {"permisos"})
     java.util.List<RolModel> findAll();
 
-    @EntityGraph(attributePaths = {"permisos"})
     @Query(
             value = """
                     select distinct r
@@ -48,4 +54,12 @@ public interface RolRepository extends JpaRepository<RolModel, Long> {
                     """
     )
     Page<RolModel> buscarPaginado(@Param("busqueda") String busqueda, Pageable pageable);
+
+    @Query("""
+            select distinct r
+            from RolModel r
+            left join fetch r.permisos
+            where r.id in :ids
+            """)
+    List<RolModel> findAllWithPermisosByIdIn(@Param("ids") Collection<Long> ids);
 }

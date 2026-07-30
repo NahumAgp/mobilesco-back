@@ -4,8 +4,10 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -204,10 +206,7 @@ public class AccesoService {
     }
 
     public List<String> listarRolesDisponibles() {
-        return rolRepository.findAll().stream()
-                .map(RolModel::getName)
-                .sorted()
-                .collect(Collectors.toList());
+        return rolRepository.findAllNamesOrderByName();
     }
 
     public List<PermisoResponseDTO> listarPermisos() {
@@ -224,11 +223,19 @@ public class AccesoService {
     }
 
     public PageResponseDTO<RolResponseDTO> listarRolesDetallePaginado(String busqueda, Pageable pageable) {
-        Page<RolResponseDTO> page = rolRepository.buscarPaginado(normalizarFiltro(busqueda), pageable)
-                .map(this::mapRol);
+        Page<RolModel> page = rolRepository.buscarPaginado(normalizarFiltro(busqueda), pageable);
+        List<Long> ids = page.getContent().stream().map(RolModel::getId).toList();
+        Map<Long, RolModel> rolesConPermisos = ids.isEmpty()
+                ? Map.of()
+                : rolRepository.findAllWithPermisosByIdIn(ids).stream()
+                        .collect(Collectors.toMap(RolModel::getId, Function.identity()));
+        List<RolResponseDTO> content = page.getContent().stream()
+                .map(rol -> rolesConPermisos.getOrDefault(rol.getId(), rol))
+                .map(this::mapRol)
+                .toList();
 
         return new PageResponseDTO<>(
-                page.getContent(),
+                content,
                 page.getNumber(),
                 page.getSize(),
                 page.getTotalElements(),
@@ -547,15 +554,19 @@ public class AccesoService {
 
     private Set<RolModel> resolveRoles(List<String> nombresRoles) {
         List<String> rolesSolicitados = nombresRoles == null ? List.of("EMPLOYEE") : nombresRoles;
-        Set<RolModel> roles = rolesSolicitados.stream()
+        Set<String> normalizados = rolesSolicitados.stream()
                 .map(this::normalizarRol)
-                .map(nombre -> rolRepository.findByName(nombre)
-                        .orElseThrow(() -> new BadRequestException("El rol indicado no existe: " + nombre)))
                 .collect(Collectors.toSet());
-
-        if (roles.isEmpty()) {
+        if (normalizados.isEmpty()) {
             throw new BadRequestException("El usuario debe tener al menos un rol.");
         }
+        Set<RolModel> roles = new HashSet<>(rolRepository.findByNameIn(normalizados));
+        Set<String> encontrados = roles.stream().map(RolModel::getName).collect(Collectors.toSet());
+        normalizados.removeAll(encontrados);
+        if (!normalizados.isEmpty()) {
+            throw new BadRequestException("Roles inexistentes: " + String.join(", ", normalizados));
+        }
+
         return roles;
     }
 

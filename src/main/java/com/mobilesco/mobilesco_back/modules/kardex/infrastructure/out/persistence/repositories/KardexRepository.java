@@ -2,6 +2,7 @@ package com.mobilesco.mobilesco_back.modules.kardex.infrastructure.out.persisten
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Collection;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,6 +53,17 @@ public interface KardexRepository extends JpaRepository<MovimientoInsumoModel, L
     @Query("SELECT SUM(m.costoTotal) / SUM(m.cantidad) FROM MovimientoInsumoModel m " +
            "WHERE m.insumo.id = :insumoId AND m.tipo = 'ENTRADA'")
     Double calcularCostoPromedio(@Param("insumoId") Long insumoId);
+
+    @Query("""
+            SELECT m.insumo.id, SUM(m.costoTotal) / SUM(m.cantidad)
+            FROM MovimientoInsumoModel m
+            WHERE m.insumo.id IN :insumoIds AND m.tipo = 'ENTRADA'
+            GROUP BY m.insumo.id
+            """)
+    List<Object[]> calcularCostosPromedio(@Param("insumoIds") Collection<Long> insumoIds);
+
+    @Query("SELECT DISTINCT m.insumo.id FROM MovimientoInsumoModel m WHERE m.insumo.id IN :insumoIds")
+    List<Long> findInsumoIdsConMovimientos(@Param("insumoIds") Collection<Long> insumoIds);
     
     // Consumo total en un período
     @Query("SELECT COALESCE(SUM(m.cantidad), 0) FROM MovimientoInsumoModel m " +

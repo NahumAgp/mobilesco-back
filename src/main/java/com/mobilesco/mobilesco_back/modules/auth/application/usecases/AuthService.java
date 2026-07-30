@@ -58,7 +58,7 @@ public class AuthService {
     public TokenPair refresh(String refreshToken) {
         RefreshTokenService.RotationResult result = refreshTokenService.rotate(refreshToken);
 
-        UsuarioModel user = userRepository.findById(result.userId())
+        UsuarioModel user = userRepository.findOneWithAccessById(result.userId())
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         String newAccess = jwtService.generateAccessToken(user, accesoService.obtenerPermisosEfectivos(user));

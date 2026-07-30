@@ -2,9 +2,13 @@ package com.mobilesco.mobilesco_back.config;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -46,36 +50,47 @@ public class DataSeeder {
             PasswordEncoder passwordEncoder) {
 
         return args -> {
-            seedPermisos(permisoRepository);
-            RolModel adminRole = seedRoles(roleRepo);
-            asignarPermisosDefault(roleRepo, permisoRepository);
-            asegurarPermisosObligatorios(roleRepo, permisoRepository);
+            Map<String, PermisoModel> permisos = seedPermisos(permisoRepository);
+            List<RolModel> roles = seedRoles(roleRepo);
+            sincronizarPermisosRoles(roleRepo, roles, permisos);
+            RolModel adminRole = roles.stream()
+                    .filter(rol -> "ADMIN".equals(rol.getName()))
+                    .findFirst()
+                    .orElseThrow();
             EmpleadoModel empleadoDev = seedEmpleadoDev(empleadoRepo);
             seedUsuarioDev(userRepo, passwordEncoder, adminRole, empleadoDev);
             seedTiposInsumo(tipoInsumoRepository);
         };
     }
 
-    private void seedPermisos(PermisoRepository permisoRepository) {
-        PermisoCatalog.DEFINITIONS.forEach(definition ->
-                permisoRepository.findByCode(definition.code()).orElseGet(() -> {
-                    PermisoModel permiso = new PermisoModel();
-                    permiso.setCode(definition.code());
-                    permiso.setNombre(definition.nombre());
-                    permiso.setModulo(definition.modulo());
-                    permiso.setVista(definition.vista());
-                    permiso.setDescripcion(definition.descripcion());
-                    permiso.setRuta(definition.ruta());
-                    permiso.setTipo(definition.tipo());
-                    permiso.setActivo(true);
-                    return permisoRepository.save(permiso);
-                }));
+    private Map<String, PermisoModel> seedPermisos(PermisoRepository permisoRepository) {
+        Map<String, PermisoModel> permisosPorCodigo = permisoRepository.findAll().stream()
+                .collect(Collectors.toMap(PermisoModel::getCode, Function.identity()));
+        List<PermisoModel> nuevos = new ArrayList<>();
+
+        PermisoCatalog.DEFINITIONS.forEach(definition -> {
+            if (!permisosPorCodigo.containsKey(definition.code())) {
+                PermisoModel permiso = new PermisoModel();
+                permiso.setCode(definition.code());
+                permiso.setNombre(definition.nombre());
+                permiso.setModulo(definition.modulo());
+                permiso.setVista(definition.vista());
+                permiso.setDescripcion(definition.descripcion());
+                permiso.setRuta(definition.ruta());
+                permiso.setTipo(definition.tipo());
+                permiso.setActivo(true);
+                nuevos.add(permiso);
+            }
+        });
+
+        permisoRepository.saveAll(nuevos).forEach(permiso ->
+                permisosPorCodigo.put(permiso.getCode(), permiso));
+        return permisosPorCodigo;
     }
 
-    private RolModel seedRoles(RolRepository roleRepo) {
-        RolModel adminRole = seedRolSistema(roleRepo, "ADMIN");
-
-        List.of(
+    private List<RolModel> seedRoles(RolRepository roleRepo) {
+        List<String> nombres = List.of(
+                "ADMIN",
                 "EMPLOYEE",
                 "DIRECTOR_GENERAL",
                 "SUBDIRECCION_ADMINISTRATIVA",
@@ -88,42 +103,51 @@ public class DataSeeder {
                 "JEFE_LOGISTICA",
                 "TECNICO",
                 "AYUDANTE_GENERAL"
-        ).forEach(nombreRol -> seedRolSistema(roleRepo, nombreRol));
-
-        return adminRole;
+        );
+        Map<String, RolModel> rolesPorNombre = roleRepo.findAll().stream()
+                .collect(Collectors.toMap(RolModel::getName, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+        List<RolModel> nuevos = nombres.stream()
+                .filter(nombre -> !rolesPorNombre.containsKey(nombre))
+                .map(nombre -> {
+                    RolModel rol = new RolModel();
+                    rol.setName(nombre);
+                    rol.setSistema(true);
+                    return rol;
+                })
+                .toList();
+        roleRepo.saveAll(nuevos).forEach(rol -> rolesPorNombre.put(rol.getName(), rol));
+        return new ArrayList<>(rolesPorNombre.values());
     }
 
-    private RolModel seedRolSistema(RolRepository roleRepo, String nombre) {
-        return roleRepo.findByName(nombre).orElseGet(() -> {
-            RolModel rol = new RolModel();
-            rol.setName(nombre);
-            rol.setSistema(true);
-            return roleRepo.save(rol);
-        });
-    }
-
-    private void asignarPermisosDefault(RolRepository roleRepo, PermisoRepository permisoRepository) {
-        roleRepo.findAll().forEach(rol -> {
+    private void sincronizarPermisosRoles(
+            RolRepository roleRepo,
+            List<RolModel> roles,
+            Map<String, PermisoModel> permisosPorCodigo) {
+        List<RolModel> modificados = new ArrayList<>();
+        roles.forEach(rol -> {
+            Set<PermisoModel> permisos = new HashSet<>(rol.getPermisos());
             Set<String> codigosDefault = PermisoCatalog.DEFAULT_ROLE_PERMISSIONS.getOrDefault(rol.getName(), Set.of());
-            if (!codigosDefault.isEmpty() && rol.getPermisos().isEmpty()) {
-                rol.setPermisos(new HashSet<>(permisoRepository.findByCodeIn(codigosDefault)));
-                roleRepo.save(rol);
+            boolean cambio = false;
+            if (!codigosDefault.isEmpty() && permisos.isEmpty()) {
+                cambio = permisos.addAll(resolverPermisos(codigosDefault, permisosPorCodigo));
+            }
+            Set<String> obligatorios = PERMISOS_OBLIGATORIOS_POR_ROL.getOrDefault(rol.getName(), Set.of());
+            cambio |= permisos.addAll(resolverPermisos(obligatorios, permisosPorCodigo));
+            if (cambio) {
+                rol.setPermisos(permisos);
+                modificados.add(rol);
             }
         });
+        roleRepo.saveAll(modificados);
     }
 
-    private void asegurarPermisosObligatorios(
-            RolRepository roleRepo,
-            PermisoRepository permisoRepository) {
-        PERMISOS_OBLIGATORIOS_POR_ROL.forEach((nombreRol, codigos) ->
-                roleRepo.findByName(nombreRol).ifPresent(rol -> {
-                    Set<PermisoModel> permisos = new HashSet<>(rol.getPermisos());
-                    boolean cambio = permisos.addAll(permisoRepository.findByCodeIn(codigos));
-                    if (cambio) {
-                        rol.setPermisos(permisos);
-                        roleRepo.save(rol);
-                    }
-                }));
+    private Set<PermisoModel> resolverPermisos(
+            Set<String> codigos,
+            Map<String, PermisoModel> permisosPorCodigo) {
+        return codigos.stream()
+                .map(permisosPorCodigo::get)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     private EmpleadoModel seedEmpleadoDev(EmpleadoRepository empleadoRepo) {
@@ -162,18 +186,26 @@ public class DataSeeder {
     }
 
     private void seedTiposInsumo(TipoInsumoRepository tipoInsumoRepository) {
-        List.of(
+        Set<String> codigosExistentes = tipoInsumoRepository.findAll().stream()
+                .map(TipoInsumoModel::getCodigo)
+                .map(String::toUpperCase)
+                .collect(Collectors.toSet());
+        List<TipoInsumoModel> nuevos = List.of(
                 new String[] {"HERRAJES", "Herrajes"},
                 new String[] {"PLASTICOS", "Plasticos"},
                 new String[] {"CARPINTERIA", "Carpinteria"},
                 new String[] {"PINTURA", "Pintura"},
                 new String[] {"TAPICERIA", "Tapiceria"}
-        ).forEach(tipo -> tipoInsumoRepository.findByCodigoIgnoreCase(tipo[0]).orElseGet(() -> {
-            TipoInsumoModel model = new TipoInsumoModel();
-            model.setCodigo(tipo[0]);
-            model.setNombre(tipo[1]);
-            model.setActivo(true);
-            return tipoInsumoRepository.save(model);
-        }));
+        ).stream()
+                .filter(tipo -> !codigosExistentes.contains(tipo[0]))
+                .map(tipo -> {
+                    TipoInsumoModel model = new TipoInsumoModel();
+                    model.setCodigo(tipo[0]);
+                    model.setNombre(tipo[1]);
+                    model.setActivo(true);
+                    return model;
+                })
+                .toList();
+        tipoInsumoRepository.saveAll(nuevos);
     }
 }

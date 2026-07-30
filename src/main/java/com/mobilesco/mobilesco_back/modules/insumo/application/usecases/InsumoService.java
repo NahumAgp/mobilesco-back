@@ -1,8 +1,12 @@
 package com.mobilesco.mobilesco_back.modules.insumo.application.usecases;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -229,10 +233,8 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
      */
     @Transactional(readOnly = true)
     public List<InsumoResponseDTO> listar() {
-        return insumoRepository.findAll(construirSortInsumos("nombre", "asc"))
-                .stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return mapToResponseDTOList(
+                insumoRepository.findAll(construirSortInsumos("nombre", "asc")));
     }
 
     @Transactional(readOnly = true)
@@ -246,46 +248,25 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         int pageNumber = Math.max(page, 0);
         int pageSize = size == null || size <= 0 ? PAGE_SIZE : Math.min(size, 100);
 
-        boolean hayFiltros = (busqueda != null && !busqueda.isBlank())
-                || activo != null
-                || Boolean.TRUE.equals(stockBajo);
-
-        // Sin filtros: comportamiento original (paginacion en BD), totales y orden intactos.
-        if (!hayFiltros) {
-            PageRequest pageable = PageRequest.of(pageNumber, pageSize, construirSortInsumos(sortBy, direction));
-            Page<InsumoResponseDTO> result = insumoRepository.findAll(pageable).map(this::mapToResponseDTO);
-
-            return new PageResponseDTO<>(
-                    result.getContent(),
-                    result.getNumber(),
-                    result.getSize(),
-                    result.getTotalElements(),
-                    result.getTotalPages()
-            );
-        }
-
-        // Con filtros: traer TODOS los insumos ordenados, filtrar y paginar en memoria.
-        List<InsumoResponseDTO> filtrados = insumoRepository.findAll(construirSortInsumos(sortBy, direction))
-                .stream()
-                .map(this::mapToResponseDTO)
-                .filter(insumo -> activo == null || Objects.equals(insumo.getActivo(), activo))
-                .filter(insumo -> !Boolean.TRUE.equals(stockBajo) || esStockBajo(insumo))
-                .filter(insumo -> coincideBusqueda(insumo, busqueda))
-                .collect(Collectors.toList());
-
-        long totalElements = filtrados.size();
-        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
-
-        int fromIndex = Math.min(pageNumber * pageSize, filtrados.size());
-        int toIndex = Math.min(fromIndex + pageSize, filtrados.size());
-        List<InsumoResponseDTO> contenido = filtrados.subList(fromIndex, toIndex);
-
-        return new PageResponseDTO<>(
-                contenido,
+        PageRequest pageable = PageRequest.of(
                 pageNumber,
                 pageSize,
-                totalElements,
-                totalPages
+                construirSortInsumos(sortBy, direction));
+        String filtro = busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
+        Page<InsumoModel> result = filtro == null && activo == null && !Boolean.TRUE.equals(stockBajo)
+                ? insumoRepository.findAll(pageable)
+                : insumoRepository.buscarPaginado(
+                        filtro,
+                        activo,
+                        Boolean.TRUE.equals(stockBajo),
+                        pageable);
+
+        return new PageResponseDTO<>(
+                mapToResponseDTOList(result.getContent()),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
         );
     }
 
@@ -303,14 +284,12 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         Page<InsumoModel> insumos = busqueda == null || busqueda.isBlank()
                 ? insumoRepository.findAll(pageable)
                 : insumoRepository.buscarCostos(busqueda.trim(), pageable);
-        Page<InsumoCostoResponseDTO> result = insumos.map(this::mapToCostoResponseDTO);
-
         return new PageResponseDTO<>(
-                result.getContent(),
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages()
+                mapToCostoResponseDTOList(insumos.getContent()),
+                insumos.getNumber(),
+                insumos.getSize(),
+                insumos.getTotalElements(),
+                insumos.getTotalPages()
         );
     }
 
@@ -398,10 +377,8 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
     @Transactional(readOnly = true)
     public byte[] generarReporteExcel(Boolean activo, Boolean stockBajo, String busqueda, String sortBy, String direction) {
-        List<InsumoResponseDTO> insumos = insumoRepository.findAll(construirSortInsumos(sortBy, direction))
-                .stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        List<InsumoResponseDTO> insumos = mapToResponseDTOList(
+                insumoRepository.findAll(construirSortInsumos(sortBy, direction)));
 
         List<InsumoResponseDTO> filtrados = insumos.stream()
                 .filter(insumo -> activo == null || Objects.equals(insumo.getActivo(), activo))
@@ -533,10 +510,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
      */
     @Transactional(readOnly = true)
     public List<InsumoResponseDTO> listarActivos() {
-        return insumoRepository.findByActivoTrue()
-                .stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return mapToResponseDTOList(insumoRepository.findByActivoTrue());
     }
 
     /**
@@ -559,9 +533,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                         ? insumoRepository.findByActivoTrue()
                         : insumoRepository.findAll();
 
-        return insumos.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return mapToResponseDTOList(insumos);
     }
 
     /**
@@ -569,10 +541,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
      */
     @Transactional(readOnly = true)
     public List<InsumoResponseDTO> listarPorUnidadMedida(Long unidadMedidaId) {
-        return insumoRepository.findByUnidadMedidaId(unidadMedidaId)
-                .stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return mapToResponseDTOList(insumoRepository.findByUnidadMedidaId(unidadMedidaId));
     }
 
     /**
@@ -580,10 +549,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
      */
     @Transactional(readOnly = true)
     public List<InsumoResponseDTO> listarStockBajo() {
-        return insumoRepository.findWithStockBajo()
-                .stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return mapToResponseDTOList(insumoRepository.findWithStockBajo());
     }
 
     /**
@@ -664,8 +630,13 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
      * Mapear de Entity a ResponseDTO
      */
     private InsumoResponseDTO mapToResponseDTO(InsumoModel insumo) {
+        return mapToResponseDTO(insumo, null);
+    }
+
+    private InsumoResponseDTO mapToResponseDTO(InsumoModel insumo, InsumoMetadata metadata) {
+        Long insumoId = insumo.getId();
         return InsumoResponseDTO.builder()
-                .id(insumo.getId())
+                .id(insumoId)
                 .codigo(insumo.getCodigo())
                 .codigoBarras(insumo.getCodigoBarras())
                 .nombre(insumo.getNombre())
@@ -679,10 +650,16 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 .unidadMedidaSimbolo(insumo.getUnidadMedida().getSimbolo())
                 .stockActual(insumo.getStockActual())
                 .stockMinimo(insumo.getStockMinimo())
-                .ultimoCostoCompra(obtenerUltimoCostoCompra(insumo.getId()))
-                .costoPromedio(kardexService.calcularCostoPromedio(insumo.getId()))
+                .ultimoCostoCompra(metadata == null
+                        ? obtenerUltimoCostoCompra(insumoId)
+                        : metadata.ultimosCostos().getOrDefault(insumoId, 0.0))
+                .costoPromedio(metadata == null
+                        ? kardexService.calcularCostoPromedio(insumoId)
+                        : metadata.costosPromedio().getOrDefault(insumoId, 0.0))
                 .costoCotizacion(insumo.getCostoCotizacion())
-                .puedeEliminar(puedeEliminarDefinitivo(insumo.getId()))
+                .puedeEliminar(metadata == null
+                        ? puedeEliminarDefinitivo(insumoId)
+                        : !metadata.insumosEnUso().contains(insumoId))
                 .activo(insumo.getActivo())
                 .fechaRegistro(insumo.getFechaRegistro())
                 .fechaActualizacion(insumo.getFechaActualizacion())
@@ -690,20 +667,80 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     }
 
     private InsumoCostoResponseDTO mapToCostoResponseDTO(InsumoModel insumo) {
+        return mapToCostoResponseDTO(insumo, null);
+    }
+
+    private InsumoCostoResponseDTO mapToCostoResponseDTO(InsumoModel insumo, InsumoMetadata metadata) {
+        Long insumoId = insumo.getId();
         return InsumoCostoResponseDTO.builder()
-                .id(insumo.getId())
+                .id(insumoId)
                 .codigo(insumo.getCodigo())
                 .codigoBarras(insumo.getCodigoBarras())
                 .nombre(insumo.getNombre())
                 .unidadMedidaId(insumo.getUnidadMedida().getId())
                 .unidadMedidaNombre(insumo.getUnidadMedida().getNombre())
                 .unidadMedidaSimbolo(insumo.getUnidadMedida().getSimbolo())
-                .ultimoCostoCompra(obtenerUltimoCostoCompra(insumo.getId()))
-                .costoPromedio(kardexService.calcularCostoPromedio(insumo.getId()))
+                .ultimoCostoCompra(metadata == null
+                        ? obtenerUltimoCostoCompra(insumoId)
+                        : metadata.ultimosCostos().getOrDefault(insumoId, 0.0))
+                .costoPromedio(metadata == null
+                        ? kardexService.calcularCostoPromedio(insumoId)
+                        : metadata.costosPromedio().getOrDefault(insumoId, 0.0))
                 .costoCotizacion(insumo.getCostoCotizacion())
                 .activo(insumo.getActivo())
                 .fechaActualizacion(insumo.getFechaActualizacion())
                 .build();
+    }
+
+    private List<InsumoResponseDTO> mapToResponseDTOList(List<InsumoModel> insumos) {
+        InsumoMetadata metadata = cargarMetadata(insumos, true);
+        return insumos.stream()
+                .map(insumo -> mapToResponseDTO(insumo, metadata))
+                .toList();
+    }
+
+    private List<InsumoCostoResponseDTO> mapToCostoResponseDTOList(List<InsumoModel> insumos) {
+        InsumoMetadata metadata = cargarMetadata(insumos, false);
+        return insumos.stream()
+                .map(insumo -> mapToCostoResponseDTO(insumo, metadata))
+                .toList();
+    }
+
+    private InsumoMetadata cargarMetadata(List<InsumoModel> insumos, boolean incluirUso) {
+        if (insumos.isEmpty()) {
+            return InsumoMetadata.empty();
+        }
+
+        List<Long> ids = insumos.stream().map(InsumoModel::getId).toList();
+        Map<Long, Double> ultimosCostos = new HashMap<>();
+        detalleCompraRepository.findUltimosCostosRecibidosByInsumos(ids).forEach(fila ->
+                ultimosCostos.put(
+                        ((Number) fila[0]).longValue(),
+                        fila[1] == null ? 0.0 : ((Number) fila[1]).doubleValue()));
+
+        Map<Long, Double> costosPromedio = new HashMap<>();
+        kardexRepository.calcularCostosPromedio(ids).forEach(fila ->
+                costosPromedio.put((Long) fila[0], fila[1] == null ? 0.0 : ((Number) fila[1]).doubleValue()));
+
+        Set<Long> insumosEnUso = new HashSet<>();
+        if (incluirUso) {
+            insumosEnUso.addAll(detalleCompraRepository.findInsumoIdsConCompras(ids));
+            insumosEnUso.addAll(productoInsumoRepository.findInsumoIdsConProductos(ids));
+            insumosEnUso.addAll(kardexRepository.findInsumoIdsConMovimientos(ids));
+            insumosEnUso.addAll(detalleSalidaInsumoRepository.findInsumoIdsConSalidas(ids));
+        }
+
+        return new InsumoMetadata(ultimosCostos, costosPromedio, insumosEnUso);
+    }
+
+    private record InsumoMetadata(
+            Map<Long, Double> ultimosCostos,
+            Map<Long, Double> costosPromedio,
+            Set<Long> insumosEnUso) {
+
+        private static InsumoMetadata empty() {
+            return new InsumoMetadata(Map.of(), Map.of(), Set.of());
+        }
     }
 
     private Double obtenerUltimoCostoCompra(Long insumoId) {

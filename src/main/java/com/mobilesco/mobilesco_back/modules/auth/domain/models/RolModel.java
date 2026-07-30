@@ -31,7 +31,7 @@ public class RolModel {
     @Column(nullable = false)
     private boolean sistema = false;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "role_permissions",
         joinColumns = @JoinColumn(name = "role_id"),

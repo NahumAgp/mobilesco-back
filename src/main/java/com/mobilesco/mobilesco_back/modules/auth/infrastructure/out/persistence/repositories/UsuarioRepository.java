@@ -15,6 +15,7 @@ import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
 
 public interface UsuarioRepository extends JpaRepository<UsuarioModel, Long> {
 
+    @EntityGraph(attributePaths = {"roles", "roles.permisos", "permisos"})
     Optional<UsuarioModel> findByEmail(String email);
 
     boolean existsByEmail(String email);
@@ -28,6 +29,10 @@ public interface UsuarioRepository extends JpaRepository<UsuarioModel, Long> {
     java.util.List<UsuarioModel> findAll();
 
     Optional<UsuarioModel> findByEmpleado(EmpleadoModel empleado);
+
+    @EntityGraph(attributePaths = {"roles", "roles.permisos", "permisos"})
+    @Query("select u from UsuarioModel u where u.id = :id")
+    Optional<UsuarioModel> findOneWithAccessById(@Param("id") Long id);
 
     @EntityGraph(attributePaths = {"roles", "roles.permisos", "permisos", "empleado", "invitacion"})
     @Query(
