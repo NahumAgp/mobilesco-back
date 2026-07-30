@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.out.persistence.repositories.ColorRepository;
+import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.application.usecases.CostoIndirectoService;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.ImagenService;
@@ -43,6 +44,7 @@ class ProductoServiceCatalogoPublicoTest {
     @Mock ImagenService imagenService;
     @Mock CostoIndirectoService costoIndirectoService;
     @Mock ProductoPlantillaModeloService productoPlantillaModeloService;
+    @Mock CotizacionRepository cotizacionRepository;
 
     ProductoService service;
 
@@ -63,7 +65,7 @@ class ProductoServiceCatalogoPublicoTest {
         service = new ProductoService(productoRepository, modeloRepository, nivelRepository,
                 colorRepository, materialRepository, productoInsumoRepository,
                 productoOperacionRepository, imagenService, costoIndirectoService,
-                productoPlantillaModeloService);
+                productoPlantillaModeloService, cotizacionRepository);
 
         familiaRoperos = familia(1L, "Roperos");
         familiaSalas = familia(2L, "Salas");

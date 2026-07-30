@@ -37,6 +37,7 @@ import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.out.persistence.repositories.ColorRepository;
+import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persistence.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
@@ -71,6 +72,7 @@ public class ProductoService {
     private final ImagenService imagenService;
     private final CostoIndirectoService costoIndirectoService;
     private final ProductoPlantillaModeloService productoPlantillaModeloService;
+    private final CotizacionRepository cotizacionRepository;
 
     public ProductoService(
             ProductoRepository productoRepository,
@@ -82,7 +84,8 @@ public class ProductoService {
             ProductoOperacionRepository productoOperacionRepository,
             ImagenService imagenService,
             CostoIndirectoService costoIndirectoService,
-            ProductoPlantillaModeloService productoPlantillaModeloService) {
+            ProductoPlantillaModeloService productoPlantillaModeloService,
+            CotizacionRepository cotizacionRepository) {
         this.productoRepository = productoRepository;
         this.modeloRepository = modeloRepository;
         this.nivelRepository = nivelRepository;
@@ -93,6 +96,7 @@ public class ProductoService {
         this.imagenService = imagenService;
         this.costoIndirectoService = costoIndirectoService;
         this.productoPlantillaModeloService = productoPlantillaModeloService;
+        this.cotizacionRepository = cotizacionRepository;
     }
 
     @Transactional
@@ -188,12 +192,6 @@ public class ProductoService {
         ProductoModel producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
-        String skuGenerado = dto.getSku();
-        if (!producto.getSku().equalsIgnoreCase(skuGenerado) &&
-                productoRepository.existsBySkuIgnoreCase(skuGenerado)) {
-            throw new ValidationException("Ya existe un producto con SKU: " + skuGenerado);
-        }
-
         ModeloModel modelo = dto.getModeloId() != null
                 ? modeloRepository.findById(dto.getModeloId())
                         .orElseThrow(() -> new ResourceNotFoundException("Modelo no encontrado"))
@@ -203,25 +201,43 @@ public class ProductoService {
                         .orElseThrow(() -> new ResourceNotFoundException("Nivel no encontrado"))
                 : null;
         validarNivelDelModelo(modelo, nivel);
+
+        ColorModel color = null;
+        if (dto.getColorId() != null) {
+            color = colorRepository.findById(dto.getColorId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Color no encontrado"));
+        }
+
+        MaterialModel material = null;
+        if (dto.getMaterialId() != null) {
+            material = materialRepository.findById(dto.getMaterialId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Material no encontrado"));
+        }
+        if (modelo == null || nivel == null || material == null || color == null) {
+            throw new ValidationException(
+                    "Modelo, categoría, material y color son obligatorios para calcular el SKU.");
+        }
+
+        boolean cambioClasificacion = !Objects.equals(id(producto.getModelo()), id(modelo))
+                || !Objects.equals(id(producto.getNivel()), id(nivel))
+                || !Objects.equals(id(producto.getMaterial()), id(material))
+                || !Objects.equals(id(producto.getColor()), id(color));
+        if (cambioClasificacion
+                && cotizacionRepository.existsByProductoIdsInCotizaciones(List.of(producto.getId()))) {
+            throw new ValidationException(
+                    "No se puede cambiar la clasificación porque el producto ya aparece en cotizaciones.");
+        }
+
+        String skuGenerado = generarSkuProducto(modelo, nivel, material, color);
+        if (!producto.getSku().equalsIgnoreCase(skuGenerado)
+                && productoRepository.existsBySkuIgnoreCase(skuGenerado)) {
+            throw new ValidationException("Ya existe un producto con SKU: " + skuGenerado);
+        }
+
         producto.setModelo(modelo);
         producto.setNivel(nivel);
-
-        if (dto.getColorId() != null) {
-            ColorModel color = colorRepository.findById(dto.getColorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Color no encontrado"));
-            producto.setColor(color);
-        } else {
-            producto.setColor(null);
-        }
-
-        if (dto.getMaterialId() != null) {
-            MaterialModel material = materialRepository.findById(dto.getMaterialId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Material no encontrado"));
-            producto.setMaterial(material);
-        } else {
-            producto.setMaterial(null);
-        }
-
+        producto.setColor(color);
+        producto.setMaterial(material);
         producto.setSku(skuGenerado);
         producto.setNombre(dto.getNombre());
         producto.setDescripcion(dto.getDescripcion());
@@ -986,6 +1002,22 @@ public class ProductoService {
         }
 
         return (lineaCodigo + familiaCodigo + subfamiliaCodigo + modeloCodigo + "-" + nivelCodigo + "-" + materialCodigo + "-" + colorCodigo).toUpperCase();
+    }
+
+    private Long id(ModeloModel item) {
+        return item != null ? item.getId() : null;
+    }
+
+    private Long id(NivelModel item) {
+        return item != null ? item.getId() : null;
+    }
+
+    private Long id(MaterialModel item) {
+        return item != null ? item.getId() : null;
+    }
+
+    private Long id(ColorModel item) {
+        return item != null ? item.getId() : null;
     }
 
     private void validarNivelDelModelo(ModeloModel modelo, NivelModel nivel) {

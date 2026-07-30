@@ -36,6 +36,7 @@ import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoCreacionCompletaService;
+import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoReclasificacionService;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaDTO;
@@ -44,6 +45,8 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoFichaDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoReclasificacionResponseDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoReclasificacionRequestDTO;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,6 +62,7 @@ public class ProductoController {
 
     private final ProductoService productoService;
     private final ProductoCreacionCompletaService productoCreacionCompletaService;
+    private final ProductoReclasificacionService productoReclasificacionService;
 
     @Operation(summary = "Crear producto")
     @PostMapping
@@ -163,6 +167,22 @@ public class ProductoController {
             @PathVariable Long id,
             @Valid @RequestBody ProductoUpdateDTO dto) {
         return ResponseEntity.ok(productoService.actualizar(id, dto));
+    }
+
+    @Operation(summary = "Previsualizar el cambio de línea, familia o subfamilia del modelo")
+    @PostMapping("/{id}/reclasificacion/preview")
+    public ResponseEntity<ProductoReclasificacionResponseDTO> previsualizarReclasificacion(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductoReclasificacionRequestDTO request) {
+        return ResponseEntity.ok(productoReclasificacionService.previsualizar(id, request));
+    }
+
+    @Operation(summary = "Aplicar el cambio de línea, familia o subfamilia y recalcular los SKUs")
+    @PutMapping("/{id}/reclasificacion")
+    public ResponseEntity<ProductoReclasificacionResponseDTO> aplicarReclasificacion(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductoReclasificacionRequestDTO request) {
+        return ResponseEntity.ok(productoReclasificacionService.aplicar(id, request));
     }
 
     @Operation(summary = "Desactivar producto")
