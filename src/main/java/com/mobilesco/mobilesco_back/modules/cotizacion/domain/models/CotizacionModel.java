@@ -12,7 +12,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "cotizacion", uniqueConstraints = @UniqueConstraint(name = "uk_cotizacion_folio", columnNames = "folio"))
+@Table(
+        name = "cotizacion",
+        uniqueConstraints = @UniqueConstraint(name = "uk_cotizacion_folio", columnNames = "folio"),
+        indexes = {
+                @Index(name = "idx_cotizacion_fecha_registro", columnList = "fecha_registro"),
+                @Index(name = "idx_cotizacion_estado_vencimiento", columnList = "estado, fecha_vencimiento")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
