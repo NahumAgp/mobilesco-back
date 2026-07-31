@@ -11,9 +11,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CuentaPorPagarRepository;
 import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.EstadoCotizacion;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
+import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.EstadoRequisicionAlmacen;
+import com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.out.persistence.repositories.RequisicionAlmacenRepository;
 import com.mobilesco.mobilesco_back.modules.tablero.domain.PeriodoTablero;
 import com.mobilesco.mobilesco_back.modules.tablero.infrastructure.in.api.dtos.TableroResumenDTO;
 
@@ -24,9 +29,17 @@ import lombok.RequiredArgsConstructor;
 public class TableroService {
     private static final List<EstadoCotizacion> ACTIVAS = List.of(
             EstadoCotizacion.BORRADOR, EstadoCotizacion.PENDIENTE, EstadoCotizacion.ENVIADA);
+    private static final List<String> COMPRAS_PENDIENTES = List.of("PENDIENTE", "RECIBIDA_PARCIAL");
+    private static final List<String> CUENTAS_PENDIENTES = List.of("PENDIENTE", "PARCIAL");
+    private static final List<EstadoRequisicionAlmacen> REQUISICIONES_PENDIENTES = List.of(
+            EstadoRequisicionAlmacen.ENVIADA, EstadoRequisicionAlmacen.EN_REVISION);
 
     private final CotizacionRepository cotizacionRepository;
     private final InsumoRepository insumoRepository;
+    private final CompraRepository compraRepository;
+    private final CuentaPorPagarRepository cuentaPorPagarRepository;
+    private final RequisicionAlmacenRepository requisicionAlmacenRepository;
+    private final ProductoRepository productoRepository;
 
     @Transactional(readOnly = true)
     public TableroResumenDTO obtenerResumen(PeriodoTablero periodoSolicitado) {
@@ -40,6 +53,12 @@ public class TableroService {
         long vencidas = cotizacionRepository.countByEstadoInAndFechaVencimientoBefore(ACTIVAS, hoy);
         long porVencer = cotizacionRepository.countByEstadoInAndFechaVencimientoBetween(ACTIVAS, hoy, hoy.plusDays(7));
         long stockBajo = insumoRepository.countWithStockBajo();
+        long requisicionesPendientes = requisicionAlmacenRepository.countByEstadoIn(REQUISICIONES_PENDIENTES);
+        long comprasPendientes = compraRepository.countByEstadoInAndActivoTrue(COMPRAS_PENDIENTES);
+        long cuentasPendientes = cuentaPorPagarRepository.countByEstadoInAndActivoTrue(CUENTAS_PENDIENTES);
+        Double saldoPendiente = cuentaPorPagarRepository.sumarSaldoPendientePorEstados(CUENTAS_PENDIENTES);
+        BigDecimal saldoPorPagar = BigDecimal.valueOf(saldoPendiente == null ? 0 : saldoPendiente);
+        long productosActivos = productoRepository.countByActivoTrue();
 
         return TableroResumenDTO.builder()
                 .periodo(periodo).desde(rango.desde()).hasta(rango.hasta().minusDays(1))
@@ -53,6 +72,14 @@ public class TableroService {
                         .tasaCierrePorcentaje(tasa(
                                 resumen == null ? null : resumen.getCierresActuales(),
                                 resumen == null ? null : resumen.getDecisionesActuales()))
+                        .build())
+                .indicadoresOperativos(TableroResumenDTO.IndicadoresOperativos.builder()
+                        .insumosStockBajo(stockBajo)
+                        .requisicionesPendientes(requisicionesPendientes)
+                        .comprasPendientesRecepcion(comprasPendientes)
+                        .cuentasPorPagarPendientes(cuentasPendientes)
+                        .saldoPorPagar(dinero(saldoPorPagar))
+                        .productosActivos(productosActivos)
                         .build())
                 .cotizacionesRecientes(cotizacionRepository.encontrarRecientes(PageRequest.of(0, 5)).stream()
                         .map(c -> TableroResumenDTO.CotizacionReciente.builder()

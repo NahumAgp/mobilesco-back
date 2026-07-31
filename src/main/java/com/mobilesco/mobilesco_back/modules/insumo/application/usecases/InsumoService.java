@@ -70,6 +70,7 @@ public class InsumoService {
     private final ProductoInsumoRepository productoInsumoRepository;
     private final KardexRepository kardexRepository;
     private final DetalleSalidaInsumoRepository detalleSalidaInsumoRepository;
+    private final StockMinimoNotificacionService stockMinimoNotificacionService;
 
     /**
      * ACTUALIZAR un insumo existente
@@ -81,6 +82,7 @@ public class InsumoService {
         
         InsumoModel insumo = insumoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
+        Double stockMinimoAnterior = insumo.getStockMinimo();
 
         // Validar nombre único (excepto si es el mismo)
         if (!insumo.getNombre().equalsIgnoreCase(dto.getNombre()) && 
@@ -133,6 +135,7 @@ public class InsumoService {
         }
 
         InsumoModel updated = insumoRepository.save(insumo);
+        stockMinimoNotificacionService.notificarSiCambioMinimoGeneraAlerta(updated, stockMinimoAnterior);
         log.info("Insumo actualizado: {}", updated.getNombre());
         
         return mapToResponseDTO(updated);
@@ -202,6 +205,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     saved.setCodigoBarras(generarCodigoBarras(saved.getId()));
     saved.setCodigo(saved.getCodigoBarras());
     saved = insumoRepository.save(saved);
+    stockMinimoNotificacionService.notificarSiNuevoInsumoIniciaBajo(saved);
 
     if (saved.getStockActual() != null && saved.getStockActual() > 0) {
         kardexService.registrarAjuste(
@@ -595,6 +599,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         
         insumo.setStockActual(stockNuevo);
         InsumoModel updated = insumoRepository.save(insumo);
+        stockMinimoNotificacionService.notificarSiCruzaMinimo(updated, stockAnterior, stockNuevo);
 
         kardexService.registrarAjuste(
                 updated.getId(),

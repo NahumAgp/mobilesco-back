@@ -22,6 +22,7 @@ import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.Resour
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.domain.models.DetalleSalidaInsumoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
+import com.mobilesco.mobilesco_back.modules.insumo.application.usecases.StockMinimoNotificacionService;
 import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexService;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.domain.models.SalidaInsumoModel;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.out.persistence.repositories.DetalleSalidaInsumoRepository;
@@ -42,6 +43,7 @@ public class SalidaInsumoService {
     private final InsumoRepository insumoRepository;
     private final KardexService kardexService;
     private final UsuarioRepository usuarioRepository;
+    private final StockMinimoNotificacionService stockMinimoNotificacionService;
 
     @Transactional
     public SalidaInsumoResponseDTO crear(SalidaInsumoCreateDTO dto) {
@@ -202,6 +204,7 @@ public class SalidaInsumoService {
 
         insumo.setStockActual(stockNuevo);
         insumoRepository.save(insumo);
+        stockMinimoNotificacionService.notificarSiCruzaMinimo(insumo, stockAnterior, stockNuevo);
 
         DetalleSalidaInsumoModel detalle = DetalleSalidaInsumoModel.builder()
                 .salidaInsumo(salida)

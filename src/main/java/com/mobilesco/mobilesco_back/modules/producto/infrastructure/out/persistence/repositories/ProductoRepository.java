@@ -23,6 +23,8 @@ public interface ProductoRepository extends JpaRepository<ProductoModel, Long> {
     Optional<ProductoModel> findBySku(String sku);
     
     List<ProductoModel> findByActivoTrue();
+
+    long countByActivoTrue();
     
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM ProductoModel p WHERE LOWER(p.sku) = LOWER(:sku)")
     boolean existsBySkuIgnoreCase(@Param("sku") String sku);

@@ -18,6 +18,8 @@ public interface CompraRepository extends JpaRepository<CompraModel, Long> {
     List<CompraModel> findByProveedorIdAndActivoTrue(Long proveedorId);
     
     List<CompraModel> findByEstadoAndActivoTrue(String estado);
+
+    long countByEstadoInAndActivoTrue(List<String> estados);
     
     @Query("SELECT c FROM CompraModel c WHERE c.activo = true AND c.fechaCompra BETWEEN :fechaInicio AND :fechaFin")
     List<CompraModel> findByRangoFechas(

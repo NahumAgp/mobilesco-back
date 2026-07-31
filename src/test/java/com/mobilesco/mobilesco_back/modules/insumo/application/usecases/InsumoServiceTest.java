@@ -45,6 +45,7 @@ class InsumoServiceTest {
     private ProductoInsumoRepository productoInsumoRepository;
     private KardexRepository kardexRepository;
     private DetalleSalidaInsumoRepository detalleSalidaInsumoRepository;
+    private StockMinimoNotificacionService stockMinimoNotificacionService;
     private InsumoService service;
 
     @BeforeEach
@@ -56,6 +57,7 @@ class InsumoServiceTest {
         productoInsumoRepository = mock(ProductoInsumoRepository.class);
         kardexRepository = mock(KardexRepository.class);
         detalleSalidaInsumoRepository = mock(DetalleSalidaInsumoRepository.class);
+        stockMinimoNotificacionService = mock(StockMinimoNotificacionService.class);
 
         service = new InsumoService(
                 insumoRepository,
@@ -64,7 +66,8 @@ class InsumoServiceTest {
                 detalleCompraRepository,
                 productoInsumoRepository,
                 kardexRepository,
-                detalleSalidaInsumoRepository);
+                detalleSalidaInsumoRepository,
+                stockMinimoNotificacionService);
 
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(

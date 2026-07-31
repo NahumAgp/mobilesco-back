@@ -20,19 +20,33 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 
 import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.EstadoCotizacion;
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
+import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CuentaPorPagarRepository;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
+import com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.out.persistence.repositories.RequisicionAlmacenRepository;
 import com.mobilesco.mobilesco_back.modules.tablero.domain.PeriodoTablero;
 
 @ExtendWith(MockitoExtension.class)
 class TableroServiceTest {
     @Mock CotizacionRepository cotizacionRepository;
     @Mock InsumoRepository insumoRepository;
+    @Mock CompraRepository compraRepository;
+    @Mock CuentaPorPagarRepository cuentaPorPagarRepository;
+    @Mock RequisicionAlmacenRepository requisicionAlmacenRepository;
+    @Mock ProductoRepository productoRepository;
     private TableroService service;
 
     @BeforeEach
     void setUp() {
-        service = new TableroService(cotizacionRepository, insumoRepository);
+        service = new TableroService(
+                cotizacionRepository,
+                insumoRepository,
+                compraRepository,
+                cuentaPorPagarRepository,
+                requisicionAlmacenRepository,
+                productoRepository);
     }
 
     @Test
@@ -48,6 +62,11 @@ class TableroServiceTest {
         when(cotizacionRepository.countByEstadoInAndFechaVencimientoBefore(any(), any())).thenReturn(2L);
         when(cotizacionRepository.countByEstadoInAndFechaVencimientoBetween(any(), any(), any())).thenReturn(1L);
         when(insumoRepository.countWithStockBajo()).thenReturn(3L);
+        when(requisicionAlmacenRepository.countByEstadoIn(any())).thenReturn(4L);
+        when(compraRepository.countByEstadoInAndActivoTrue(any())).thenReturn(2L);
+        when(cuentaPorPagarRepository.countByEstadoInAndActivoTrue(any())).thenReturn(6L);
+        when(cuentaPorPagarRepository.sumarSaldoPendientePorEstados(any())).thenReturn(12345.67);
+        when(productoRepository.countByActivoTrue()).thenReturn(28L);
 
         var reciente = mock(CotizacionRepository.CotizacionRecienteProjection.class);
         when(reciente.getId()).thenReturn(10L);
@@ -67,6 +86,12 @@ class TableroServiceTest {
         assertEquals(new BigDecimal("150000.00"), resultado.getIndicadores().getMontoCotizado());
         assertEquals(new BigDecimal("50.0"), resultado.getIndicadores().getVariacionMontoPorcentaje());
         assertEquals(new BigDecimal("75.0"), resultado.getIndicadores().getTasaCierrePorcentaje());
+        assertEquals(3, resultado.getIndicadoresOperativos().getInsumosStockBajo());
+        assertEquals(4, resultado.getIndicadoresOperativos().getRequisicionesPendientes());
+        assertEquals(2, resultado.getIndicadoresOperativos().getComprasPendientesRecepcion());
+        assertEquals(6, resultado.getIndicadoresOperativos().getCuentasPorPagarPendientes());
+        assertEquals(new BigDecimal("12345.67"), resultado.getIndicadoresOperativos().getSaldoPorPagar());
+        assertEquals(28, resultado.getIndicadoresOperativos().getProductosActivos());
         assertEquals(1, resultado.getCotizacionesRecientes().size());
         assertEquals(3, resultado.getAlertas().size());
         assertEquals(LocalDate.now().minusDays(29), resultado.getDesde());

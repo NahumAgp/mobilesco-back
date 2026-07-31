@@ -1,5 +1,6 @@
 package com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.out.persistence.repositories;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -13,6 +14,8 @@ import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.Est
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.RequisicionAlmacenModel;
 
 public interface RequisicionAlmacenRepository extends JpaRepository<RequisicionAlmacenModel, Long> {
+
+    long countByEstadoIn(List<EstadoRequisicionAlmacen> estados);
 
     @Query("""
             SELECT r FROM RequisicionAlmacenModel r

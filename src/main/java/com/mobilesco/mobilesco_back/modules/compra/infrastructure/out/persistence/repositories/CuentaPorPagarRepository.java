@@ -16,6 +16,14 @@ public interface CuentaPorPagarRepository extends JpaRepository<CuentaPorPagarMo
     Optional<CuentaPorPagarModel> findByCompraId(Long compraId);
     List<CuentaPorPagarModel> findByActivoTrueOrderByFechaCuentaDesc();
     List<CuentaPorPagarModel> findByEstadoAndActivoTrueOrderByFechaCuentaDesc(String estado);
+    long countByEstadoInAndActivoTrue(List<String> estados);
+
+    @Query("""
+            SELECT COALESCE(SUM(c.saldoPendiente), 0)
+            FROM CuentaPorPagarModel c
+            WHERE c.activo = true AND c.estado IN :estados
+            """)
+    Double sumarSaldoPendientePorEstados(@Param("estados") List<String> estados);
 
     @Query("""
             SELECT c FROM CuentaPorPagarModel c
