@@ -46,7 +46,10 @@ public CorsConfigurationSource corsConfigurationSource(
 }
 
     @Bean
-public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
+public SecurityFilterChain filterChain(
+        HttpSecurity http,
+        JwtAuthFilter jwtAuthFilter,
+        PermissionEnforcementFilter permissionEnforcementFilter) throws Exception {
 
     http
         .cors(cors -> {})
@@ -78,6 +81,8 @@ public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthFilter jwtAuthF
         })
         // 👇 Aquí agregamos el filtro JWT
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+    http.addFilterAfter(permissionEnforcementFilter, JwtAuthFilter.class);
 
     return http.build();
 }

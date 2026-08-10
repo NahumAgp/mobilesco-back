@@ -94,7 +94,7 @@ public class ClienteController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_CUSTOMERS') and hasAuthority('ACTION_CUSTOMERS_DELETE')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         clienteService.eliminar(id);
         return ResponseEntity.noContent().build();

@@ -36,7 +36,8 @@ public class DataSeeder {
     private static final String DEV_PASSWORD = "Admin123!";
     private static final String DEV_PHONE = "7712345678";
     private static final Map<String, Set<String>> PERMISOS_OBLIGATORIOS_POR_ROL = Map.of(
-            "JEFE_ALMACEN", Set.of("VIEW_WAREHOUSE_REQUISITIONS", "ACTION_STOCK_ADJUSTMENTS")
+            "JEFE_ALMACEN", Set.of("VIEW_WAREHOUSE_REQUISITIONS", "ACTION_STOCK_ADJUSTMENTS", "VIEW_PRODUCTION_ORDERS", "ACTION_PRODUCTION_MATERIAL_ISSUE"),
+            "SUPERVISOR_PRODUCCION", Set.of("VIEW_PRODUCTION_ORDERS", "ACTION_PRODUCTION_ORDERS_CREATE", "ACTION_PRODUCTION_ORDERS_EDIT", "ACTION_PRODUCTION_ORDERS_RELEASE", "ACTION_PRODUCTION_PROGRESS", "ACTION_PRODUCTION_ORDERS_CANCEL")
     );
 
     @Bean
@@ -68,23 +69,28 @@ public class DataSeeder {
                 .collect(Collectors.toMap(PermisoModel::getCode, Function.identity()));
         List<PermisoModel> nuevos = new ArrayList<>();
 
+        List<PermisoModel> actualizados = new ArrayList<>();
         PermisoCatalog.DEFINITIONS.forEach(definition -> {
-            if (!permisosPorCodigo.containsKey(definition.code())) {
-                PermisoModel permiso = new PermisoModel();
+            PermisoModel permiso = permisosPorCodigo.get(definition.code());
+            if (permiso == null) {
+                permiso = new PermisoModel();
                 permiso.setCode(definition.code());
-                permiso.setNombre(definition.nombre());
-                permiso.setModulo(definition.modulo());
-                permiso.setVista(definition.vista());
-                permiso.setDescripcion(definition.descripcion());
-                permiso.setRuta(definition.ruta());
-                permiso.setTipo(definition.tipo());
-                permiso.setActivo(true);
                 nuevos.add(permiso);
+            } else {
+                actualizados.add(permiso);
             }
+            permiso.setNombre(definition.nombre());
+            permiso.setModulo(definition.modulo());
+            permiso.setVista(definition.vista());
+            permiso.setDescripcion(definition.descripcion());
+            permiso.setRuta(definition.ruta());
+            permiso.setTipo(definition.tipo());
+            permiso.setActivo(true);
         });
 
         permisoRepository.saveAll(nuevos).forEach(permiso ->
                 permisosPorCodigo.put(permiso.getCode(), permiso));
+        permisoRepository.saveAll(actualizados);
         return permisosPorCodigo;
     }
 
@@ -128,8 +134,20 @@ public class DataSeeder {
             Set<PermisoModel> permisos = new HashSet<>(rol.getPermisos());
             Set<String> codigosDefault = PermisoCatalog.DEFAULT_ROLE_PERMISSIONS.getOrDefault(rol.getName(), Set.of());
             boolean cambio = false;
-            if (!codigosDefault.isEmpty() && permisos.isEmpty()) {
+            if ("ADMIN".equals(rol.getName()) || "DIRECTOR_GENERAL".equals(rol.getName())) {
+                Set<PermisoModel> completos = resolverPermisos(PermisoCatalog.ALL_CODES, permisosPorCodigo);
+                if (!permisos.equals(completos)) {
+                    permisos = new HashSet<>(completos);
+                    cambio = true;
+                }
+            } else if (!codigosDefault.isEmpty() && permisos.isEmpty()) {
                 cambio = permisos.addAll(resolverPermisos(codigosDefault, permisosPorCodigo));
+            }
+            Set<String> codigosActuales = permisos.stream().map(PermisoModel::getCode).collect(Collectors.toSet());
+            for (Map.Entry<String, Set<String>> expansion : PermisoCatalog.LEGACY_EXPANSIONS.entrySet()) {
+                if (codigosActuales.contains(expansion.getKey())) {
+                    cambio |= permisos.addAll(resolverPermisos(expansion.getValue(), permisosPorCodigo));
+                }
             }
             Set<String> obligatorios = PERMISOS_OBLIGATORIOS_POR_ROL.getOrDefault(rol.getName(), Set.of());
             cambio |= permisos.addAll(resolverPermisos(obligatorios, permisosPorCodigo));
@@ -186,9 +204,9 @@ public class DataSeeder {
     }
 
     private void seedTiposInsumo(TipoInsumoRepository tipoInsumoRepository) {
-        Set<String> codigosExistentes = tipoInsumoRepository.findAll().stream()
-                .map(TipoInsumoModel::getCodigo)
-                .map(String::toUpperCase)
+        Set<String> nombresExistentes = tipoInsumoRepository.findAll().stream()
+                .map(TipoInsumoModel::getNombre)
+                .map(TipoInsumoModel::normalizarNombre)
                 .collect(Collectors.toSet());
         List<TipoInsumoModel> nuevos = List.of(
                 new String[] {"HERRAJES", "Herrajes"},
@@ -197,7 +215,7 @@ public class DataSeeder {
                 new String[] {"PINTURA", "Pintura"},
                 new String[] {"TAPICERIA", "Tapiceria"}
         ).stream()
-                .filter(tipo -> !codigosExistentes.contains(tipo[0]))
+                .filter(tipo -> !nombresExistentes.contains(TipoInsumoModel.normalizarNombre(tipo[1])))
                 .map(tipo -> {
                     TipoInsumoModel model = new TipoInsumoModel();
                     model.setCodigo(tipo[0]);

@@ -186,7 +186,7 @@ public class ProductoController {
     }
 
     @Operation(summary = "Desactivar producto")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL')")
+    @PreAuthorize("hasAuthority('VIEW_PRODUCTS') and hasAuthority('ACTION_PRODUCTS_STATUS')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         productoService.eliminar(id);
@@ -194,7 +194,7 @@ public class ProductoController {
     }
 
     @Operation(summary = "Activar producto")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL')")
+    @PreAuthorize("hasAuthority('VIEW_PRODUCTS') and hasAuthority('ACTION_PRODUCTS_STATUS')")
     @PatchMapping("/{id}/activar")
     public ResponseEntity<Void> activar(@PathVariable Long id) {
         productoService.activar(id);
@@ -202,7 +202,7 @@ public class ProductoController {
     }
 
     @Operation(summary = "Eliminar producto definitivamente")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL')")
+    @PreAuthorize("hasAuthority('VIEW_PRODUCTS') and hasAuthority('ACTION_PRODUCTS_DELETE')")
     @DeleteMapping("/{id}/definitivo")
     public ResponseEntity<Void> eliminarDefinitivo(@PathVariable Long id) {
         productoService.eliminarProducto(id);

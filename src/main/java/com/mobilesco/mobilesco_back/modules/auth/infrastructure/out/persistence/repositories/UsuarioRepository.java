@@ -20,6 +20,9 @@ public interface UsuarioRepository extends JpaRepository<UsuarioModel, Long> {
 
     boolean existsByEmail(String email);
 
+    @Query("select count(distinct u) from UsuarioModel u join u.roles r where r.name = 'ADMIN' and u.enabled = true and u.locked = false")
+    long countAdministradoresActivos();
+
     // ✅ este es el que usa /me, y debe regresar UsuarioModel, NO Object
     @EntityGraph(attributePaths = {"roles", "roles.permisos", "permisos", "empleado", "invitacion"})
     Optional<UsuarioModel> findOneByEmail(String email);

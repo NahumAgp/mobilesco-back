@@ -32,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping(ApiPaths.REQUISICIONES_ALMACEN)
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN') or hasAuthority('VIEW_WAREHOUSE_REQUISITIONS')")
+@PreAuthorize("hasAuthority('VIEW_WAREHOUSE_REQUISITIONS')")
 public class RequisicionAlmacenController {
 
     private final RequisicionAlmacenService requisicionService;
@@ -71,7 +71,7 @@ public class RequisicionAlmacenController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','JEFE_ALMACEN')")
+    @PreAuthorize("hasAuthority('VIEW_WAREHOUSE_REQUISITIONS') and hasAuthority('ACTION_WAREHOUSE_REQUISITIONS_CREATE')")
     public ResponseEntity<RequisicionResponseDTO> crear(
             @Valid @RequestBody RequisicionCreateDTO dto,
             Authentication authentication) {

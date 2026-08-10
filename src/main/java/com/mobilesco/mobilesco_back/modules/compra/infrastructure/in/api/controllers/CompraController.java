@@ -38,8 +38,8 @@ import lombok.RequiredArgsConstructor;
 public class CompraController {
 
     private static final String PERMISO_VER_COMPRAS = "hasAuthority('VIEW_PURCHASES')";
-    private static final String ROLES_GESTION_COMPRAS = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')";
-    private static final String ROLES_ELIMINAR_COMPRAS = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL')";
+    private static final String ROLES_GESTION_COMPRAS = "hasAuthority('VIEW_PURCHASES') and hasAnyAuthority('ACTION_PURCHASES_CREATE','ACTION_PURCHASES_EDIT')";
+    private static final String ROLES_ELIMINAR_COMPRAS = "hasAuthority('VIEW_PURCHASES') and hasAuthority('ACTION_PURCHASES_DELETE')";
 
     private final CompraService compraService;
 

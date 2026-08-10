@@ -12,12 +12,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 class ProveedorControllerTest {
 
     @Test
-    void eliminarProveedorIncluyeSuperAdmin() throws Exception {
+    void eliminarProveedorRequierePermisoEspecifico() throws Exception {
         Method method = ProveedorController.class.getMethod("eliminar", Long.class);
         PreAuthorize preAuthorize = method.getAnnotation(PreAuthorize.class);
 
         assertNotNull(preAuthorize);
-        assertEquals("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')", preAuthorize.value());
-        assertTrue(preAuthorize.value().contains("SUPER_ADMIN"));
+        assertEquals("hasAuthority('VIEW_SUPPLIERS') and hasAuthority('ACTION_SUPPLIERS_DELETE')", preAuthorize.value());
+        assertTrue(preAuthorize.value().contains("ACTION_SUPPLIERS_DELETE"));
     }
 }

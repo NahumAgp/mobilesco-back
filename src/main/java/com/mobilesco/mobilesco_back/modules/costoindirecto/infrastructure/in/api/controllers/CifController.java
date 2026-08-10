@@ -37,7 +37,7 @@ import lombok.RequiredArgsConstructor;
 public class CifController {
 
     private static final String ROLES_GESTION_CIF =
-            "hasAnyRole('ADMIN','SUPER_ADMIN','SUBDIRECCION_ADMINISTRATIVA')";
+            "hasAuthority('VIEW_CIF')";
 
     private final CostoIndirectoService costoIndirectoService;
 

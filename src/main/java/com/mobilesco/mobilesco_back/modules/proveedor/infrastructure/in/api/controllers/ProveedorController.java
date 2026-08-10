@@ -131,7 +131,7 @@ public class ProveedorController {  // ✅ Nombre correcto con 'e'
     // =====================================================
     // 🔹 CREAR
     // =====================================================
-    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_SUPPLIERS') and hasAuthority('ACTION_SUPPLIERS_CREATE')")
     @PostMapping
     public ResponseEntity<ProveedorResponseDTO> crear(
             @Valid @RequestBody ProveedorCreateDTO dto) {
@@ -164,7 +164,7 @@ public class ProveedorController {  // ✅ Nombre correcto con 'e'
     // 🔹 ELIMINAR
     // =====================================================
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_SUPPLIERS') and hasAuthority('ACTION_SUPPLIERS_DELETE')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar proveedor")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {

@@ -48,19 +48,19 @@ public class AccesoController {
     }
 
     @GetMapping("/roles")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_USERS')")
     public ResponseEntity<List<String>> roles() {
         return ResponseEntity.ok(accesoService.listarRolesDisponibles());
     }
 
     @GetMapping("/permisos")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_USERS')")
+    @PreAuthorize("hasAuthority('VIEW_USERS')")
     public ResponseEntity<List<PermisoResponseDTO>> permisos() {
         return ResponseEntity.ok(accesoService.listarPermisos());
     }
 
     @GetMapping("/roles-config")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_USERS')")
+    @PreAuthorize("hasAuthority('VIEW_USERS')")
     public ResponseEntity<?> rolesConfig(
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) Integer page,
@@ -78,13 +78,13 @@ public class AccesoController {
     }
 
     @PostMapping("/roles-config")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('ACTION_USERS_WRITE')")
+    @PreAuthorize("hasAuthority('VIEW_USERS') and hasAuthority('ACTION_ROLES_CREATE')")
     public ResponseEntity<RolResponseDTO> crearRol(@Valid @RequestBody RolCreateDTO dto, Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED).body(accesoService.crearRol(dto, authentication.getName()));
     }
 
     @PatchMapping("/roles-config/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('ACTION_USERS_WRITE')")
+    @PreAuthorize("hasAuthority('VIEW_USERS') and hasAuthority('ACTION_ROLES_PERMISSIONS')")
     public ResponseEntity<RolResponseDTO> actualizarRol(
             @PathVariable Long id,
             @Valid @RequestBody RolUpdateDTO dto,
@@ -94,7 +94,7 @@ public class AccesoController {
     }
 
     @GetMapping("/usuarios")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_USERS')")
+    @PreAuthorize("hasAuthority('VIEW_USERS')")
     public ResponseEntity<?> usuarios(
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) Integer page,
@@ -112,7 +112,7 @@ public class AccesoController {
     }
 
     @PostMapping("/usuarios")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('ACTION_USERS_WRITE')")
+    @PreAuthorize("hasAuthority('VIEW_USERS') and hasAuthority('ACTION_USERS_CREATE')")
     public ResponseEntity<UsuarioAccesoResponseDTO> crearUsuario(
             @Valid @RequestBody UsuarioCreateDTO dto,
             Authentication authentication
@@ -121,7 +121,7 @@ public class AccesoController {
     }
 
     @PatchMapping("/usuarios/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('ACTION_USERS_WRITE')")
+    @PreAuthorize("hasAuthority('VIEW_USERS') and hasAnyAuthority('ACTION_USER_ROLES','ACTION_USER_PERMISSIONS','ACTION_USERS_STATUS')")
     public ResponseEntity<UsuarioAccesoResponseDTO> actualizarUsuario(
             @PathVariable Long id,
             @Valid @RequestBody UsuarioAccesoUpdateDTO dto,
@@ -131,7 +131,7 @@ public class AccesoController {
     }
 
     @PostMapping("/usuarios/{id}/desactivar")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('ACTION_USERS_WRITE')")
+    @PreAuthorize("hasAuthority('VIEW_USERS') and hasAuthority('ACTION_USERS_STATUS')")
     public ResponseEntity<UsuarioAccesoResponseDTO> desactivarUsuario(
             @PathVariable Long id,
             Authentication authentication
@@ -140,7 +140,7 @@ public class AccesoController {
     }
 
     @PostMapping("/invitaciones")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_USERS') and hasAuthority('ACTION_INVITATIONS_CREATE')")
     public ResponseEntity<InvitacionUsuarioResponseDTO> crearInvitacion(
             @Valid @RequestBody InvitacionUsuarioCreateDTO dto,
             Authentication authentication
@@ -150,7 +150,7 @@ public class AccesoController {
     }
 
     @GetMapping("/usuarios-pendientes")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_USERS')")
     public ResponseEntity<?> pendientes(
             @RequestParam(required = false) Integer page,
             @RequestParam(defaultValue = "10") Integer size
@@ -168,7 +168,7 @@ public class AccesoController {
     }
 
     @PostMapping("/usuarios-pendientes/{id}/aprobar")
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_USERS') and hasAuthority('ACTION_USERS_APPROVE')")
     public ResponseEntity<UsuarioPendienteResponseDTO> aprobar(
             @PathVariable Long id,
             Authentication authentication

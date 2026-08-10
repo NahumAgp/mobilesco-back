@@ -14,7 +14,7 @@ import com.mobilesco.mobilesco_back.modules.compra.infrastructure.in.api.dtos.De
 class DetalleCompraControllerTest {
 
     private static final String PERMISO_VER_COMPRAS = "hasAuthority('VIEW_PURCHASES')";
-    private static final String ROLES_GESTION_COMPRAS = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')";
+    private static final String ROLES_GESTION_COMPRAS = "hasAuthority('VIEW_PURCHASES') and hasAuthority('ACTION_PURCHASES_EDIT')";
 
     @Test
     void endpointsDeGestionDeDetalleCompraEstanProtegidos() throws Exception {

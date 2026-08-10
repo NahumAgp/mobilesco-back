@@ -14,5 +14,6 @@ public class PermisoResponseDTO {
     private String descripcion;
     private String ruta;
     private String tipo;
+    private String vistaRequerida;
     private boolean activo;
 }

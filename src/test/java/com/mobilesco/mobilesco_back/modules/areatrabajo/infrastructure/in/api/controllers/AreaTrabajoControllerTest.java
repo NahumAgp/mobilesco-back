@@ -14,7 +14,7 @@ import com.mobilesco.mobilesco_back.modules.areatrabajo.infrastructure.in.api.dt
 class AreaTrabajoControllerTest {
 
     private static final String GESTION =
-            "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_EMPLOYEES')";
+            "hasAuthority('VIEW_WORK_AREAS')";
     private static final String CONSULTA_Y_CREACION_PARA_SALIDAS =
             GESTION + " or hasRole('JEFE_ALMACEN')";
 

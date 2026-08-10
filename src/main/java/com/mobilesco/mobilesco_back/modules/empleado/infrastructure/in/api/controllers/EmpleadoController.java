@@ -79,7 +79,7 @@ public class EmpleadoController {
     // 🔹 CREAR
     // =====================================================
 
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_EMPLOYEES') and hasAuthority('ACTION_EMPLOYEES_CREATE')")
     @PostMapping
     @Operation(summary = "Crear empleado")
     public ResponseEntity<EmpleadoResponseDTO> crear(
@@ -107,14 +107,14 @@ public class EmpleadoController {
         return ResponseEntity.ok(actualizado);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_EMPLOYEES') and hasAuthority('ACTION_EMPLOYEES_EDIT')")
     @PatchMapping("/{id}/activar")
     @Operation(summary = "Activar empleado")
     public ResponseEntity<EmpleadoResponseDTO> activar(@PathVariable Long id) {
         return ResponseEntity.ok(empleadoService.cambiarActivo(id, true));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_EMPLOYEES') and hasAuthority('ACTION_EMPLOYEES_STATUS')")
     @PatchMapping("/{id}/desactivar")
     @Operation(summary = "Desactivar empleado")
     public ResponseEntity<EmpleadoResponseDTO> desactivar(@PathVariable Long id) {
@@ -125,7 +125,7 @@ public class EmpleadoController {
     // 🔹 ELIMINAR
     // =====================================================
 
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_EMPLOYEES') and hasAuthority('ACTION_EMPLOYEES_STATUS')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar empleado")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {

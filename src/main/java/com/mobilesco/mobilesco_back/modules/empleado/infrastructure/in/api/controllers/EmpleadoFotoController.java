@@ -29,7 +29,7 @@ public class EmpleadoFotoController {
         this.empleadoFotoService = empleadoFotoService;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_EMPLOYEES') and hasAuthority('ACTION_EMPLOYEES_PHOTO')")
     @PostMapping("/{id}/foto")
     @Operation(summary = "Subir/reemplazar foto de un empleado")
     public ResponseEntity<?> subirFotoEmpleado(
@@ -40,7 +40,7 @@ public class EmpleadoFotoController {
         return ResponseEntity.ok(Map.of("fotoUrl", rutaPublica));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_EMPLOYEES') and hasAuthority('ACTION_EMPLOYEES_PHOTO')")
     @DeleteMapping("/{id}/foto")
     @Operation(summary = "Eliminar foto de un empleado")
     public ResponseEntity<?> eliminarFotoEmpleado(@PathVariable Long id) {

@@ -31,7 +31,7 @@ import jakarta.validation.Valid;
 public class AreaTrabajoController {
 
     private static final String PERMISO_GESTION_AREAS =
-            "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('VIEW_EMPLOYEES')";
+            "hasAuthority('VIEW_WORK_AREAS')";
     private static final String PERMISO_CONSULTA_AREAS_PARA_SALIDAS =
             PERMISO_GESTION_AREAS + " or hasRole('JEFE_ALMACEN')";
 

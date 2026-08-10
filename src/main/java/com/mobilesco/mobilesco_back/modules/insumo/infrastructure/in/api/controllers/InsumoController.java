@@ -42,11 +42,11 @@ import lombok.RequiredArgsConstructor;
 public class InsumoController {
 
     private static final String ROLES_GESTION_INSUMOS =
-            "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','JEFE_ALMACEN','ALMACEN','SUBDIRECCION_ADMINISTRATIVA')";
+            "hasAuthority('VIEW_INVENTORY') and hasAnyAuthority('ACTION_INVENTORY_CREATE','ACTION_INVENTORY_EDIT','ACTION_INVENTORY_STATUS')";
     private static final String PERMISO_VER_INVENTARIO = "hasAuthority('VIEW_INVENTORY')";
     private static final String PERMISO_GESTION_COSTOS_INSUMOS = "hasAuthority('ACTION_INSUMOS_COSTS')";
     private static final String ACCESO_AJUSTE_MANUAL_STOCK =
-            "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','JEFE_ALMACEN','ALMACEN','SUBDIRECCION_ADMINISTRATIVA') or hasAuthority('ACTION_STOCK_ADJUSTMENTS')";
+            "hasAuthority('VIEW_INVENTORY') and hasAuthority('ACTION_STOCK_ADJUSTMENTS')";
 
     private final InsumoService insumoService;
 
@@ -106,7 +106,7 @@ public class InsumoController {
 
     @Operation(summary = "Actualizar costo de cotizacion")
     @PatchMapping("/{id}/costo-cotizacion")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_INVENTORY') and hasAuthority('ACTION_INSUMOS_COSTS')")
     public ResponseEntity<InsumoCostoResponseDTO> actualizarCostoCotizacion(
             @PathVariable Long id,
             @Valid @RequestBody InsumoCostoCotizacionUpdateDTO dto) {

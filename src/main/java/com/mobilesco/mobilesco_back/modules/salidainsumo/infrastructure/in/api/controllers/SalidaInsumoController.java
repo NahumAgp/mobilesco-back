@@ -36,9 +36,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SalidaInsumoController {
 
-    private static final String PERMISO_VER_INVENTARIO = "hasAuthority('VIEW_INVENTORY')";
-    private static final String ROLES_GESTION_INVENTARIO = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN','ALMACEN')";
-    private static final String ROLES_ELIMINAR_SALIDA = "hasAnyRole('ADMIN','SUPER_ADMIN','DIRECTOR_GENERAL','SUBDIRECCION_ADMINISTRATIVA','JEFE_ALMACEN')";
+    private static final String PERMISO_VER_INVENTARIO = "hasAuthority('VIEW_INVENTORY_OUTPUTS')";
+    private static final String ROLES_GESTION_INVENTARIO = "hasAuthority('VIEW_INVENTORY_OUTPUTS') and hasAuthority('ACTION_INVENTORY_OUTPUTS_CREATE')";
+    private static final String ROLES_ELIMINAR_SALIDA = "hasAuthority('VIEW_INVENTORY_OUTPUTS') and hasAuthority('ACTION_INVENTORY_OUTPUTS_DELETE')";
 
     private final SalidaInsumoService salidaInsumoService;
 

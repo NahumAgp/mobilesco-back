@@ -21,5 +21,6 @@ public class UsuarioAccesoResponseDTO {
     private LocalDateTime lastLoginAt;
     private List<String> roles;
     private List<String> permisosDirectos;
+    private List<String> permisosHeredados;
     private List<String> permisosEfectivos;
 }

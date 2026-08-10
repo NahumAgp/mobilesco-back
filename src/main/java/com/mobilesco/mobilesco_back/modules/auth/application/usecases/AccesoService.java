@@ -267,8 +267,14 @@ public class AccesoService {
                 .orElseThrow(() -> new NotFoundException("Rol no encontrado"));
 
         rol.setDescripcion(normalizarTexto(dto.getDescripcion()));
-        if (dto.getPermisos() != null) {
-            rol.setPermisos(resolvePermisos(dto.getPermisos()));
+        if (esRolCompleto(rol.getName())) {
+            rol.setPermisos(resolvePermisos(PermisoCatalog.ALL_CODES.stream().toList()));
+        } else if (dto.getPermisos() != null) {
+            Set<String> anteriores = rol.getPermisos().stream().map(PermisoModel::getCode).collect(Collectors.toSet());
+            Set<PermisoModel> nuevos = resolvePermisos(dto.getPermisos());
+            rol.setPermisos(nuevos);
+            registrarCambioPermisos("ROL", rol.getId(), actor, anteriores,
+                    nuevos.stream().map(PermisoModel::getCode).collect(Collectors.toSet()));
         }
 
         RolModel guardado = rolRepository.save(rol);
@@ -322,22 +328,40 @@ public class AccesoService {
         UsuarioModel usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
+        UsuarioModel usuarioActor = usuarioRepository.findOneByEmail(actor)
+                .orElseThrow(() -> new NotFoundException("Usuario administrador no encontrado"));
+        Set<String> rolesAnteriores = usuario.getRoles().stream().map(RolModel::getName).collect(Collectors.toSet());
+        Set<String> permisosAnteriores = usuario.getPermisos().stream().map(PermisoModel::getCode).collect(Collectors.toSet());
+
         if (dto.getRoles() != null) {
+            exigirPermiso(usuarioActor, "ACTION_USER_ROLES");
+            validarNoEliminarUltimoAdmin(usuario, dto.getRoles(), null);
             usuario.setRoles(resolveRoles(dto.getRoles()));
         }
         if (dto.getPermisosDirectos() != null) {
+            exigirPermiso(usuarioActor, "ACTION_USER_PERMISSIONS");
             usuario.setPermisos(resolvePermisos(dto.getPermisosDirectos()));
         }
         if (dto.getEnabled() != null) {
+            exigirPermiso(usuarioActor, "ACTION_USERS_STATUS");
+            validarNoEliminarUltimoAdmin(usuario, null, dto.getEnabled());
             usuario.setEnabled(dto.getEnabled());
             usuario.setEstadoCuenta(dto.getEnabled() ? EstadoCuentaUsuario.ACTIVE : EstadoCuentaUsuario.SUSPENDED);
         }
         if (dto.getLocked() != null) {
+            exigirPermiso(usuarioActor, "ACTION_USERS_STATUS");
+            if (dto.getLocked()) {
+                validarNoEliminarUltimoAdmin(usuario, null, false);
+            }
             usuario.setLocked(dto.getLocked());
         }
 
         UsuarioModel guardado = usuarioRepository.save(usuario);
-        registrarAuditoria("ACTUALIZAR_USUARIO", "USUARIO", guardado.getId(), actor, "Accesos actualizados para " + guardado.getEmail());
+        Set<String> rolesNuevos = guardado.getRoles().stream().map(RolModel::getName).collect(Collectors.toSet());
+        Set<String> permisosNuevos = guardado.getPermisos().stream().map(PermisoModel::getCode).collect(Collectors.toSet());
+        registrarAuditoria("ACTUALIZAR_USUARIO", "USUARIO", guardado.getId(), actor,
+                "Usuario " + guardado.getEmail() + "; " + describirCambios("roles", rolesAnteriores, rolesNuevos)
+                        + "; " + describirCambios("permisos directos", permisosAnteriores, permisosNuevos));
         return mapUsuarioAcceso(guardado);
     }
 
@@ -345,6 +369,7 @@ public class AccesoService {
     public UsuarioAccesoResponseDTO desactivarUsuario(Long id, String actor) {
         UsuarioModel usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        validarNoEliminarUltimoAdmin(usuario, null, false);
         usuario.setEnabled(false);
         usuario.setLocked(true);
         usuario.setEstadoCuenta(EstadoCuentaUsuario.SUSPENDED);
@@ -447,9 +472,13 @@ public class AccesoService {
                 .map(PermisoModel::getCode)
                 .forEach(permisos::add);
 
-        if (usuario.getRoles().stream().anyMatch(rol -> "ADMIN".equals(rol.getName()) || "SUPER_ADMIN".equals(rol.getName()))) {
+        if (usuario.getRoles().stream().anyMatch(rol -> esRolCompleto(rol.getName()))) {
             permisos.addAll(PermisoCatalog.ALL_CODES);
         }
+        permisos.removeIf(codigo -> {
+            String vistaRequerida = PermisoCatalog.requiredView(codigo);
+            return vistaRequerida != null && !permisos.contains(vistaRequerida);
+        });
         return permisos;
     }
 
@@ -512,6 +541,7 @@ public class AccesoService {
         dto.setDescripcion(permiso.getDescripcion());
         dto.setRuta(permiso.getRuta());
         dto.setTipo(permiso.getTipo());
+        dto.setVistaRequerida(PermisoCatalog.requiredView(permiso.getCode()));
         dto.setActivo(permiso.isActivo());
         return dto;
     }
@@ -522,10 +552,10 @@ public class AccesoService {
         dto.setName(rol.getName());
         dto.setDescripcion(rol.getDescripcion());
         dto.setSistema(rol.isSistema());
-        dto.setPermisos(rol.getPermisos().stream()
-                .map(PermisoModel::getCode)
-                .sorted()
-                .toList());
+        dto.setPermisos((esRolCompleto(rol.getName())
+                ? PermisoCatalog.ALL_CODES.stream()
+                : rol.getPermisos().stream().map(PermisoModel::getCode))
+                .sorted().toList());
         return dto;
     }
 
@@ -542,6 +572,7 @@ public class AccesoService {
         dto.setLastLoginAt(usuario.getLastLoginAt());
         dto.setRoles(usuario.getRoles().stream().map(RolModel::getName).sorted().toList());
         dto.setPermisosDirectos(usuario.getPermisos().stream().map(PermisoModel::getCode).sorted().toList());
+        dto.setPermisosHeredados(obtenerPermisosHeredados(usuario).stream().sorted().toList());
         dto.setPermisosEfectivos(obtenerPermisosEfectivos(usuario).stream().sorted().toList());
 
         if (usuario.getEmpleado() != null) {
@@ -585,6 +616,55 @@ public class AccesoService {
             throw new BadRequestException("Permisos inexistentes: " + String.join(", ", normalized));
         }
         return new HashSet<>(permisos);
+    }
+
+    private Set<String> obtenerPermisosHeredados(UsuarioModel usuario) {
+        Set<String> permisos = usuario.getRoles().stream()
+                .flatMap(rol -> rol.getPermisos().stream())
+                .filter(PermisoModel::isActivo)
+                .map(PermisoModel::getCode)
+                .collect(Collectors.toSet());
+        if (usuario.getRoles().stream().anyMatch(rol -> esRolCompleto(rol.getName()))) {
+            permisos.addAll(PermisoCatalog.ALL_CODES);
+        }
+        return permisos;
+    }
+
+    private boolean esRolCompleto(String nombre) {
+        return "ADMIN".equals(nombre) || "DIRECTOR_GENERAL".equals(nombre);
+    }
+
+    private void exigirPermiso(UsuarioModel actor, String permiso) {
+        if (!usuarioTienePermiso(actor, permiso)) {
+            throw new BadRequestException("No tienes el permiso requerido: " + permiso);
+        }
+    }
+
+    private void validarNoEliminarUltimoAdmin(UsuarioModel usuario, List<String> rolesSolicitados, Boolean habilitado) {
+        boolean esAdmin = usuario.getRoles().stream().anyMatch(rol -> "ADMIN".equals(rol.getName()));
+        if (!esAdmin || usuarioRepository.countAdministradoresActivos() > 1) {
+            return;
+        }
+        boolean conservaRol = rolesSolicitados == null || rolesSolicitados.stream()
+                .map(this::normalizarRol)
+                .anyMatch("ADMIN"::equals);
+        boolean conservaActivo = habilitado == null || habilitado;
+        if (!conservaRol || !conservaActivo) {
+            throw new BadRequestException("No se puede quitar o desactivar al último ADMIN activo.");
+        }
+    }
+
+    private void registrarCambioPermisos(String entidad, Long entidadId, String actor, Set<String> anteriores, Set<String> nuevos) {
+        registrarAuditoria("CAMBIAR_PERMISOS", entidad, entidadId, actor, describirCambios("permisos", anteriores, nuevos));
+    }
+
+    private String describirCambios(String etiqueta, Set<String> anteriores, Set<String> nuevos) {
+        Set<String> agregados = new HashSet<>(nuevos);
+        agregados.removeAll(anteriores);
+        Set<String> retirados = new HashSet<>(anteriores);
+        retirados.removeAll(nuevos);
+        return etiqueta + " agregados=" + agregados.stream().sorted().toList()
+                + ", retirados=" + retirados.stream().sorted().toList();
     }
 
     private String generarToken() {

@@ -21,7 +21,7 @@ class MobilescoBackApplicationTests {
 
 	@Test
 	void contextLoadsWithMigratedAndValidatedSchema() {
-		assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("2");
+		assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("5");
 		assertThat(jdbcTemplate.queryForObject(
 				"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE LOWER(TABLE_NAME) = 'flyway_schema_history'",
 				Integer.class)).isEqualTo(1);
