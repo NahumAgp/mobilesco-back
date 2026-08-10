@@ -138,6 +138,10 @@ public class SalidaInsumoService {
         SalidaInsumoModel salida = salidaInsumoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Salida de insumos no encontrada con id: " + id));
 
+        if (salida.getOrdenProduccionModel() != null) {
+            throw new ValidationException("Las salidas vinculadas a una orden de producción no se pueden eliminar");
+        }
+
         if (Boolean.FALSE.equals(salida.getActivo())) {
             throw new ValidationException("La salida ya fue eliminada");
         }
@@ -184,13 +188,16 @@ public class SalidaInsumoService {
 
         Double cantidad = dto.getCantidad();
         Double stockAnterior = insumo.getStockActual() != null ? insumo.getStockActual() : 0.0;
+        Double stockApartado = insumo.getStockApartado() != null ? insumo.getStockApartado() : 0.0;
+        Double stockDisponible = Math.max(0, stockAnterior - stockApartado);
 
-        if (stockAnterior < cantidad) {
+        if (stockDisponible < cantidad) {
             throw new ValidationException(String.format(
-                    "Stock insuficiente para %s. Disponible: %.2f %s, solicitado: %.2f %s",
+                    "Existencia disponible insuficiente para %s. Disponible: %.2f %s (apartado: %.2f), solicitado: %.2f %s",
                     insumo.getNombre(),
-                    stockAnterior,
+                    stockDisponible,
                     insumo.getUnidadMedida().getSimbolo(),
+                    stockApartado,
                     cantidad,
                     insumo.getUnidadMedida().getSimbolo()));
         }
@@ -224,6 +231,7 @@ public class SalidaInsumoService {
                 cantidad,
                 costoUnitario,
                 salida.getId(),
+                null,
                 dto.getObservaciones(),
                 stockAnterior,
                 stockNuevo
@@ -274,6 +282,7 @@ public class SalidaInsumoService {
                 .id(salida.getId())
                 .tipoSalida(salida.getTipoSalida())
                 .ordenProduccion(salida.getOrdenProduccion())
+                .ordenProduccionId(salida.getOrdenProduccionModel() == null ? null : salida.getOrdenProduccionModel().getId())
                 .fechaSalida(salida.getFechaSalida())
                 .observaciones(salida.getObservaciones())
                 .responsable(salida.getResponsable())

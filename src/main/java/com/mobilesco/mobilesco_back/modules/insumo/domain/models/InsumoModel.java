@@ -80,6 +80,11 @@ public class InsumoModel {
     @Builder.Default
     private Double stockActual = 0.0;
 
+    /** Existencia comprometida con ordenes de produccion liberadas. */
+    @Column(name = "stock_apartado", nullable = false)
+    @Builder.Default
+    private Double stockApartado = 0.0;
+
     @Column(name = "stock_minimo")
     private Double stockMinimo;
 

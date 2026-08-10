@@ -110,7 +110,7 @@ class InsumoServiceTest {
                 .fechaActualizacion(LocalDateTime.now())
                 .build();
 
-        when(insumoRepository.findById(1L)).thenReturn(Optional.of(insumo));
+        when(insumoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(insumo));
 
         var response = service.ajustarStock(1L, 5.0, "ENTRADA", "Inventario inicial");
 
@@ -141,9 +141,28 @@ class InsumoServiceTest {
                 .fechaActualizacion(LocalDateTime.now())
                 .build();
 
-        when(insumoRepository.findById(1L)).thenReturn(Optional.of(insumo));
+        when(insumoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(insumo));
 
         assertThrows(ValidationException.class, () -> service.ajustarStock(1L, 5.0, "SALIDA", "Ajuste"));
+        verifyNoInteractions(kardexService);
+    }
+
+    @Test
+    void ajustarStockSalidaProtegeLaExistenciaApartadaParaProduccion() {
+        UnidadMedidaModel unidad = new UnidadMedidaModel();
+        unidad.setId(7L);
+        unidad.setNombre("Pieza");
+        unidad.setSimbolo("pz");
+        InsumoModel insumo = InsumoModel.builder()
+                .id(1L).codigo("INS-001").nombre("Tornillo").unidadMedida(unidad)
+                .stockActual(10.0).stockApartado(8.0).stockMinimo(2.0).activo(true).build();
+        when(insumoRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(insumo));
+
+        var error = assertThrows(ValidationException.class,
+                () -> service.ajustarStock(1L, 3.0, "SALIDA", "Ajuste"));
+
+        org.junit.jupiter.api.Assertions.assertTrue(error.getMessage().contains("Disponible: 2.00"));
+        verify(insumoRepository, never()).save(any());
         verifyNoInteractions(kardexService);
     }
 

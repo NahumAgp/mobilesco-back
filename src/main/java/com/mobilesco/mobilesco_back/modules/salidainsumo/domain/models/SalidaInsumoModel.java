@@ -19,6 +19,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import com.mobilesco.mobilesco_back.modules.ordenproduccion.domain.models.OrdenProduccionModel;
 
 @Entity
 @Table(name = "salida_insumo")
@@ -39,6 +42,10 @@ public class SalidaInsumoModel {
 
     @Column(name = "orden_produccion", length = 100)
     private String ordenProduccion;
+
+    @ManyToOne
+    @JoinColumn(name = "orden_produccion_id")
+    private OrdenProduccionModel ordenProduccionModel;
 
     @Column(name = "fecha_salida", nullable = false)
     private LocalDateTime fechaSalida;

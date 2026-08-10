@@ -68,7 +68,7 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
             FROM InsumoModel i
             LEFT JOIN i.unidadMedida um
             WHERE (:activo IS NULL OR i.activo = :activo)
-              AND (:stockBajo = false OR i.stockActual <= i.stockMinimo)
+              AND (:stockBajo = false OR (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo)
               AND (
                     :busqueda IS NULL OR :busqueda = '' OR
                     LOWER(CAST(i.id AS string)) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
@@ -110,12 +110,12 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
     List<InsumoModel> findByUnidadMedidaId(Long unidadMedidaId);
     
     // Stock bajo (stock actual <= stock mínimo)
-    @Query("SELECT i FROM InsumoModel i WHERE i.stockActual <= i.stockMinimo AND i.activo = true")
+    @Query("SELECT i FROM InsumoModel i WHERE (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo AND i.activo = true")
     List<InsumoModel> findWithStockBajo();
 
     @Query("""
             SELECT COUNT(i) FROM InsumoModel i
-            WHERE i.activo = true AND i.stockMinimo IS NOT NULL AND i.stockActual <= i.stockMinimo
+            WHERE i.activo = true AND i.stockMinimo IS NOT NULL AND (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo
             """)
     long countWithStockBajo();
 }

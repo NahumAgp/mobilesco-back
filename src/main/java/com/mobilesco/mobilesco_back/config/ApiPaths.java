@@ -55,6 +55,7 @@ public final class ApiPaths {
     public static final String PRODUCTOS = API_VERSION + "/productos";
     public static final String CLIENTES = API_VERSION + "/clientes";
     public static final String COTIZACIONES = API_VERSION + "/cotizaciones";
+    public static final String ORDENES_PRODUCCION = API_VERSION + "/ordenes-produccion";
     public static final String TABLERO = API_VERSION + "/tablero";
 
     // =============================

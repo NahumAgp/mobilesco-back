@@ -80,7 +80,7 @@ public class InsumoService {
         validarPermisoGestionInsumos();
         log.info("Actualizando insumo ID: {}", id);
         
-        InsumoModel insumo = insumoRepository.findById(id)
+        InsumoModel insumo = insumoRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
         Double stockMinimoAnterior = insumo.getStockMinimo();
 
@@ -571,7 +571,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         }
         String motivoNormalizado = motivo.trim();
 
-        InsumoModel insumo = insumoRepository.findById(id)
+        InsumoModel insumo = insumoRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
 
         double stockAnterior = insumo.getStockActual() != null ? insumo.getStockActual() : 0.0;
@@ -582,11 +582,14 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
             log.info("Entrada de stock. Nuevo stock: {}", stockNuevo);
             
         } else if ("SALIDA".equalsIgnoreCase(tipo)) {
-            if (stockAnterior < cantidad) {
+            double stockApartado = insumo.getStockApartado() != null ? insumo.getStockApartado() : 0.0;
+            double stockDisponible = Math.max(0, stockAnterior - stockApartado);
+            if (stockDisponible < cantidad) {
                 throw new ValidationException(String.format(
-                    "Stock insuficiente. Actual: %.2f %s, solicitado: %.2f %s",
-                    stockAnterior, 
+                    "Existencia disponible insuficiente. Disponible: %.2f %s (apartado: %.2f), solicitado: %.2f %s",
+                    stockDisponible,
                     insumo.getUnidadMedida().getSimbolo(),
+                    stockApartado,
                     cantidad, 
                     insumo.getUnidadMedida().getSimbolo()));
             }
@@ -654,6 +657,10 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 .unidadMedidaNombre(insumo.getUnidadMedida().getNombre())
                 .unidadMedidaSimbolo(insumo.getUnidadMedida().getSimbolo())
                 .stockActual(insumo.getStockActual())
+                .stockApartado(insumo.getStockApartado() == null ? 0.0 : insumo.getStockApartado())
+                .stockDisponible(Math.max(0,
+                        (insumo.getStockActual() == null ? 0.0 : insumo.getStockActual())
+                                - (insumo.getStockApartado() == null ? 0.0 : insumo.getStockApartado())))
                 .stockMinimo(insumo.getStockMinimo())
                 .ultimoCostoCompra(metadata == null
                         ? obtenerUltimoCostoCompra(insumoId)

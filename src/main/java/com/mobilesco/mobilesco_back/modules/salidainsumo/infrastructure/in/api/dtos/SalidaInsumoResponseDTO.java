@@ -16,6 +16,7 @@ public class SalidaInsumoResponseDTO {
     private Long id;
     private String tipoSalida;
     private String ordenProduccion;
+    private Long ordenProduccionId;
     private LocalDateTime fechaSalida;
     private String observaciones;
     private String responsable;

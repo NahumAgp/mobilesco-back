@@ -87,6 +87,7 @@ public class KardexService {
             Double cantidad,
             Double costoUnitario,
             Long produccionId,
+            String folioProduccion,
             String observaciones,
             Double stockAnterior,
             Double stockNuevo) {
@@ -115,7 +116,8 @@ public class KardexService {
                 .cantidad(cantidad)
                 .costoUnitario(costoUnitario)
                 .costoTotal(costoTotal)
-                .referencia("Producción #" + produccionId)
+                .documento(folioProduccion)
+                .referencia(folioProduccion == null ? "Producción #" + produccionId : folioProduccion)
                 .observaciones(observaciones)
                 .stockAnterior(stockAnteriorSeguro)
                 .stockNuevo(stockNuevoSeguro)

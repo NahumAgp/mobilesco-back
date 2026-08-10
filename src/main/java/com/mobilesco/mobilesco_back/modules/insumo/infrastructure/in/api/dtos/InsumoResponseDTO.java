@@ -27,6 +27,8 @@ public class InsumoResponseDTO {
     private String unidadMedidaSimbolo;
 
     private Double stockActual;
+    private Double stockApartado;
+    private Double stockDisponible;
     private Double stockMinimo;
     private Boolean activo;
     private LocalDateTime fechaRegistro;

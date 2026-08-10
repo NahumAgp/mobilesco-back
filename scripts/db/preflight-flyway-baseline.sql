@@ -109,16 +109,24 @@ WHERE linea_id IS NOT NULL AND nombre IS NOT NULL
 GROUP BY linea_id, LOWER(nombre)
 HAVING COUNT(*) > 1;
 
-SELECT 'Duplicado productos_base(familia_id,codigo)' AS problema, familia_id, LOWER(codigo) AS valor, COUNT(*) AS repeticiones
+SELECT 'Duplicado productos_base(clasificacion,codigo)' AS problema,
+       familia_id,
+       subfamilia_id,
+       LOWER(codigo) AS valor,
+       COUNT(*) AS repeticiones
 FROM productos_base
 WHERE familia_id IS NOT NULL AND codigo IS NOT NULL
-GROUP BY familia_id, LOWER(codigo)
+GROUP BY familia_id, subfamilia_id, LOWER(codigo)
 HAVING COUNT(*) > 1;
 
-SELECT 'Duplicado productos_base(familia_id,nombre)' AS problema, familia_id, LOWER(nombre) AS valor, COUNT(*) AS repeticiones
+SELECT 'Duplicado productos_base(clasificacion,nombre)' AS problema,
+       familia_id,
+       subfamilia_id,
+       LOWER(nombre) AS valor,
+       COUNT(*) AS repeticiones
 FROM productos_base
 WHERE familia_id IS NOT NULL AND nombre IS NOT NULL
-GROUP BY familia_id, LOWER(nombre)
+GROUP BY familia_id, subfamilia_id, LOWER(nombre)
 HAVING COUNT(*) > 1;
 
 SELECT 'Duplicado niveles(producto_base_id,codigo)' AS problema, producto_base_id, LOWER(codigo) AS valor, COUNT(*) AS repeticiones
