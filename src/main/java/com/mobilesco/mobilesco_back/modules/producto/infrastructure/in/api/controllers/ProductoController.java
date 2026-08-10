@@ -37,6 +37,7 @@ import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoCreacionCompletaService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoReclasificacionService;
+import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoSkuValidacionService;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoCreacionCompletaDTO;
@@ -47,6 +48,7 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoReclasificacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoReclasificacionRequestDTO;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoSkuValidacionResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,6 +65,7 @@ public class ProductoController {
     private final ProductoService productoService;
     private final ProductoCreacionCompletaService productoCreacionCompletaService;
     private final ProductoReclasificacionService productoReclasificacionService;
+    private final ProductoSkuValidacionService productoSkuValidacionService;
 
     @Operation(summary = "Crear producto")
     @PostMapping
@@ -102,6 +105,20 @@ public class ProductoController {
                     pageable));
         }
         return ResponseEntity.ok(productoService.obtenerTodosCompletos());
+    }
+
+    @Operation(summary = "Auditar los SKUs contra la clasificación vigente")
+    @PreAuthorize("hasAuthority('VIEW_PRODUCTS')")
+    @GetMapping("/skus/validacion")
+    public ResponseEntity<ProductoSkuValidacionResponseDTO> validarSkus() {
+        return ResponseEntity.ok(productoSkuValidacionService.validar());
+    }
+
+    @Operation(summary = "Corregir los SKUs que no coinciden con la clasificación vigente")
+    @PreAuthorize("hasAuthority('VIEW_PRODUCTS') and hasAuthority('ACTION_PRODUCTS_EDIT')")
+    @PutMapping("/skus/revalidacion")
+    public ResponseEntity<ProductoSkuValidacionResponseDTO> corregirSkus() {
+        return ResponseEntity.ok(productoSkuValidacionService.corregir());
     }
 
     @Operation(summary = "Exportar reporte de productos a Excel")
