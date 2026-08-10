@@ -8,11 +8,13 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
+import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.out.persistence.repositories.ProveedorRepository;
 import com.mobilesco.mobilesco_back.modules.tipoinsumo.domain.models.TipoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.tipoinsumo.infrastructure.in.api.dtos.TipoInsumoCodigoPreviewDTO;
 import com.mobilesco.mobilesco_back.modules.tipoinsumo.infrastructure.in.api.dtos.TipoInsumoCreateDTO;
@@ -26,9 +28,13 @@ public class TipoInsumoService {
     private static final int CODIGO_MAXIMO_CARACTERES = 3;
 
     private final TipoInsumoRepository tipoInsumoRepository;
+    private final ProveedorRepository proveedorRepository;
 
-    public TipoInsumoService(TipoInsumoRepository tipoInsumoRepository) {
+    public TipoInsumoService(
+            TipoInsumoRepository tipoInsumoRepository,
+            ProveedorRepository proveedorRepository) {
         this.tipoInsumoRepository = tipoInsumoRepository;
+        this.proveedorRepository = proveedorRepository;
     }
 
     public List<TipoInsumoResponseDTO> listar(boolean soloActivos) {
@@ -101,13 +107,21 @@ public class TipoInsumoService {
         return mapToResponseDTO(tipoInsumoRepository.save(tipo));
     }
 
+    @Transactional
     public TipoInsumoResponseDTO actualizar(Long id, TipoInsumoUpdateDTO dto) {
         TipoInsumoModel tipo = tipoInsumoRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Tipo de insumo no encontrado"));
 
         String nombre = limpiarNombreObligatorio(dto.getNombre());
+        String codigoAnterior = tipo.getCodigo();
+        String codigoNuevo = limpiarCodigoObligatorio(dto.getCodigo());
         validarNombreUnico(nombre, id);
+        validarCodigoUnico(codigoNuevo, id);
 
+        if (!codigoAnterior.equalsIgnoreCase(codigoNuevo)) {
+            proveedorRepository.actualizarCodigoTipoInsumo(codigoAnterior, codigoNuevo);
+            tipo.setCodigo(codigoNuevo);
+        }
         tipo.setNombre(nombre);
         tipo.setDescripcion(limpiarTexto(dto.getDescripcion()));
 
@@ -144,6 +158,28 @@ public class TipoInsumoService {
                         throw new BadRequestException("Ya existe un tipo de insumo con ese nombre");
                     }
                 });
+    }
+
+    private void validarCodigoUnico(String codigo, Long idActual) {
+        tipoInsumoRepository.findByCodigoIgnoreCase(codigo)
+                .ifPresent(existente -> {
+                    if (!existente.getId().equals(idActual)) {
+                        throw new BadRequestException("Ya existe un tipo de insumo con ese codigo");
+                    }
+                });
+    }
+
+    private String limpiarCodigoObligatorio(String codigo) {
+        String limpio = limpiarTexto(codigo);
+        if (!StringUtils.hasText(limpio)) {
+            throw new BadRequestException("El codigo del tipo de insumo es obligatorio");
+        }
+
+        String normalizado = limpio.toUpperCase(Locale.ROOT);
+        if (!normalizado.matches("[A-Z0-9]{1,3}")) {
+            throw new BadRequestException("El codigo debe contener de 1 a 3 letras o numeros");
+        }
+        return normalizado;
     }
 
     private String limpiarNombreObligatorio(String nombre) {

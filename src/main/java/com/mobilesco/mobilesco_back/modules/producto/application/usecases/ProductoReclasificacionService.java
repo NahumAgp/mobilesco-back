@@ -138,15 +138,15 @@ public class ProductoReclasificacionService {
             }
         }
 
-        if (modeloRepository.existsByFamiliaIdAndCodigoIgnoreCaseAndIdNot(
-                familia.getId(), modeloDestino.getCodigo(), modeloDestino.getId())) {
+        if (existeCodigoEnClasificacion(
+                familia.getId(), subfamilia, modeloDestino.getCodigo(), modeloDestino.getId())) {
             throw new ValidationException(
-                    "Ya existe otro modelo con el código " + modeloDestino.getCodigo() + " en la familia seleccionada.");
+                    "Ya existe otro modelo con el código " + modeloDestino.getCodigo() + " en la subfamilia seleccionada.");
         }
-        if (modeloRepository.existsByFamiliaIdAndNombreIgnoreCaseAndIdNot(
-                familia.getId(), modeloDestino.getNombre(), modeloDestino.getId())) {
+        if (existeNombreEnClasificacion(
+                familia.getId(), subfamilia, modeloDestino.getNombre(), modeloDestino.getId())) {
             throw new ValidationException(
-                    "Ya existe otro modelo con el nombre " + modeloDestino.getNombre() + " en la familia seleccionada.");
+                    "Ya existe otro modelo con el nombre " + modeloDestino.getNombre() + " en la subfamilia seleccionada.");
         }
 
         List<ProductoModel> productos = new ArrayList<>(productoRepository.findByModeloId(modeloDestino.getId()));
@@ -273,6 +273,26 @@ public class ProductoReclasificacionService {
             throw new ValidationException("Falta el código de " + catalogo + " para regenerar el SKU.");
         }
         return valor.trim();
+    }
+
+    private boolean existeCodigoEnClasificacion(
+            Long familiaId, SubfamiliaModel subfamilia, String codigo, Long modeloId) {
+        if (subfamilia != null) {
+            return modeloRepository.existsBySubfamiliaIdAndCodigoIgnoreCaseAndIdNot(
+                    subfamilia.getId(), codigo, modeloId);
+        }
+        return modeloRepository.existsByFamiliaIdAndSubfamiliaIsNullAndCodigoIgnoreCaseAndIdNot(
+                familiaId, codigo, modeloId);
+    }
+
+    private boolean existeNombreEnClasificacion(
+            Long familiaId, SubfamiliaModel subfamilia, String nombre, Long modeloId) {
+        if (subfamilia != null) {
+            return modeloRepository.existsBySubfamiliaIdAndNombreIgnoreCaseAndIdNot(
+                    subfamilia.getId(), nombre, modeloId);
+        }
+        return modeloRepository.existsByFamiliaIdAndSubfamiliaIsNullAndNombreIgnoreCaseAndIdNot(
+                familiaId, nombre, modeloId);
     }
 
     private record Contexto(

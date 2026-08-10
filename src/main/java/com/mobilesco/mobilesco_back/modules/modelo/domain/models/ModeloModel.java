@@ -28,8 +28,8 @@ import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaM
 @Table(
     name = "productos_base",
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_modelo_familia_codigo", columnNames = {"familia_id", "codigo"}),
-        @UniqueConstraint(name = "uk_modelo_familia_nombre", columnNames = {"familia_id", "nombre"})
+        @UniqueConstraint(name = "uk_modelo_clasificacion_codigo", columnNames = {"familia_id", "subfamilia_id", "codigo"}),
+        @UniqueConstraint(name = "uk_modelo_clasificacion_nombre", columnNames = {"familia_id", "subfamilia_id", "nombre"})
     }
 )
 public class ModeloModel {

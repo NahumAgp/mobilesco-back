@@ -68,7 +68,7 @@ public class TipoInsumoController {
         return ResponseEntity.ok(tipoInsumoService.previsualizarCodigo(nombre));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_INPUT_TYPES') and hasAuthority('ACTION_INPUT_TYPES_CREATE')")
     @PostMapping
     @Operation(summary = "Crear tipo de insumo")
     public ResponseEntity<TipoInsumoResponseDTO> crear(
@@ -77,7 +77,7 @@ public class TipoInsumoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(tipoInsumoService.crear(dto));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_INPUT_TYPES') and hasAuthority('ACTION_INPUT_TYPES_EDIT')")
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar tipo de insumo")
     public ResponseEntity<TipoInsumoResponseDTO> actualizar(
@@ -87,7 +87,7 @@ public class TipoInsumoController {
         return ResponseEntity.ok(tipoInsumoService.actualizar(id, dto));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'DIRECTOR_GENERAL', 'SUBDIRECCION_ADMINISTRATIVA')")
+    @PreAuthorize("hasAuthority('VIEW_INPUT_TYPES') and hasAuthority('ACTION_INPUT_TYPES_STATUS')")
     @PatchMapping("/{id}/estado")
     @Operation(summary = "Activar o desactivar tipo de insumo")
     public ResponseEntity<TipoInsumoResponseDTO> actualizarEstado(

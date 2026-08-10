@@ -217,6 +217,19 @@ class ProductoReclasificacionServiceTest {
         assertThrows(ValidationException.class, () -> service.previsualizar(9L, request));
     }
 
+    @Test
+    void rechazaModeloDuplicadoSoloDentroDeLaSubfamiliaDestino() {
+        when(modeloRepository.existsBySubfamiliaIdAndCodigoIgnoreCaseAndIdNot(4L, "M", 5L))
+                .thenReturn(true);
+
+        ValidationException error = assertThrows(
+                ValidationException.class,
+                () -> service.previsualizar(9L, request));
+
+        assertTrue(error.getMessage().contains("subfamilia seleccionada"));
+        verify(modeloRepository).existsBySubfamiliaIdAndCodigoIgnoreCaseAndIdNot(4L, "M", 5L);
+    }
+
     private void prepararVariantes() {
         when(productoRepository.findByModeloId(5L)).thenReturn(List.of(producto));
         when(productoRepository.findBySkuIgnoreCase("EPUMEM-01-P-AM")).thenReturn(Optional.empty());

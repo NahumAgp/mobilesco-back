@@ -32,6 +32,7 @@ import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.out.persist
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoPlantillaModeloService;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
+import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
 import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.out.persistence.repositories.SubfamiliaRepository;
 
 class ModeloServiceTest {
@@ -82,8 +83,8 @@ class ModeloServiceTest {
         CategoriaModel categoria = categoria(30L, "Escolar");
         when(familiaRepository.findById(20L)).thenReturn(Optional.of(familia));
         when(familiaRepository.existsById(20L)).thenReturn(true);
-        when(modeloRepository.existsByFamiliaIdAndNombreIgnoreCase(20L, "ISO")).thenReturn(false);
-        when(modeloRepository.findByFamiliaId(20L)).thenReturn(List.of());
+        when(modeloRepository.existsByFamiliaIdAndSubfamiliaIsNullAndNombreIgnoreCase(20L, "ISO")).thenReturn(false);
+        when(modeloRepository.findByFamiliaIdAndSubfamiliaIsNull(20L)).thenReturn(List.of());
         when(modeloRepository.save(any(ModeloModel.class))).thenAnswer(invocation -> {
             ModeloModel modelo = invocation.getArgument(0);
             if (modelo.getId() == null) {
@@ -99,7 +100,7 @@ class ModeloServiceTest {
 
         assertEquals("ISO", resultado.getNombre());
         assertEquals(20L, resultado.getFamiliaId());
-        verify(modeloRepository).existsByFamiliaIdAndNombreIgnoreCase(20L, "ISO");
+        verify(modeloRepository).existsByFamiliaIdAndSubfamiliaIsNullAndNombreIgnoreCase(20L, "ISO");
         verify(modeloRepository, never()).findAll();
     }
 
@@ -107,12 +108,41 @@ class ModeloServiceTest {
     void validaElNombreDeModeloDentroDeLaMismaFamilia() {
         FamiliaModel familia = familia(20L, "Sillas");
         when(familiaRepository.findById(20L)).thenReturn(Optional.of(familia));
-        when(modeloRepository.existsByFamiliaIdAndNombreIgnoreCase(20L, "ISO")).thenReturn(true);
+        when(modeloRepository.existsByFamiliaIdAndSubfamiliaIsNullAndNombreIgnoreCase(20L, "ISO")).thenReturn(true);
 
         assertThrows(BadRequestException.class, () -> modeloService.crear(modelo("ISO", 20L)));
 
-        verify(modeloRepository).existsByFamiliaIdAndNombreIgnoreCase(20L, "ISO");
+        verify(modeloRepository).existsByFamiliaIdAndSubfamiliaIsNullAndNombreIgnoreCase(20L, "ISO");
         verify(modeloRepository, never()).save(any(ModeloModel.class));
+    }
+
+    @Test
+    void permiteRepetirNombreDeModeloEnSubfamiliasDistintas() {
+        FamiliaModel familia = familia(20L, "Pupitre");
+        SubfamiliaModel subfamilia = new SubfamiliaModel();
+        subfamilia.setId(21L);
+        subfamilia.setFamilia(familia);
+        CategoriaModel categoria = categoria(30L, "Escolar");
+        ModeloCreateDTO dto = modelo("Mesabanco", 20L);
+        dto.setSubfamiliaId(21L);
+
+        when(familiaRepository.findById(20L)).thenReturn(Optional.of(familia));
+        when(familiaRepository.existsById(20L)).thenReturn(true);
+        when(subfamiliaRepository.findById(21L)).thenReturn(Optional.of(subfamilia));
+        when(modeloRepository.findBySubfamiliaId(21L)).thenReturn(List.of());
+        when(modeloRepository.save(any(ModeloModel.class))).thenAnswer(invocation -> {
+            ModeloModel modelo = invocation.getArgument(0);
+            modelo.setId(40L);
+            return modelo;
+        });
+        when(nivelRepository.findByModeloIdOrderByCodigoAsc(40L)).thenReturn(List.of());
+        when(categoriaRepository.findByNombreIgnoreCase("Escolar")).thenReturn(Optional.of(categoria));
+        when(nivelRepository.save(any(NivelModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ModeloResponseDTO resultado = modeloService.crear(dto);
+
+        assertEquals(21L, resultado.getSubfamiliaId());
+        verify(modeloRepository).existsBySubfamiliaIdAndNombreIgnoreCase(21L, "Mesabanco");
     }
 
     private ModeloCreateDTO modelo(String nombre, Long familiaId) {

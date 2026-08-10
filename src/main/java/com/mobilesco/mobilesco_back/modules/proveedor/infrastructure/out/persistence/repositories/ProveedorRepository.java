@@ -6,12 +6,23 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.mobilesco.mobilesco_back.modules.proveedor.domain.models.ProveedorModel;
 
 public interface ProveedorRepository extends JpaRepository<ProveedorModel, Long> {
+
+    @Modifying
+    @Query(value = """
+            UPDATE proveedor
+            SET tipo_insumo = :codigoNuevo
+            WHERE LOWER(tipo_insumo) = LOWER(:codigoAnterior)
+            """, nativeQuery = true)
+    int actualizarCodigoTipoInsumo(
+            @Param("codigoAnterior") String codigoAnterior,
+            @Param("codigoNuevo") String codigoNuevo);
 
     List<ProveedorModel> findByActivo(Boolean activo);
     Page<ProveedorModel> findByActivo(Boolean activo, Pageable pageable);

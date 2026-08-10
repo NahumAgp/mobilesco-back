@@ -221,13 +221,13 @@ public class ModeloService {
                 .orElseThrow(() -> new NotFoundException("Familia no encontrada con ID: " + dto.getFamiliaId()));
         SubfamiliaModel subfamilia = resolverSubfamilia(dto.getSubfamiliaId(), familia);
         String nombre = dto.getNombre().trim();
-        boolean nombreDuplicado = modeloRepository.existsByFamiliaIdAndNombreIgnoreCase(familia.getId(), nombre);
+        boolean nombreDuplicado = existeNombreEnClasificacion(familia.getId(), subfamilia, nombre, null);
         if (nombreDuplicado) {
-            throw new BadRequestException("Ya existe un modelo con el nombre: " + nombre + " en la familia seleccionada");
+            throw new BadRequestException("Ya existe un modelo con el nombre: " + nombre + " en la clasificación seleccionada");
         }
 
         ModeloModel modelo = new ModeloModel();
-        modelo.setCodigo(sugerirCodigo(nombre, familia.getId()));
+        modelo.setCodigo(sugerirCodigo(nombre, familia.getId(), dto.getSubfamiliaId()));
         modelo.setNombre(nombre);
         modelo.setDescripcion(dto.getDescripcion());
         modelo.setDescripcionCorta(dto.getDescripcionCorta());
@@ -252,13 +252,20 @@ public class ModeloService {
     }
 
     public String sugerirCodigo(String nombre, Long familiaId) {
+        return sugerirCodigo(nombre, familiaId, null);
+    }
+
+    public String sugerirCodigo(String nombre, Long familiaId, Long subfamiliaId) {
         if (familiaId == null) {
             return sugerirCodigo(nombre);
         }
         if (!familiaRepository.existsById(familiaId)) {
             throw new NotFoundException("Familia no encontrada con ID: " + familiaId);
         }
-        return CatalogCodeGenerator.generate(nombre, modeloRepository.findByFamiliaId(familiaId).stream()
+        List<ModeloModel> modelos = subfamiliaId != null
+                ? modeloRepository.findBySubfamiliaId(subfamiliaId)
+                : modeloRepository.findByFamiliaIdAndSubfamiliaIsNull(familiaId);
+        return CatalogCodeGenerator.generate(nombre, modelos.stream()
                 .map(ModeloModel::getCodigo)
                 .toList());
     }
@@ -406,14 +413,16 @@ public class ModeloService {
             subfamiliaDestino = null;
         }
 
-        boolean codigoDuplicado = modeloRepository.existsByFamiliaIdAndCodigoIgnoreCaseAndIdNot(familiaDestino.getId(), codigoDestino, id);
+        boolean codigoDuplicado = existeCodigoEnClasificacion(
+                familiaDestino.getId(), subfamiliaDestino, codigoDestino, id);
         if (codigoDuplicado) {
-            throw new BadRequestException("Ya existe un modelo con el codigo: " + codigoDestino + " en la familia seleccionada");
+            throw new BadRequestException("Ya existe un modelo con el codigo: " + codigoDestino + " en la clasificación seleccionada");
         }
 
-        boolean nombreDuplicadoActualizacion = modeloRepository.existsByFamiliaIdAndNombreIgnoreCaseAndIdNot(familiaDestino.getId(), nombreDestino, id);
+        boolean nombreDuplicadoActualizacion = existeNombreEnClasificacion(
+                familiaDestino.getId(), subfamiliaDestino, nombreDestino, id);
         if (nombreDuplicadoActualizacion) {
-            throw new BadRequestException("Ya existe un modelo con el nombre: " + nombreDestino + " en la familia seleccionada");
+            throw new BadRequestException("Ya existe un modelo con el nombre: " + nombreDestino + " en la clasificación seleccionada");
         }
 
         existente.setCodigo(codigoDestino);
@@ -534,6 +543,34 @@ public class ModeloService {
         dto.setFechaRegistro(material.getFechaRegistro());
         dto.setFechaActualizacion(material.getFechaActualizacion());
         return dto;
+    }
+
+    private boolean existeCodigoEnClasificacion(
+            Long familiaId, SubfamiliaModel subfamilia, String codigo, Long modeloId) {
+        if (subfamilia != null) {
+            return modeloId == null
+                    ? modeloRepository.existsBySubfamiliaIdAndCodigoIgnoreCase(subfamilia.getId(), codigo)
+                    : modeloRepository.existsBySubfamiliaIdAndCodigoIgnoreCaseAndIdNot(
+                            subfamilia.getId(), codigo, modeloId);
+        }
+        return modeloId == null
+                ? modeloRepository.existsByFamiliaIdAndSubfamiliaIsNullAndCodigoIgnoreCase(familiaId, codigo)
+                : modeloRepository.existsByFamiliaIdAndSubfamiliaIsNullAndCodigoIgnoreCaseAndIdNot(
+                        familiaId, codigo, modeloId);
+    }
+
+    private boolean existeNombreEnClasificacion(
+            Long familiaId, SubfamiliaModel subfamilia, String nombre, Long modeloId) {
+        if (subfamilia != null) {
+            return modeloId == null
+                    ? modeloRepository.existsBySubfamiliaIdAndNombreIgnoreCase(subfamilia.getId(), nombre)
+                    : modeloRepository.existsBySubfamiliaIdAndNombreIgnoreCaseAndIdNot(
+                            subfamilia.getId(), nombre, modeloId);
+        }
+        return modeloId == null
+                ? modeloRepository.existsByFamiliaIdAndSubfamiliaIsNullAndNombreIgnoreCase(familiaId, nombre)
+                : modeloRepository.existsByFamiliaIdAndSubfamiliaIsNullAndNombreIgnoreCaseAndIdNot(
+                        familiaId, nombre, modeloId);
     }
 
     private SubfamiliaModel resolverSubfamilia(Long subfamiliaId, FamiliaModel familia) {

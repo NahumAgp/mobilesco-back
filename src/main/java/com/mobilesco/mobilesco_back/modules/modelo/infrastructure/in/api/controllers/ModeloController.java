@@ -98,8 +98,9 @@ public class ModeloController {
     @GetMapping("/codigo-sugerido")
     public ResponseEntity<Map<String, String>> sugerirCodigo(
             @RequestParam String nombre,
-            @RequestParam(required = false) Long familiaId) {
-        return ResponseEntity.ok(Map.of("codigo", modeloService.sugerirCodigo(nombre, familiaId)));
+            @RequestParam(required = false) Long familiaId,
+            @RequestParam(required = false) Long subfamiliaId) {
+        return ResponseEntity.ok(Map.of("codigo", modeloService.sugerirCodigo(nombre, familiaId, subfamiliaId)));
     }
 
     @GetMapping("/{id}")
