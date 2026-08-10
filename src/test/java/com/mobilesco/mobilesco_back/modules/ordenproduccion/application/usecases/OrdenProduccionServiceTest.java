@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import com.mobilesco.mobilesco_back.modules.kardex.application.usecases.KardexSe
 import com.mobilesco.mobilesco_back.modules.operacion.domain.models.OperacionModel;
 import com.mobilesco.mobilesco_back.modules.ordenproduccion.domain.models.*;
 import com.mobilesco.mobilesco_back.modules.ordenproduccion.infrastructure.in.api.dtos.OrdenProduccionAccionesDTO.Conversion;
+import com.mobilesco.mobilesco_back.modules.ordenproduccion.infrastructure.in.api.dtos.OrdenProduccionRequestDTO;
 import com.mobilesco.mobilesco_back.modules.ordenproduccion.infrastructure.out.persistence.repositories.*;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.*;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.*;
@@ -39,6 +41,24 @@ class OrdenProduccionServiceTest {
     @InjectMocks OrdenProduccionService service;
 
     @BeforeEach void savesReturnEntity(){ lenient().when(ordenRepository.save(any())).thenAnswer(i->i.getArgument(0)); }
+
+    @Test void creaOrdenConFolioTemporalCompatibleConLaColumna(){
+        var producto=ProductoModel.builder().id(10L).sku("P-01").nombre("Producto").activo(true).build();
+        var partida=new OrdenProduccionRequestDTO.Partida();
+        partida.setProductoId(10L); partida.setCantidad(BigDecimal.ONE);
+        var request=new OrdenProduccionRequestDTO(); request.setPartidas(List.of(partida));
+        when(productoRepository.findById(10L)).thenReturn(Optional.of(producto));
+        doAnswer(invocacion->{
+            OrdenProduccionModel orden=invocacion.getArgument(0);
+            assertThat(orden.getFolio()).startsWith("TMP").hasSizeLessThanOrEqualTo(30);
+            orden.setId(123L);
+            return orden;
+        }).when(ordenRepository).saveAndFlush(any());
+
+        var respuesta=service.crear(request,"user@test.mx");
+
+        assertThat(respuesta.getFolio()).isEqualTo("OP-"+LocalDate.now().getYear()+"-00123");
+    }
 
     @Test void rechazaCotizacionQueNoEstaAceptada(){
         var cot=CotizacionModel.builder().id(7L).estado(EstadoCotizacion.ENVIADA).build();

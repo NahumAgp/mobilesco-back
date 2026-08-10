@@ -61,7 +61,7 @@ public class OrdenProduccionService {
     public OrdenProduccionResponseDTO crear(OrdenProduccionRequestDTO dto, String usuario){
         validarFechas(dto.getFechaInicioProgramada(), dto.getFechaCompromiso());
         ClienteModel cliente=cliente(dto.getClienteId());
-        OrdenProduccionModel orden=OrdenProduccionModel.builder().folio("TEMP-"+UUID.randomUUID())
+        OrdenProduccionModel orden=OrdenProduccionModel.builder().folio(folioTemporal())
             .origen(OrigenOrdenProduccion.MANUAL).estado(EstadoOrdenProduccion.BORRADOR).cliente(cliente)
             .fechaInicioProgramada(dto.getFechaInicioProgramada()).fechaCompromiso(dto.getFechaCompromiso())
             .observaciones(limpiar(dto.getObservaciones())).creadoPor(usuario).actualizadoPor(usuario).build();
@@ -89,7 +89,7 @@ public class OrdenProduccionService {
         if(cot.getEstado()!=EstadoCotizacion.ACEPTADA) throw new ValidationException("Sólo una cotización aceptada puede convertirse en orden de producción");
         if(ordenRepository.existsByCotizacionId(cotizacionId)) throw new ValidationException("La cotización ya tiene una orden de producción");
         validarFechas(dto.getFechaInicioProgramada(),dto.getFechaCompromiso());
-        OrdenProduccionModel orden=OrdenProduccionModel.builder().folio("TEMP-"+UUID.randomUUID()).origen(OrigenOrdenProduccion.COTIZACION)
+        OrdenProduccionModel orden=OrdenProduccionModel.builder().folio(folioTemporal()).origen(OrigenOrdenProduccion.COTIZACION)
             .estado(EstadoOrdenProduccion.BORRADOR).cotizacion(cot).cliente(cot.getCliente())
             .fechaInicioProgramada(dto.getFechaInicioProgramada()).fechaCompromiso(dto.getFechaCompromiso())
             .observaciones(limpiar(dto.getObservaciones())).creadoPor(usuario).actualizadoPor(usuario).build();
@@ -140,6 +140,10 @@ public class OrdenProduccionService {
         apartarDisponibles(orden);
         orden.setEstado(EstadoOrdenProduccion.LIBERADA); orden.setActualizadoPor(usuario);
         return mapear(ordenRepository.save(orden));
+    }
+
+    private String folioTemporal() {
+        return "TMP" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
     }
 
     @Transactional
