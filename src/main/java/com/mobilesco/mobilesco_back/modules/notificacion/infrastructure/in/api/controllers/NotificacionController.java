@@ -1,5 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.notificacion.infrastructure.in.api.controllers;
 
+import static org.springframework.data.core.TypedPropertyPath.path;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.notificacion.application.usecases.NotificacionService;
+import com.mobilesco.mobilesco_back.modules.notificacion.domain.models.NotificacionModel;
 import com.mobilesco.mobilesco_back.modules.notificacion.infrastructure.in.api.dtos.ConteoNotificacionesDTO;
 import com.mobilesco.mobilesco_back.modules.notificacion.infrastructure.in.api.dtos.NotificacionResponseDTO;
 
@@ -35,7 +38,7 @@ public class NotificacionController {
         PageRequest pageable = PageRequest.of(
                 Math.max(page, 0),
                 Math.min(Math.max(size, 1), 100),
-                Sort.by(Sort.Direction.DESC, "fechaCreacion"));
+                Sort.by(Sort.Direction.DESC, path(NotificacionModel::getFechaCreacion)));
         return ResponseEntity.ok(notificacionService.listarPropias(
                 authentication.getName(), leida, pageable));
     }

@@ -1,5 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.in.api.controllers;
 
+import static org.springframework.data.core.TypedPropertyPath.path;
+
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.application.usecases.RequisicionAlmacenService;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.EstadoRequisicionAlmacen;
+import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.RequisicionAlmacenModel;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.in.api.dtos.InsumoRequisicionDTO;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.in.api.dtos.RequisicionCreateDTO;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.in.api.dtos.RequisicionEstadoDTO;
@@ -47,7 +50,7 @@ public class RequisicionAlmacenController {
         PageRequest pageable = PageRequest.of(
                 Math.max(page, 0),
                 Math.min(Math.max(size, 1), 100),
-                Sort.by(Sort.Direction.DESC, "fechaEnvio"));
+                Sort.by(Sort.Direction.DESC, path(RequisicionAlmacenModel::getFechaEnvio)));
         return ResponseEntity.ok(requisicionService.listar(
                 estado, busqueda, pageable, authentication.getName()));
     }

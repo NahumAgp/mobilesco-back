@@ -56,10 +56,10 @@ public class GlobalExceptionHandler {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("message", "El archivo supera el tamano maximo permitido.");
-        response.put("status", HttpStatus.PAYLOAD_TOO_LARGE.value());
+        response.put("status", HttpStatus.CONTENT_TOO_LARGE.value());
         response.put("error", "Payload Too Large");
         response.put("success", false);
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(response);
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(response);
     }
 
     @ExceptionHandler(NotFoundException.class)

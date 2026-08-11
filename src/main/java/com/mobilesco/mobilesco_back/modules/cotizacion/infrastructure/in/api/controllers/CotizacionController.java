@@ -1,5 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.in.api.controllers;
 
+import static org.springframework.data.core.TypedPropertyPath.path;
+
 import java.util.List;
 
 import org.springframework.data.domain.*;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.cotizacion.application.usecases.CotizacionService;
+import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.CotizacionModel;
 import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.EstadoCotizacion;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.in.api.dtos.*;
 
@@ -30,7 +33,7 @@ public class CotizacionController {
             @RequestParam(defaultValue = "10") int size) {
         return cotizacionService.listar(estado, busqueda,
                 PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
-                        Sort.by(Sort.Direction.DESC, "fechaRegistro")));
+                        Sort.by(Sort.Direction.DESC, path(CotizacionModel::getFechaRegistro))));
     }
 
     @GetMapping("/{id}")

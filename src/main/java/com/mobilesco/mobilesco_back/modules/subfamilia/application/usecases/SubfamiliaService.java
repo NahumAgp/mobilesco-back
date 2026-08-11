@@ -1,5 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.subfamilia.application.usecases;
 
+import static org.springframework.data.core.TypedPropertyPath.path;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -204,7 +206,14 @@ public class SubfamiliaService {
         if (!List.of("id", "codigo", "nombre", "activo", "createdAt").contains(campo)) {
             campo = "nombre";
         }
-        return Sort.by(dir, campo).and(Sort.by(Sort.Direction.ASC, "id"));
+        Sort principal = switch (campo) {
+            case "id" -> Sort.by(dir, path(SubfamiliaModel::getId));
+            case "codigo" -> Sort.by(dir, path(SubfamiliaModel::getCodigo));
+            case "activo" -> Sort.by(dir, path(SubfamiliaModel::getActivo));
+            case "createdAt" -> Sort.by(dir, path(SubfamiliaModel::getCreatedAt));
+            default -> Sort.by(dir, path(SubfamiliaModel::getNombre));
+        };
+        return principal.and(Sort.by(Sort.Direction.ASC, path(SubfamiliaModel::getId)));
     }
 
     private String normalizarBusqueda(String busqueda) {

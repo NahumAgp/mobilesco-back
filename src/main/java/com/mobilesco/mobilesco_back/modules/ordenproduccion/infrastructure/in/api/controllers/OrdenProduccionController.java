@@ -1,5 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.ordenproduccion.infrastructure.in.api.controllers;
 
+import static org.springframework.data.core.TypedPropertyPath.path;
+
 import java.time.LocalDate;
 import org.springframework.data.domain.*;
 import org.springframework.http.*;
@@ -23,7 +25,7 @@ public class OrdenProduccionController {
         @RequestParam(required=false) OrigenOrdenProduccion origen,@RequestParam(required=false) String busqueda,
         @RequestParam(required=false) LocalDate desde,@RequestParam(required=false) LocalDate hasta,
         @RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="10") int size){
-        return service.listar(estado,origen,busqueda,desde,hasta,PageRequest.of(Math.max(0,page),Math.min(100,Math.max(1,size)),Sort.by(Sort.Direction.DESC,"fechaRegistro")));
+        return service.listar(estado,origen,busqueda,desde,hasta,PageRequest.of(Math.max(0,page),Math.min(100,Math.max(1,size)),Sort.by(Sort.Direction.DESC,path(OrdenProduccionModel::getFechaRegistro))));
     }
     @GetMapping("/{id}") public OrdenProduccionResponseDTO obtener(@PathVariable Long id){return service.obtener(id);}
     @PostMapping @PreAuthorize("hasAuthority('VIEW_PRODUCTION_ORDERS') and hasAuthority('ACTION_PRODUCTION_ORDERS_CREATE')")
