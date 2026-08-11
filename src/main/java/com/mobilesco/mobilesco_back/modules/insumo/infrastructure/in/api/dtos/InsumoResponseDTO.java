@@ -40,6 +40,8 @@ public class InsumoResponseDTO {
     private Double ultimoCostoCompra;
     private Double costoPromedio;
     private Double costoCotizacion;
+    /** Clasificacion Pareto por valor de existencia: A 80%, B 15%, C 5%. */
+    private String clasificacionAbc;
     private Boolean puedeEliminar;
 
     @JsonProperty("costo_cotizar")

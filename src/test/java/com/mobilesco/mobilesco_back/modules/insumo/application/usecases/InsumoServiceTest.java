@@ -220,6 +220,36 @@ class InsumoServiceTest {
         verify(kardexRepository).calcularCostosPromedio(List.of(1L, 2L));
     }
 
+    @Test
+    void clasificaAbcPorValorDeExistenciaConParetoGlobal() {
+        UnidadMedidaModel unidad = new UnidadMedidaModel();
+        unidad.setId(7L);
+        unidad.setNombre("Pieza");
+        unidad.setSimbolo("pz");
+
+        InsumoModel a1 = insumo(1L, "A1", unidad);
+        a1.setStockActual(10.0);
+        a1.setCostoCotizacion(70.0); // 70%
+        InsumoModel a2 = insumo(2L, "A2", unidad);
+        a2.setStockActual(10.0);
+        a2.setCostoCotizacion(20.0); // 20%, acumulado 90%
+        InsumoModel b = insumo(3L, "B", unidad);
+        b.setStockActual(10.0);
+        b.setCostoCotizacion(7.0); // 7%, acumulado 97%
+        InsumoModel c = insumo(4L, "C", unidad);
+        c.setStockActual(10.0);
+        c.setCostoCotizacion(3.0); // 3%
+        List<InsumoModel> insumos = List.of(a1, a2, b, c);
+
+        when(insumoRepository.findAll(any(org.springframework.data.domain.Sort.class))).thenReturn(insumos);
+        when(insumoRepository.findByActivoTrue()).thenReturn(insumos);
+
+        var resultado = service.listar();
+
+        assertEquals(List.of("A", "A", "B", "C"),
+                resultado.stream().map(dto -> dto.getClasificacionAbc()).toList());
+    }
+
     private InsumoModel insumo(Long id, String nombre, UnidadMedidaModel unidad) {
         return InsumoModel.builder()
                 .id(id)

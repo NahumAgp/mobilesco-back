@@ -27,6 +27,7 @@ import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistenc
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.out.persistence.repositories.RequisicionAlmacenRepository;
 import com.mobilesco.mobilesco_back.modules.tablero.domain.PeriodoTablero;
+import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.out.persistence.repositories.DetalleSalidaInsumoRepository;
 
 @ExtendWith(MockitoExtension.class)
 class TableroServiceTest {
@@ -36,6 +37,7 @@ class TableroServiceTest {
     @Mock CuentaPorPagarRepository cuentaPorPagarRepository;
     @Mock RequisicionAlmacenRepository requisicionAlmacenRepository;
     @Mock ProductoRepository productoRepository;
+    @Mock DetalleSalidaInsumoRepository detalleSalidaInsumoRepository;
     private TableroService service;
 
     @BeforeEach
@@ -46,7 +48,8 @@ class TableroServiceTest {
                 compraRepository,
                 cuentaPorPagarRepository,
                 requisicionAlmacenRepository,
-                productoRepository);
+                productoRepository,
+                detalleSalidaInsumoRepository);
     }
 
     @Test
@@ -67,6 +70,8 @@ class TableroServiceTest {
         when(cuentaPorPagarRepository.countByEstadoInAndActivoTrue(any())).thenReturn(6L);
         when(cuentaPorPagarRepository.sumarSaldoPendientePorEstados(any())).thenReturn(12345.67);
         when(productoRepository.countByActivoTrue()).thenReturn(28L);
+        when(insumoRepository.calcularValorTotalInventario()).thenReturn(100000.0);
+        when(detalleSalidaInsumoRepository.sumarConsumoValorizado(any(), any())).thenReturn(25000.0);
 
         var reciente = mock(CotizacionRepository.CotizacionRecienteProjection.class);
         when(reciente.getId()).thenReturn(10L);
@@ -92,6 +97,9 @@ class TableroServiceTest {
         assertEquals(6, resultado.getIndicadoresOperativos().getCuentasPorPagarPendientes());
         assertEquals(new BigDecimal("12345.67"), resultado.getIndicadoresOperativos().getSaldoPorPagar());
         assertEquals(28, resultado.getIndicadoresOperativos().getProductosActivos());
+        assertEquals(new BigDecimal("100000.00"), resultado.getIndicadoresInventario().getValorTotalInventario());
+        assertEquals(new BigDecimal("25000.00"), resultado.getIndicadoresInventario().getConsumoMensual());
+        assertEquals(new BigDecimal("0.25"), resultado.getIndicadoresInventario().getRotacionMensual());
         assertEquals(1, resultado.getCotizacionesRecientes().size());
         assertEquals(3, resultado.getAlertas().size());
         assertEquals(LocalDate.now().minusDays(29), resultado.getDesde());

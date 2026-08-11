@@ -19,6 +19,7 @@ public class TableroResumenDTO {
     private LocalDate hasta;
     private Indicadores indicadores;
     private IndicadoresOperativos indicadoresOperativos;
+    private IndicadoresInventario indicadoresInventario;
     private List<CotizacionReciente> cotizacionesRecientes;
     private List<Alerta> alertas;
 
@@ -41,6 +42,14 @@ public class TableroResumenDTO {
         private long cuentasPorPagarPendientes;
         private BigDecimal saldoPorPagar;
         private long productosActivos;
+    }
+
+    @Data
+    @Builder
+    public static class IndicadoresInventario {
+        private BigDecimal valorTotalInventario;
+        private BigDecimal consumoMensual;
+        private BigDecimal rotacionMensual;
     }
 
     @Data

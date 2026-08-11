@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -638,10 +640,11 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
      * Mapear de Entity a ResponseDTO
      */
     private InsumoResponseDTO mapToResponseDTO(InsumoModel insumo) {
-        return mapToResponseDTO(insumo, null);
+        return mapToResponseDTO(insumo, null, calcularClasificacionesAbc());
     }
 
-    private InsumoResponseDTO mapToResponseDTO(InsumoModel insumo, InsumoMetadata metadata) {
+    private InsumoResponseDTO mapToResponseDTO(
+            InsumoModel insumo, InsumoMetadata metadata, Map<Long, String> clasificacionesAbc) {
         Long insumoId = insumo.getId();
         return InsumoResponseDTO.builder()
                 .id(insumoId)
@@ -669,6 +672,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                         ? kardexService.calcularCostoPromedio(insumoId)
                         : metadata.costosPromedio().getOrDefault(insumoId, 0.0))
                 .costoCotizacion(insumo.getCostoCotizacion())
+                .clasificacionAbc(clasificacionesAbc.getOrDefault(insumoId, "C"))
                 .puedeEliminar(metadata == null
                         ? puedeEliminarDefinitivo(insumoId)
                         : !metadata.insumosEnUso().contains(insumoId))
@@ -706,9 +710,44 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
     private List<InsumoResponseDTO> mapToResponseDTOList(List<InsumoModel> insumos) {
         InsumoMetadata metadata = cargarMetadata(insumos, true);
+        Map<Long, String> clasificacionesAbc = calcularClasificacionesAbc();
         return insumos.stream()
-                .map(insumo -> mapToResponseDTO(insumo, metadata))
+                .map(insumo -> mapToResponseDTO(insumo, metadata, clasificacionesAbc))
                 .toList();
+    }
+
+    /**
+     * Pareto 80/15/5 sobre costo unitario por existencia actual. La clasificacion
+     * se calcula contra todo el catalogo activo para que no cambie entre paginas.
+     */
+    private Map<Long, String> calcularClasificacionesAbc() {
+        List<InsumoModel> activos = insumoRepository.findByActivoTrue();
+        if (activos == null || activos.isEmpty()) return Map.of();
+
+        InsumoMetadata metadata = cargarMetadata(activos, false);
+        record Valor(Long id, double importe) {}
+        List<Valor> valores = activos.stream()
+                .map(insumo -> {
+                    double promedio = metadata.costosPromedio().getOrDefault(insumo.getId(), 0.0);
+                    double ultimo = metadata.ultimosCostos().getOrDefault(insumo.getId(), 0.0);
+                    double cotizacion = insumo.getCostoCotizacion() == null ? 0.0 : insumo.getCostoCotizacion();
+                    double costo = promedio > 0 ? promedio : ultimo > 0 ? ultimo : Math.max(0, cotizacion);
+                    double existencia = Math.max(0, insumo.getStockActual() == null ? 0 : insumo.getStockActual());
+                    return new Valor(insumo.getId(), costo * existencia);
+                })
+                .sorted(Comparator.comparingDouble(Valor::importe).reversed().thenComparing(Valor::id))
+                .toList();
+
+        double total = valores.stream().mapToDouble(Valor::importe).sum();
+        Map<Long, String> resultado = new LinkedHashMap<>();
+        double acumulado = 0;
+        for (Valor valor : valores) {
+            double proporcionAnterior = total > 0 ? acumulado / total : 1;
+            String clase = proporcionAnterior < 0.80 ? "A" : proporcionAnterior < 0.95 ? "B" : "C";
+            resultado.put(valor.id(), clase);
+            acumulado += valor.importe();
+        }
+        return resultado;
     }
 
     private List<InsumoCostoResponseDTO> mapToCostoResponseDTOList(List<InsumoModel> insumos) {

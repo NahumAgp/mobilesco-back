@@ -19,6 +19,7 @@ import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistenc
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.domain.models.EstadoRequisicionAlmacen;
 import com.mobilesco.mobilesco_back.modules.requisicionalmacen.infrastructure.out.persistence.repositories.RequisicionAlmacenRepository;
+import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.out.persistence.repositories.DetalleSalidaInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.tablero.domain.PeriodoTablero;
 import com.mobilesco.mobilesco_back.modules.tablero.infrastructure.in.api.dtos.TableroResumenDTO;
 
@@ -40,6 +41,7 @@ public class TableroService {
     private final CuentaPorPagarRepository cuentaPorPagarRepository;
     private final RequisicionAlmacenRepository requisicionAlmacenRepository;
     private final ProductoRepository productoRepository;
+    private final DetalleSalidaInsumoRepository detalleSalidaInsumoRepository;
 
     @Transactional(readOnly = true)
     public TableroResumenDTO obtenerResumen(PeriodoTablero periodoSolicitado) {
@@ -59,6 +61,17 @@ public class TableroService {
         Double saldoPendiente = cuentaPorPagarRepository.sumarSaldoPendientePorEstados(CUENTAS_PENDIENTES);
         BigDecimal saldoPorPagar = BigDecimal.valueOf(saldoPendiente == null ? 0 : saldoPendiente);
         long productosActivos = productoRepository.countByActivoTrue();
+        Double valorInventarioCalculado = insumoRepository.calcularValorTotalInventario();
+        BigDecimal valorInventario = dinero(BigDecimal.valueOf(
+                valorInventarioCalculado == null ? 0 : valorInventarioCalculado));
+        LocalDate inicioMes = hoy.withDayOfMonth(1);
+        Double consumoMensualCalculado = detalleSalidaInsumoRepository.sumarConsumoValorizado(
+                inicioMes.atStartOfDay(), hoy.plusDays(1).atStartOfDay());
+        BigDecimal consumoMensual = dinero(BigDecimal.valueOf(
+                consumoMensualCalculado == null ? 0 : consumoMensualCalculado));
+        BigDecimal rotacionMensual = valorInventario.signum() == 0
+                ? BigDecimal.ZERO.setScale(2)
+                : consumoMensual.divide(valorInventario, 2, RoundingMode.HALF_UP);
 
         return TableroResumenDTO.builder()
                 .periodo(periodo).desde(rango.desde()).hasta(rango.hasta().minusDays(1))
@@ -80,6 +93,11 @@ public class TableroService {
                         .cuentasPorPagarPendientes(cuentasPendientes)
                         .saldoPorPagar(dinero(saldoPorPagar))
                         .productosActivos(productosActivos)
+                        .build())
+                .indicadoresInventario(TableroResumenDTO.IndicadoresInventario.builder()
+                        .valorTotalInventario(valorInventario)
+                        .consumoMensual(consumoMensual)
+                        .rotacionMensual(rotacionMensual)
                         .build())
                 .cotizacionesRecientes(cotizacionRepository.encontrarRecientes(PageRequest.of(0, 5)).stream()
                         .map(c -> TableroResumenDTO.CotizacionReciente.builder()

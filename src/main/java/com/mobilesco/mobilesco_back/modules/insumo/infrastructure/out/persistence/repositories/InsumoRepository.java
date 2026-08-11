@@ -118,4 +118,39 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
             WHERE i.activo = true AND i.stockMinimo IS NOT NULL AND (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo
             """)
     long countWithStockBajo();
+
+    /**
+     * Valoriza la existencia con el mejor costo disponible: promedio de entradas,
+     * ultimo costo de compra recibido y, como respaldo, costo de cotizacion.
+     */
+    @Query(value = """
+            SELECT COALESCE(SUM(
+                GREATEST(COALESCE(i.stock_actual, 0), 0) *
+                COALESCE(k.costo_promedio, c.ultimo_costo, i.costo_cotizar, 0)
+            ), 0)
+            FROM insumo i
+            LEFT JOIN (
+                SELECT insumo_id, SUM(costo_total) / NULLIF(SUM(cantidad), 0) AS costo_promedio
+                FROM kardex
+                WHERE tipo = 'ENTRADA'
+                GROUP BY insumo_id
+            ) k ON k.insumo_id = i.id
+            LEFT JOIN (
+                SELECT costos.insumo_id, costos.costo AS ultimo_costo
+                FROM (
+                    SELECT d.insumo_id,
+                           d.precio_unitario / NULLIF(d.factor_conversion, 0) AS costo,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY d.insumo_id
+                               ORDER BY cp.fecha_recepcion DESC, cp.fecha_compra DESC, d.id DESC
+                           ) AS posicion
+                    FROM detalle_compra d
+                    JOIN compra cp ON cp.id = d.compra_id
+                    WHERE cp.estado = 'RECIBIDA'
+                ) costos
+                WHERE costos.posicion = 1
+            ) c ON c.insumo_id = i.id
+            WHERE i.activo = true
+            """, nativeQuery = true)
+    Double calcularValorTotalInventario();
 }
