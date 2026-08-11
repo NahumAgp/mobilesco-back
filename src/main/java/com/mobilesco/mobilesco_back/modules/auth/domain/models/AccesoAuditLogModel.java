@@ -32,7 +32,7 @@ public class AccesoAuditLogModel {
     @Column(nullable = false)
     private LocalDateTime fecha = LocalDateTime.now();
 
-    @Column(length = 600)
+    @Column(columnDefinition = "TEXT")
     private String detalle;
 
     public Long getId() { return id; }

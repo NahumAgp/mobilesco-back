@@ -4,9 +4,13 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 
+import com.mobilesco.mobilesco_back.modules.auth.domain.models.EstadoCuentaUsuario;
 import com.mobilesco.mobilesco_back.modules.auth.infrastructure.in.api.dtos.MeResponseDTO;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.auth.domain.models.UsuarioModel;
@@ -58,12 +62,31 @@ public class AuthService {
     public TokenPair refresh(String refreshToken) {
         RefreshTokenService.RotationResult result = refreshTokenService.rotate(refreshToken);
 
-        UsuarioModel user = userRepository.findOneWithAccessById(result.userId())
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        UsuarioModel user = userRepository.findOneWithAccessById(result.userId()).orElse(null);
+        if (user == null) {
+            refreshTokenService.revoke(result.newRefreshToken());
+            throw new NotFoundException("Usuario no encontrado");
+        }
+        try {
+            validarCuentaActiva(user);
+        } catch (AuthenticationException ex) {
+            // La rotacion ya creo un sucesor; lo revocamos antes de rechazar la cuenta.
+            refreshTokenService.revoke(result.newRefreshToken());
+            throw ex;
+        }
 
         String newAccess = jwtService.generateAccessToken(user, accesoService.obtenerPermisosEfectivos(user));
 
         return new TokenPair(newAccess, result.newRefreshToken());
+    }
+
+    private void validarCuentaActiva(UsuarioModel user) {
+        if (!user.isEnabled()) {
+            throw new DisabledException("Cuenta deshabilitada");
+        }
+        if (user.isLocked() || user.getEstadoCuenta() != EstadoCuentaUsuario.ACTIVE) {
+            throw new LockedException("Cuenta bloqueada o no activa");
+        }
     }
 
     public void logout(String refreshToken) {

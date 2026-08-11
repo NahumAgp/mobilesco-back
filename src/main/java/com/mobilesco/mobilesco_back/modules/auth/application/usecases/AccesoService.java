@@ -554,7 +554,9 @@ public class AccesoService {
         dto.setSistema(rol.isSistema());
         dto.setPermisos((esRolCompleto(rol.getName())
                 ? PermisoCatalog.ALL_CODES.stream()
-                : rol.getPermisos().stream().map(PermisoModel::getCode))
+                : rol.getPermisos().stream()
+                        .filter(PermisoModel::isActivo)
+                        .map(PermisoModel::getCode))
                 .sorted().toList());
         return dto;
     }
@@ -571,7 +573,11 @@ public class AccesoService {
         }
         dto.setLastLoginAt(usuario.getLastLoginAt());
         dto.setRoles(usuario.getRoles().stream().map(RolModel::getName).sorted().toList());
-        dto.setPermisosDirectos(usuario.getPermisos().stream().map(PermisoModel::getCode).sorted().toList());
+        dto.setPermisosDirectos(usuario.getPermisos().stream()
+                .filter(PermisoModel::isActivo)
+                .map(PermisoModel::getCode)
+                .sorted()
+                .toList());
         dto.setPermisosHeredados(obtenerPermisosHeredados(usuario).stream().sorted().toList());
         dto.setPermisosEfectivos(obtenerPermisosEfectivos(usuario).stream().sorted().toList());
 
@@ -606,14 +612,22 @@ public class AccesoService {
             return new HashSet<>();
         }
 
-        Set<String> normalized = codigos.stream()
+        Set<String> solicitados = codigos.stream()
                 .map(this::normalizarPermiso)
                 .collect(Collectors.toSet());
-        List<PermisoModel> permisos = permisoRepository.findByCodeIn(normalized);
+        Set<String> normalized = new HashSet<>(solicitados);
+        solicitados.stream()
+                .map(PermisoCatalog::requiredView)
+                .filter(vista -> vista != null && !vista.isBlank())
+                .forEach(normalized::add);
+
+        List<PermisoModel> permisos = permisoRepository.findByCodeIn(normalized).stream()
+                .filter(PermisoModel::isActivo)
+                .toList();
         Set<String> encontrados = permisos.stream().map(PermisoModel::getCode).collect(Collectors.toSet());
         normalized.removeAll(encontrados);
         if (!normalized.isEmpty()) {
-            throw new BadRequestException("Permisos inexistentes: " + String.join(", ", normalized));
+            throw new BadRequestException("Permisos inexistentes o inactivos: " + String.join(", ", normalized));
         }
         return new HashSet<>(permisos);
     }
@@ -631,7 +645,7 @@ public class AccesoService {
     }
 
     private boolean esRolCompleto(String nombre) {
-        return "ADMIN".equals(nombre) || "DIRECTOR_GENERAL".equals(nombre);
+        return PermisoCatalog.FULL_ACCESS_ROLES.contains(nombre);
     }
 
     private void exigirPermiso(UsuarioModel actor, String permiso) {

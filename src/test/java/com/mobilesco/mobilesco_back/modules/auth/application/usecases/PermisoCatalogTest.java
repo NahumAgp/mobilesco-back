@@ -31,10 +31,14 @@ class PermisoCatalogTest {
     }
 
     @Test
-    void adminYDireccionGeneralSiempreTienenElCatalogoCompleto() {
+    void rolesDeAccesoCompletoCompartenUnaSolaPolitica() {
         Set<String> todos = PermisoCatalog.ALL_CODES;
         assertEquals(todos, PermisoCatalog.DEFAULT_ROLE_PERMISSIONS.get("ADMIN"));
         assertEquals(todos, PermisoCatalog.DEFAULT_ROLE_PERMISSIONS.get("DIRECTOR_GENERAL"));
+        assertEquals(todos, PermisoCatalog.DEFAULT_ROLE_PERMISSIONS.get("SUBDIRECCION_ADMINISTRATIVA"));
+        assertEquals(
+                Set.of("ADMIN", "DIRECTOR_GENERAL", "SUBDIRECCION_ADMINISTRATIVA"),
+                PermisoCatalog.FULL_ACCESS_ROLES);
         assertFalse(PermisoCatalog.DEFAULT_ROLE_PERMISSIONS.containsKey("SUPER_ADMIN"));
     }
 

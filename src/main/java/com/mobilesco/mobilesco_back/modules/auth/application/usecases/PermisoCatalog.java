@@ -165,6 +165,12 @@ public final class PermisoCatalog {
             .map(Definition::code)
             .collect(java.util.stream.Collectors.toUnmodifiableSet());
 
+    public static final Set<String> FULL_ACCESS_ROLES = Set.of(
+            "ADMIN",
+            "DIRECTOR_GENERAL",
+            "SUBDIRECCION_ADMINISTRATIVA"
+    );
+
     public static final Set<String> BASIC_CODES = Set.of(
             "VIEW_DASHBOARD", "VIEW_EMPLOYEES", "VIEW_PRODUCTS", "VIEW_PRODUCT_CATALOG"
     );

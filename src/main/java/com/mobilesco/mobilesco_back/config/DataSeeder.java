@@ -88,6 +88,14 @@ public class DataSeeder {
             permiso.setActivo(true);
         });
 
+        permisosPorCodigo.values().stream()
+                .filter(permiso -> !PermisoCatalog.ALL_CODES.contains(permiso.getCode()))
+                .filter(PermisoModel::isActivo)
+                .forEach(permiso -> {
+                    permiso.setActivo(false);
+                    actualizados.add(permiso);
+                });
+
         permisoRepository.saveAll(nuevos).forEach(permiso ->
                 permisosPorCodigo.put(permiso.getCode(), permiso));
         permisoRepository.saveAll(actualizados);
@@ -134,7 +142,7 @@ public class DataSeeder {
             Set<PermisoModel> permisos = new HashSet<>(rol.getPermisos());
             Set<String> codigosDefault = PermisoCatalog.DEFAULT_ROLE_PERMISSIONS.getOrDefault(rol.getName(), Set.of());
             boolean cambio = false;
-            if ("ADMIN".equals(rol.getName()) || "DIRECTOR_GENERAL".equals(rol.getName())) {
+            if (PermisoCatalog.FULL_ACCESS_ROLES.contains(rol.getName())) {
                 Set<PermisoModel> completos = resolverPermisos(PermisoCatalog.ALL_CODES, permisosPorCodigo);
                 if (!permisos.equals(completos)) {
                     permisos = new HashSet<>(completos);
@@ -142,12 +150,6 @@ public class DataSeeder {
                 }
             } else if (!codigosDefault.isEmpty() && permisos.isEmpty()) {
                 cambio = permisos.addAll(resolverPermisos(codigosDefault, permisosPorCodigo));
-            }
-            Set<String> codigosActuales = permisos.stream().map(PermisoModel::getCode).collect(Collectors.toSet());
-            for (Map.Entry<String, Set<String>> expansion : PermisoCatalog.LEGACY_EXPANSIONS.entrySet()) {
-                if (codigosActuales.contains(expansion.getKey())) {
-                    cambio |= permisos.addAll(resolverPermisos(expansion.getValue(), permisosPorCodigo));
-                }
             }
             Set<String> obligatorios = PERMISOS_OBLIGATORIOS_POR_ROL.getOrDefault(rol.getName(), Set.of());
             cambio |= permisos.addAll(resolverPermisos(obligatorios, permisosPorCodigo));
