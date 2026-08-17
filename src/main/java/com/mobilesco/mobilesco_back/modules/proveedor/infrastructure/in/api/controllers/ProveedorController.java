@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorCreateDTO;
+import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorCalificacionUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorResponseDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.proveedor.application.usecases.ProveedorService;
@@ -83,6 +85,9 @@ public class ProveedorController {  // ✅ Nombre correcto con 'e'
                 case "activo" -> sortDirection == Sort.Direction.DESC
                         ? TypeSafeSorts.descWithId(ProveedorModel.class, ProveedorModel::getActivo, ProveedorModel::getId)
                         : TypeSafeSorts.ascWithId(ProveedorModel.class, ProveedorModel::getActivo, ProveedorModel::getId);
+                case "calificacion", "calificacionproveedor", "calificacion_proveedor" -> sortDirection == Sort.Direction.DESC
+                        ? TypeSafeSorts.descWithId(ProveedorModel.class, ProveedorModel::getCalificacionProveedor, ProveedorModel::getId)
+                        : TypeSafeSorts.ascWithId(ProveedorModel.class, ProveedorModel::getCalificacionProveedor, ProveedorModel::getId);
                 default -> sortDirection == Sort.Direction.DESC
                         ? TypeSafeSorts.descById(ProveedorModel.class, ProveedorModel::getId)
                         : TypeSafeSorts.ascById(ProveedorModel.class, ProveedorModel::getId);
@@ -158,6 +163,17 @@ public class ProveedorController {  // ✅ Nombre correcto con 'e'
                 proveedorService.actualizar(id, dto);
 
         return ResponseEntity.ok(actualizado);
+    }
+
+    @PatchMapping("/{id}/calificacion")
+    @Operation(summary = "Actualizar la calificacion del proveedor")
+    @PreAuthorize("hasAuthority('VIEW_SUPPLIERS') and hasAuthority('ACTION_SUPPLIERS_EDIT')")
+    public ResponseEntity<ProveedorResponseDTO> actualizarCalificacion(
+            @PathVariable Long id,
+            @Valid @RequestBody ProveedorCalificacionUpdateDTO dto
+    ) {
+        return ResponseEntity.ok(
+                proveedorService.actualizarCalificacion(id, dto.getCalificacionProveedor()));
     }
 
     // =====================================================

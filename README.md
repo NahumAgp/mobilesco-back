@@ -46,6 +46,9 @@ Endpoints principales:
 - `Proveedor` ya no usa un enum fijo para `tipoInsumo`.
 - Ahora se relaciona con el catalogo de tipos por codigo.
 - El response del modulo devuelve `tipoInsumo` y `tipoInsumoNombre`.
+- `calificacionProveedor` guarda una puntuacion opcional de `0.00` a `100.00`; `null` significa que el proveedor aun no ha sido evaluado.
+- Un algoritmo externo puede actualizar solo ese dato mediante `PATCH /api/v1/proveedores/{id}/calificacion` con el cuerpo `{"calificacionProveedor": 87.45}`.
+- El algoritmo debe identificar al proveedor por `id`, no por razon social.
 
 ### Compatibilidad MySQL
 

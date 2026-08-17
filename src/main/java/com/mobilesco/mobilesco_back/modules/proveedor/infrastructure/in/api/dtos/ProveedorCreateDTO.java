@@ -1,5 +1,10 @@
 package com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos;
 
+import java.math.BigDecimal;
+
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -43,6 +48,11 @@ public class ProveedorCreateDTO {
     @NotBlank(message = "El correo es obligatorio")
     @Email(message = "El correo debe ser válido")
     private String correo;
+
+    @DecimalMin(value = "0.00", message = "La calificación del proveedor debe ser mayor o igual a 0")
+    @DecimalMax(value = "100.00", message = "La calificación del proveedor debe ser menor o igual a 100")
+    @Digits(integer = 3, fraction = 2, message = "La calificación del proveedor admite hasta 2 decimales")
+    private BigDecimal calificacionProveedor;
 
     // GETTERS & SETTERS
 
@@ -164,6 +174,14 @@ public class ProveedorCreateDTO {
 
     public void setTipoInsumo(String tipoInsumo) {
         this.tipoInsumo = tipoInsumo;
+    }
+
+    public BigDecimal getCalificacionProveedor() {
+        return calificacionProveedor;
+    }
+
+    public void setCalificacionProveedor(BigDecimal calificacionProveedor) {
+        this.calificacionProveedor = calificacionProveedor;
     }
     
 }

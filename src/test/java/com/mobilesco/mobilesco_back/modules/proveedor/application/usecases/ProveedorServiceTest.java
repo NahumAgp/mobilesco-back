@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.math.BigDecimal;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -11,10 +12,15 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.mobilesco.mobilesco_back.modules.proveedor.domain.models.ProveedorModel;
+import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorResponseDTO;
+import com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos.ProveedorUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.tipoinsumo.domain.models.TipoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.NotFoundException;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException;
 
@@ -26,6 +32,7 @@ class ProveedorServiceTest {
 
     private RepositoryStub proveedorStub;
     private RepositoryStub compraStub;
+    private RepositoryStub tipoInsumoStub;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -40,10 +47,11 @@ class ProveedorServiceTest {
 
         proveedorStub = new RepositoryStub();
         compraStub = new RepositoryStub();
+        tipoInsumoStub = new RepositoryStub();
 
         proveedorRepository = crearProxy(proveedorRepositoryClass, proveedorStub);
         compraRepository = crearProxy(compraRepositoryClass, compraStub);
-        Object tipoInsumoRepository = crearProxy(tipoInsumoRepositoryClass, new RepositoryStub());
+        Object tipoInsumoRepository = crearProxy(tipoInsumoRepositoryClass, tipoInsumoStub);
 
         Constructor<?> constructor = serviceClass.getConstructor(
                 proveedorRepositoryClass,
@@ -82,10 +90,97 @@ class ProveedorServiceTest {
         assertEquals(0, proveedorStub.deleteByIdCalls);
     }
 
+    @Test
+    void actualizarCalificacionPersisteYMapeaElValor() throws Exception {
+        ProveedorModel proveedor = new ProveedorModel();
+        proveedor.setId(4L);
+        proveedor.setRazonSocial("Proveedor evaluado");
+        proveedorStub.objectResults.put("findById", Optional.of(proveedor));
+
+        BigDecimal calificacion = new BigDecimal("87.45");
+        ProveedorResponseDTO respuesta = invocarActualizarCalificacion(4L, calificacion);
+
+        assertEquals(calificacion, proveedor.getCalificacionProveedor());
+        assertEquals(calificacion, respuesta.getCalificacionProveedor());
+        assertEquals(1, proveedorStub.invocations.getOrDefault("save", 0));
+    }
+
+    @Test
+    void actualizarFichaConservaLaCalificacionExistente() throws Exception {
+        ProveedorModel proveedor = new ProveedorModel();
+        proveedor.setId(5L);
+        proveedor.setRazonSocial("Proveedor existente");
+        proveedor.setCalificacionProveedor(new BigDecimal("91.25"));
+        proveedorStub.objectResults.put("findById", Optional.of(proveedor));
+        proveedorStub.objectResults.put("findByRazonSocialIgnoreCase", Optional.of(proveedor));
+
+        TipoInsumoModel tipo = new TipoInsumoModel();
+        tipo.setCodigo("M");
+        tipoInsumoStub.objectResults.put("findByCodigoIgnoreCase", Optional.of(tipo));
+
+        ProveedorUpdateDTO dto = new ProveedorUpdateDTO();
+        dto.setRazonSocial("Proveedor existente");
+        dto.setRfc("PEX010101AA1");
+        dto.setNombre("Ana");
+        dto.setTipoInsumo("M");
+        dto.setTelefono("3312345678");
+        dto.setCorreo("ana@example.com");
+        dto.setActivo(true);
+
+        Method method = service.getClass().getMethod("actualizar", Long.class, ProveedorUpdateDTO.class);
+        ProveedorResponseDTO respuesta = (ProveedorResponseDTO) method.invoke(service, 5L, dto);
+
+        assertEquals(new BigDecimal("91.25"), proveedor.getCalificacionProveedor());
+        assertEquals(new BigDecimal("91.25"), respuesta.getCalificacionProveedor());
+    }
+
+    @Test
+    void actualizarFichaCambiaLaCalificacionCuandoElCampoFueIncluido() throws Exception {
+        ProveedorModel proveedor = new ProveedorModel();
+        proveedor.setId(6L);
+        proveedor.setRazonSocial("Proveedor editable");
+        proveedor.setCalificacionProveedor(new BigDecimal("70.00"));
+        proveedorStub.objectResults.put("findById", Optional.of(proveedor));
+        proveedorStub.objectResults.put("findByRazonSocialIgnoreCase", Optional.of(proveedor));
+
+        TipoInsumoModel tipo = new TipoInsumoModel();
+        tipo.setCodigo("M");
+        tipoInsumoStub.objectResults.put("findByCodigoIgnoreCase", Optional.of(tipo));
+
+        ProveedorUpdateDTO dto = new ProveedorUpdateDTO();
+        dto.setRazonSocial("Proveedor editable");
+        dto.setRfc("PED010101AA1");
+        dto.setNombre("Ana");
+        dto.setTipoInsumo("M");
+        dto.setTelefono("3312345678");
+        dto.setCorreo("ana@example.com");
+        dto.setActivo(true);
+        dto.setCalificacionProveedor(new BigDecimal("88.50"));
+
+        Method method = service.getClass().getMethod("actualizar", Long.class, ProveedorUpdateDTO.class);
+        ProveedorResponseDTO respuesta = (ProveedorResponseDTO) method.invoke(service, 6L, dto);
+
+        assertEquals(new BigDecimal("88.50"), proveedor.getCalificacionProveedor());
+        assertEquals(new BigDecimal("88.50"), respuesta.getCalificacionProveedor());
+    }
+
     private void invocarEliminar(Long id) throws Exception {
         Method method = service.getClass().getMethod("eliminar", Long.class);
         try {
             method.invoke(service, id);
+        } catch (InvocationTargetException ex) {
+            Throwable causa = ex.getCause();
+            if (causa instanceof Exception exception) {
+                throw exception;
+            }
+            throw new RuntimeException(causa);
+        }
+    }
+
+    private ProveedorResponseDTO invocarActualizarCalificacion(Long id, BigDecimal calificacion) throws Exception {
+        Method method = service.getClass().getMethod("actualizarCalificacion", Long.class, BigDecimal.class);
+        try {
+            return (ProveedorResponseDTO) method.invoke(service, id, calificacion);
         } catch (InvocationTargetException ex) {
             Throwable causa = ex.getCause();
             if (causa instanceof Exception exception) {
@@ -104,6 +199,7 @@ class ProveedorServiceTest {
 
     private static class RepositoryStub implements InvocationHandler {
         private final Map<String, Boolean> booleanResults = new HashMap<>();
+        private final Map<String, Object> objectResults = new HashMap<>();
         private final Map<String, Integer> invocations = new HashMap<>();
         private int deleteByIdCalls = 0;
 
@@ -118,6 +214,14 @@ class ProveedorServiceTest {
 
             if (booleanResults.containsKey(method.getName())) {
                 return booleanResults.get(method.getName());
+            }
+
+            if (objectResults.containsKey(method.getName())) {
+                return objectResults.get(method.getName());
+            }
+
+            if ("save".equals(method.getName())) {
+                return args[0];
             }
 
             Class<?> returnType = method.getReturnType();

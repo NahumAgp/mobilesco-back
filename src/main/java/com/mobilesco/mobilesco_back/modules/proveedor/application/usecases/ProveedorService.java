@@ -1,5 +1,6 @@
 package com.mobilesco.mobilesco_back.modules.proveedor.application.usecases;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -76,6 +77,9 @@ public class ProveedorService {
         dto.setTelefono(proveedor.getTelefono());
         dto.setCorreo(proveedor.getCorreo());
 
+        // EVALUACION
+        dto.setCalificacionProveedor(proveedor.getCalificacionProveedor());
+
         // FECHAS
         dto.setFechaRegistro(proveedor.getFechaRegistro());
         dto.setFechaUltimoContacto(proveedor.getFechaUltimoContacto());
@@ -130,6 +134,9 @@ public class ProveedorService {
         // CONTACTO
         proveedor.setTelefono(dto.getTelefono());
         proveedor.setCorreo(dto.getCorreo());
+
+        // EVALUACION
+        proveedor.setCalificacionProveedor(dto.getCalificacionProveedor());
 
         // REGLA DE NEGOCIO
         proveedor.setActivo(true);
@@ -206,7 +213,7 @@ public class ProveedorService {
 
         String[] headers = {
                 "ID", "Razon Social", "RFC", "Contacto", "Tipo de Insumo",
-                "Correo", "Telefono", "Estado", "Ciudad", "Activo"
+                "Correo", "Telefono", "Calificacion del proveedor", "Estado", "Ciudad", "Activo"
         };
 
         return ExcelReportBuilder.generate(
@@ -222,6 +229,7 @@ public class ProveedorService {
                                 nvl(proveedor.getTipoInsumoNombre()),
                                 nvl(proveedor.getCorreo()),
                                 nvl(proveedor.getTelefono()),
+                                proveedor.getCalificacionProveedor(),
                                 nvl(proveedor.getEstado()),
                                 nvl(proveedor.getCiudad()),
                                 Boolean.TRUE.equals(proveedor.getActivo()) ? "Activo" : "Inactivo"
@@ -354,12 +362,25 @@ public class ProveedorService {
         existente.setTelefono(dto.getTelefono());
         existente.setCorreo(dto.getCorreo());
 
+        // EVALUACION: un cliente antiguo puede omitir el campo sin borrar el valor actual.
+        if (dto.isCalificacionProveedorDefinida()) {
+            existente.setCalificacionProveedor(dto.getCalificacionProveedor());
+        }
+
         // ESTADO
         existente.setActivo(dto.getActivo());
 
         ProveedorModel guardado = proveedorRepository.save(existente);
 
         return mapToResponseDTO(guardado);
+    }
+
+    public ProveedorResponseDTO actualizarCalificacion(Long id, BigDecimal calificacionProveedor) {
+        ProveedorModel proveedor = proveedorRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Proveedor no encontrado"));
+
+        proveedor.setCalificacionProveedor(calificacionProveedor);
+        return mapToResponseDTO(proveedorRepository.save(proveedor));
     }
 
     // =====================================================

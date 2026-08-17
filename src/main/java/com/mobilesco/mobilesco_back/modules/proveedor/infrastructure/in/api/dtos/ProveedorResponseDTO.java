@@ -1,5 +1,6 @@
 package com.mobilesco.mobilesco_back.modules.proveedor.infrastructure.in.api.dtos;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class ProveedorResponseDTO {
@@ -26,6 +27,8 @@ public class ProveedorResponseDTO {
     // CONTACTO
     private String telefono;
     private String correo;
+    // EVALUACION
+    private BigDecimal calificacionProveedor;
     //FECHAS
     private LocalDate fechaRegistro;
     private LocalDate fechaUltimoContacto;
@@ -192,6 +195,14 @@ public class ProveedorResponseDTO {
 
     public void setTipoInsumoNombre(String tipoInsumoNombre) {
         this.tipoInsumoNombre = tipoInsumoNombre;
+    }
+
+    public BigDecimal getCalificacionProveedor() {
+        return calificacionProveedor;
+    }
+
+    public void setCalificacionProveedor(BigDecimal calificacionProveedor) {
+        this.calificacionProveedor = calificacionProveedor;
     }
 
 }

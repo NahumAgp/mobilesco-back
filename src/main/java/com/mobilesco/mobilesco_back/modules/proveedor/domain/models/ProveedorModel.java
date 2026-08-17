@@ -1,5 +1,6 @@
 package com.mobilesco.mobilesco_back.modules.proveedor.domain.models;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.mobilesco.mobilesco_back.modules.tipoinsumo.domain.models.TipoInsumoModel;
@@ -59,6 +60,10 @@ public class ProveedorModel {
     // CONTACTO
     private String telefono;
     private String correo;
+
+    // EVALUACION
+    @Column(name = "calificacion_proveedor", precision = 5, scale = 2)
+    private BigDecimal calificacionProveedor;
 
     // FECHAS
     @Column(name = "fecha_ultimo_contacto")
