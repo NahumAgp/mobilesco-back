@@ -51,4 +51,43 @@ public interface DetalleCompraRepository extends JpaRepository<DetalleCompraMode
         @Param("fechaInicio") java.time.LocalDate fechaInicio,
         @Param("fechaFin") java.time.LocalDate fechaFin
     );
+
+    /**
+     * El orden por fecha e id descendentes es deliberado: el primer registro
+     * de cada par insumo/proveedor representa la condición de compra más reciente.
+     */
+    @Query("""
+            SELECT d
+            FROM DetalleCompraModel d
+            JOIN FETCH d.compra c
+            JOIN FETCH c.proveedor p
+            JOIN FETCH d.unidadCompra u
+            WHERE d.insumo.id IN :insumoIds
+              AND c.activo = true
+              AND c.estado IN ('PENDIENTE', 'RECIBIDA_PARCIAL', 'RECIBIDA')
+            ORDER BY c.fechaCompra DESC, d.id DESC
+            """)
+    List<DetalleCompraModel> findHistorialAbastecimiento(
+            @Param("insumoIds") Collection<Long> insumoIds);
+
+    /**
+     * Incluye BORRADOR de forma intencional: una sugerencia ya convertida en
+     * borrador debe descontarse para no proponer la misma compra nuevamente.
+     */
+    @Query("""
+            SELECT d.insumo.id,
+                   COALESCE(SUM(
+                       (COALESCE(d.cantidad, 0) - COALESCE(d.cantidadRecibida, 0))
+                       * COALESCE(d.factorConversion, 1)
+                   ), 0)
+            FROM DetalleCompraModel d
+            JOIN d.compra c
+            WHERE d.insumo.id IN :insumoIds
+              AND c.activo = true
+              AND c.estado IN ('BORRADOR', 'PENDIENTE', 'RECIBIDA_PARCIAL')
+              AND COALESCE(d.cantidadRecibida, 0) < COALESCE(d.cantidad, 0)
+            GROUP BY d.insumo.id
+            """)
+    List<Object[]> cantidadPendientePorInsumos(
+            @Param("insumoIds") Collection<Long> insumoIds);
 }

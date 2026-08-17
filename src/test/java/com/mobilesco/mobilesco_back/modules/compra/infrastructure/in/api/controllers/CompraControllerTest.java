@@ -23,6 +23,10 @@ class CompraControllerTest {
         assertPreAuthorize("crear", ROLES_GESTION_COMPRAS, CompraCreateDTO.class);
         assertPreAuthorize("actualizar", ROLES_GESTION_COMPRAS, Long.class, CompraUpdateDTO.class);
         assertPreAuthorize("recibirCompra", ROLES_GESTION_COMPRAS, Long.class);
+        assertPreAuthorize(
+                "confirmarBorrador",
+                "hasAuthority('VIEW_PURCHASES') and hasAuthority('ACTION_PURCHASES_CREATE')",
+                Long.class);
         assertPreAuthorize("cancelarCompra", ROLES_GESTION_COMPRAS, Long.class, String.class);
     }
 

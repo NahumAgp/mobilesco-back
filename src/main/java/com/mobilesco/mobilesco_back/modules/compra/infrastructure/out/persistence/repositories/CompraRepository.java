@@ -6,12 +6,19 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.CompraModel;
 
+import jakarta.persistence.LockModeType;
+
 public interface CompraRepository extends JpaRepository<CompraModel, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM CompraModel c WHERE c.id = :id")
+    java.util.Optional<CompraModel> findByIdForUpdate(@Param("id") Long id);
 
     List<CompraModel> findByActivoTrue();
     

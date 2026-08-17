@@ -2,6 +2,7 @@ package com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persisten
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,16 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM InsumoModel i WHERE i.id = :id")
     Optional<InsumoModel> findByIdForUpdate(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT i
+            FROM InsumoModel i
+            JOIN FETCH i.unidadMedida
+            WHERE i.id IN :ids
+            ORDER BY i.id ASC
+            """)
+    List<InsumoModel> findAllByIdForUpdate(@Param("ids") Collection<Long> ids);
     
     // Buscar por nombre exacto
     Optional<InsumoModel> findByNombre(String nombre);

@@ -66,6 +66,13 @@ public class CompraController {
         return ResponseEntity.ok(compraService.recibirCompra(id));
     }
 
+    @Operation(summary = "Confirmar compra en borrador")
+    @PostMapping("/{id}/confirmar-borrador")
+    @PreAuthorize("hasAuthority('VIEW_PURCHASES') and hasAuthority('ACTION_PURCHASES_CREATE')")
+    public ResponseEntity<CompraResponseDTO> confirmarBorrador(@PathVariable Long id) {
+        return ResponseEntity.ok(compraService.confirmarBorrador(id));
+    }
+
     @Operation(summary = "Cancelar compra")
     @PostMapping("/{id}/cancelar")
     @PreAuthorize(ROLES_GESTION_COMPRAS)

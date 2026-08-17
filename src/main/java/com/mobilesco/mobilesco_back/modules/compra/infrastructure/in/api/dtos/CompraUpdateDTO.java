@@ -1,7 +1,9 @@
 package com.mobilesco.mobilesco_back.modules.compra.infrastructure.in.api.dtos;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import jakarta.validation.Valid;
 import lombok.Data;
 
 @Data
@@ -21,4 +23,7 @@ public class CompraUpdateDTO {
     private String entregadoPor;
     private String estado;
     private Boolean activo;
+
+    @Valid
+    private List<DetalleCompraCreateDTO> detalles;
 }

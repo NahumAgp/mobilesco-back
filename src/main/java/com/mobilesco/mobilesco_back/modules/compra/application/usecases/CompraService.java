@@ -126,22 +126,32 @@ public class CompraService {
     }
 
     /**
-     * ACTUALIZAR una compra (solo datos generales, no detalles)
+     * ACTUALIZAR una compra editable. BORRADOR y PENDIENTE pueden reemplazar
+     * partidas porque todavia no registran recepciones; los importes siempre se
+     * recalculan en servidor para mantener cabecera, partidas y CxP consistentes.
      */
     @Transactional
     public CompraResponseDTO actualizar(Long id, CompraUpdateDTO dto) {
         log.info("Actualizando compra ID: {}", id);
         
-        CompraModel compra = compraRepository.findById(id)
+        CompraModel compra = compraRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con id: " + id));
+        String estadoOriginal = compra.getEstado();
+        boolean esBorrador = "BORRADOR".equals(estadoOriginal);
+        boolean esPendiente = "PENDIENTE".equals(estadoOriginal);
+        boolean permiteEditarPartidas = esBorrador || esPendiente;
         
-        // Validar que no esté cancelada o ya recibida
-        if ("CANCELADA".equals(compra.getEstado())) {
+        if ("CANCELADA".equals(estadoOriginal)) {
             throw new ValidationException("No se puede actualizar una compra cancelada");
         }
-        
-        if (("RECIBIDA".equals(compra.getEstado()) || "RECIBIDA_PARCIAL".equals(compra.getEstado())) && dto.getEstado() == null) {
+        if ("RECIBIDA".equals(estadoOriginal) || "RECIBIDA_PARCIAL".equals(estadoOriginal)) {
             throw new ValidationException("No se puede actualizar una compra ya recibida");
+        }
+        if (dto.getEstado() != null && !estadoOriginal.equalsIgnoreCase(dto.getEstado().trim())) {
+            throw new ValidationException("Las transiciones de estado deben realizarse con su acción específica");
+        }
+        if (dto.getDetalles() != null && !permiteEditarPartidas) {
+            throw new ValidationException("Las partidas solo pueden editarse en una compra BORRADOR o PENDIENTE");
         }
         
         // Actualizar campos
@@ -152,6 +162,9 @@ public class CompraService {
         if (dto.getProveedorId() != null) {
             ProveedorModel proveedor = proveedorRepository.findById(dto.getProveedorId())
                     .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado"));
+            if (!Boolean.TRUE.equals(proveedor.getActivo())) {
+                throw new ValidationException("El proveedor está inactivo");
+            }
             compra.setProveedor(proveedor);
             actualizarUltimoContactoProveedor(proveedor);
         }
@@ -159,14 +172,22 @@ public class CompraService {
         if (dto.getTipoDocumento() != null) compra.setTipoDocumento(dto.getTipoDocumento());
         if (dto.getNumeroDocumento() != null) compra.setNumeroDocumento(dto.getNumeroDocumento());
         if (dto.getMetodoPago() != null) compra.setMetodoPago(normalizarTexto(dto.getMetodoPago()));
-        
-        if (dto.getSubtotal() != null) compra.setSubtotal(dto.getSubtotal());
-        if (dto.getImpuesto() != null) compra.setImpuesto(dto.getImpuesto());
-        if (dto.getTotal() != null) compra.setTotal(dto.getTotal());
         if (dto.getObservaciones() != null) compra.setObservaciones(dto.getObservaciones());
         if (dto.getEntregadoPor() != null) compra.setEntregadoPor(dto.getEntregadoPor().trim());
-        if (dto.getEstado() != null) compra.setEstado(dto.getEstado());
         if (dto.getActivo() != null) compra.setActivo(dto.getActivo());
+
+        if (permiteEditarPartidas) {
+            double impuesto = dto.getImpuesto() != null ? dto.getImpuesto() : nvl(compra.getImpuesto());
+            validarImporteNoNegativoFinito(impuesto, "impuesto");
+            double subtotal = dto.getDetalles() != null
+                    ? detalleCompraService.reemplazarDetallesEditables(id, dto.getDetalles())
+                    : detalleCompraService.recalcularSubtotalEditable(id);
+            double totalSinRedondear = subtotal + impuesto;
+            validarImporteNoNegativoFinito(totalSinRedondear, "total");
+            compra.setSubtotal(subtotal);
+            compra.setImpuesto(redondear(impuesto));
+            compra.setTotal(redondear(totalSinRedondear));
+        }
         
         CompraModel updated = compraRepository.save(compra);
         sincronizarCuentaPorPagar(updated);
@@ -187,6 +208,10 @@ public class CompraService {
         
         if ("RECIBIDA".equals(compra.getEstado())) {
             throw new ValidationException("La compra ya fue recibida");
+        }
+
+        if ("BORRADOR".equals(compra.getEstado())) {
+            throw new ValidationException("Debe confirmar el borrador antes de recibir la compra");
         }
         
         if ("CANCELADA".equals(compra.getEstado())) {
@@ -249,13 +274,56 @@ public class CompraService {
     }
 
     /**
+     * CONFIRMAR un borrador sin recibir mercancia. La confirmacion habilita el
+     * flujo normal de la compra y sincroniza la cuenta por pagar cuando aplique.
+     */
+    @Transactional
+    public CompraResponseDTO confirmarBorrador(Long id) {
+        CompraModel compra = compraRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con id: " + id));
+
+        if (!"BORRADOR".equals(compra.getEstado())) {
+            throw new ValidationException("Solo se puede confirmar una compra en estado BORRADOR");
+        }
+        if (!Boolean.TRUE.equals(compra.getActivo())) {
+            throw new ValidationException("No se puede confirmar una compra inactiva");
+        }
+        String metodoPago = normalizarTexto(compra.getMetodoPago());
+        if (metodoPago == null) {
+            throw new ValidationException("Debe indicar el método de pago antes de confirmar");
+        }
+
+        double subtotalCalculado = detalleCompraService.calcularSubtotalValidoBorrador(id);
+        if (subtotalCalculado <= 0) {
+            throw new ValidationException("El borrador debe tener al menos un detalle válido");
+        }
+        double impuesto = nvl(compra.getImpuesto());
+        validarImporteNoNegativoFinito(impuesto, "impuesto");
+        double totalSinRedondear = subtotalCalculado + impuesto;
+        validarImporteNoNegativoFinito(totalSinRedondear, "total");
+        double totalCalculado = redondear(totalSinRedondear);
+        if (totalCalculado <= 0
+                || !importeCoincide(compra.getSubtotal(), subtotalCalculado)
+                || !importeCoincide(compra.getTotal(), totalCalculado)) {
+            throw new ValidationException("Los totales del borrador no coinciden con sus detalles; actualízalo antes de confirmar");
+        }
+
+        compra.setMetodoPago(metodoPago);
+        compra.setEstado("PENDIENTE");
+        CompraModel confirmada = compraRepository.save(compra);
+        sincronizarCuentaPorPagar(confirmada);
+        actualizarUltimoContactoProveedor(confirmada.getProveedor());
+        return mapToResponseDTO(confirmada);
+    }
+
+    /**
      * CANCELAR una compra
      */
     @Transactional
     public CompraResponseDTO cancelarCompra(Long id, String motivo) {
         log.info("Cancelando compra ID: {}", id);
         
-        CompraModel compra = compraRepository.findById(id)
+        CompraModel compra = compraRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con id: " + id));
         
         if ("RECIBIDA".equals(compra.getEstado()) || "RECIBIDA_PARCIAL".equals(compra.getEstado())) {
@@ -363,7 +431,7 @@ public class CompraService {
         String usuario = obtenerUsuarioAutenticado();
         log.info("Eliminando (desactivando) compra ID: {} por usuario: {}", id, usuario);
         
-        CompraModel compra = compraRepository.findById(id)
+        CompraModel compra = compraRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con id: " + id));
         
         if ("RECIBIDA".equals(compra.getEstado()) || "RECIBIDA_PARCIAL".equals(compra.getEstado())) {
@@ -372,6 +440,7 @@ public class CompraService {
         
         compra.setActivo(false);
         compraRepository.save(compra);
+        sincronizarCuentaPorPagar(compra);
         
         Long proveedorId = compra.getProveedor() != null ? compra.getProveedor().getId() : null;
         log.info(
@@ -407,7 +476,9 @@ public class CompraService {
 
         var cuentaExistente = cuentaPorPagarRepository.findByCompraId(compra.getId());
         boolean esCredito = "CREDITO".equalsIgnoreCase(normalizarTexto(compra.getMetodoPago()));
-        boolean compraActiva = Boolean.TRUE.equals(compra.getActivo()) && !"CANCELADA".equals(compra.getEstado());
+        boolean compraActiva = Boolean.TRUE.equals(compra.getActivo())
+                && !"CANCELADA".equals(compra.getEstado())
+                && !"BORRADOR".equals(compra.getEstado());
         double total = redondear(compra.getTotal() != null ? compra.getTotal() : 0.0);
 
         if (!esCredito || !compraActiva || total <= 0) {
@@ -462,6 +533,18 @@ public class CompraService {
 
     private double redondear(double valor) {
         return Math.round(valor * 100.0) / 100.0;
+    }
+
+    private void validarImporteNoNegativoFinito(double valor, String campo) {
+        if (!Double.isFinite(valor) || valor < 0) {
+            throw new ValidationException("El campo " + campo + " no puede ser negativo");
+        }
+    }
+
+    private boolean importeCoincide(Double valor, double esperado) {
+        return valor != null
+                && Double.isFinite(valor)
+                && Double.compare(redondear(valor), redondear(esperado)) == 0;
     }
 
     /**

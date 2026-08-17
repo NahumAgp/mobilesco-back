@@ -74,4 +74,18 @@ public interface KardexRepository extends JpaRepository<MovimientoInsumoModel, L
         @Param("fechaInicio") LocalDateTime fechaInicio,
         @Param("fechaFin") LocalDateTime fechaFin
     );
+
+    @Query("""
+            SELECT m.insumo.id, COALESCE(SUM(m.cantidad), 0)
+            FROM MovimientoInsumoModel m
+            WHERE m.insumo.id IN :insumoIds
+              AND m.tipo = 'SALIDA'
+              AND m.fecha >= :fechaInicio
+              AND m.fecha < :fechaFin
+            GROUP BY m.insumo.id
+            """)
+    List<Object[]> consumoPorInsumosEnPeriodo(
+            @Param("insumoIds") Collection<Long> insumoIds,
+            @Param("fechaInicio") LocalDateTime fechaInicio,
+            @Param("fechaFin") LocalDateTime fechaFin);
 }

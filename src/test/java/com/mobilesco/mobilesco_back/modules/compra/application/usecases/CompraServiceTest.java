@@ -54,7 +54,7 @@ class CompraServiceTest {
                 .estado("PENDIENTE")
                 .activo(true)
                 .build();
-        when(compraRepository.findById(10L)).thenReturn(Optional.of(compra));
+        when(compraRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(compra));
 
         service.eliminar(10L);
 
@@ -69,7 +69,7 @@ class CompraServiceTest {
                 .estado("RECIBIDA")
                 .activo(true)
                 .build();
-        when(compraRepository.findById(11L)).thenReturn(Optional.of(compra));
+        when(compraRepository.findByIdForUpdate(11L)).thenReturn(Optional.of(compra));
 
         assertThrows(ValidationException.class, () -> service.eliminar(11L));
         verify(compraRepository, never()).save(compra);
