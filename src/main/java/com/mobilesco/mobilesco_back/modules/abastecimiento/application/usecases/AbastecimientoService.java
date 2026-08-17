@@ -225,7 +225,7 @@ public class AbastecimientoService {
                         (primero, segundo) -> primero,
                         LinkedHashMap::new));
 
-        String tipoInsumo = insumo.getTipoInsumo() == null ? null : insumo.getTipoInsumo().name();
+        String tipoInsumo = insumo.getTipoInsumo();
         if (tipoInsumo != null) {
             proveedoresActivos.stream()
                     .filter(proveedor -> proveedor.getTipoInsumo() != null
