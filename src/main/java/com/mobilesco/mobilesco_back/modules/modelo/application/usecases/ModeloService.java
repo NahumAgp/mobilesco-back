@@ -51,7 +51,11 @@ import com.mobilesco.mobilesco_back.modules.operacion.domain.models.OperacionMod
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.out.persistence.repositories.OperacionRepository;
 import com.mobilesco.mobilesco_back.modules.categoria.domain.models.CategoriaModel;
 import com.mobilesco.mobilesco_back.modules.categoria.infrastructure.out.persistence.repositories.CategoriaRepository;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelInsumoModel;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelOperacionModel;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelInsumoRepository;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelOperacionRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoPlantillaModeloService;
@@ -72,6 +76,8 @@ public class ModeloService {
     private final AlmacenamientoImagenesService almacenamientoImagenesService;
     private final InsumoRepository insumoRepository;
     private final OperacionRepository operacionRepository;
+    private final NivelInsumoRepository nivelInsumoRepository;
+    private final NivelOperacionRepository nivelOperacionRepository;
     private final ProductoPlantillaModeloService productoPlantillaModeloService;
 
     public ModeloService(ModeloRepository modeloRepository,
@@ -84,6 +90,8 @@ public class ModeloService {
                          AlmacenamientoImagenesService almacenamientoImagenesService,
                          InsumoRepository insumoRepository,
                          OperacionRepository operacionRepository,
+                         NivelInsumoRepository nivelInsumoRepository,
+                         NivelOperacionRepository nivelOperacionRepository,
                          ProductoPlantillaModeloService productoPlantillaModeloService) {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
@@ -95,6 +103,8 @@ public class ModeloService {
         this.almacenamientoImagenesService = almacenamientoImagenesService;
         this.insumoRepository = insumoRepository;
         this.operacionRepository = operacionRepository;
+        this.nivelInsumoRepository = nivelInsumoRepository;
+        this.nivelOperacionRepository = nivelOperacionRepository;
         this.productoPlantillaModeloService = productoPlantillaModeloService;
     }
 
@@ -140,31 +150,8 @@ public class ModeloService {
                 })
                 .map(this::mapMaterial)
                 .toList());
-        dto.setInsumos(modelo.getInsumos().stream()
-                .sorted((izq, der) -> nvl(izq.getNombre()).compareToIgnoreCase(nvl(der.getNombre())))
-                .map(insumo -> ModeloInsumoDTO.builder()
-                        .id(insumo.getId())
-                        .codigo(insumo.getCodigo())
-                        .nombre(insumo.getNombre())
-                        .unidadMedida(insumo.getUnidadMedida() != null ? insumo.getUnidadMedida().getSimbolo() : null)
-                        .activo(insumo.getActivo())
-                        .build())
-                .toList());
-        dto.setOperaciones(java.util.stream.IntStream.range(0, modelo.getOperaciones().size())
-                .mapToObj(index -> {
-                    OperacionModel operacion = modelo.getOperaciones().get(index);
-                    return ModeloOperacionDTO.builder()
-                            .id(operacion.getId())
-                            .codigo(operacion.getCodigo())
-                            .nombre(operacion.getNombre())
-                            .centroTrabajoNombre(operacion.getCentroTrabajo() != null
-                                    ? operacion.getCentroTrabajo().getNombre()
-                                    : null)
-                            .orden(index + 1)
-                            .activo(operacion.getActivo())
-                            .build();
-                })
-                .toList());
+        dto.setInsumos(List.of());
+        dto.setOperaciones(List.of());
 
         return dto;
     }
@@ -239,8 +226,7 @@ public class ModeloService {
         ModeloModel guardado = modeloRepository.save(modelo);
         sincronizarCategorias(guardado, dto.getCategorias());
         sincronizarMateriales(guardado, dto.getMateriales());
-        sincronizarInsumos(guardado, dto.getInsumos());
-        sincronizarOperaciones(guardado, dto.getOperaciones());
+        limpiarPlantillaGlobal(guardado);
         guardado = modeloRepository.save(guardado);
         return mapToResponseDTO(guardado);
     }
@@ -454,12 +440,7 @@ public class ModeloService {
         if (dto.getMateriales() != null) {
             sincronizarMateriales(actualizado, dto.getMateriales());
         }
-        if (dto.getInsumos() != null) {
-            sincronizarInsumos(actualizado, dto.getInsumos());
-        }
-        if (dto.getOperaciones() != null) {
-            sincronizarOperaciones(actualizado, dto.getOperaciones());
-        }
+        limpiarPlantillaGlobal(actualizado);
         actualizado = modeloRepository.save(actualizado);
         productoPlantillaModeloService.propagarAdiciones(actualizado);
         return mapToResponseDTO(actualizado);
@@ -516,6 +497,10 @@ public class ModeloService {
             throw new BadRequestException("No se puede eliminar el modelo porque tiene productos asociados");
         }
 
+        nivelRepository.findByModeloIdOrderByCodigoAsc(id).forEach(nivel -> {
+            nivelInsumoRepository.deleteByNivelId(nivel.getId());
+            nivelOperacionRepository.deleteByNivelId(nivel.getId());
+        });
         nivelRepository.deleteByModeloId(id);
         modeloRepository.deleteById(id);
     }
@@ -530,7 +515,40 @@ public class ModeloService {
         dto.setNombre(nivel.getNombre());
         dto.setDescripcion(nivel.getDescripcion());
         dto.setActivo(nivel.getActivo());
+        dto.setInsumos(nivelInsumoRepository.findByNivelIdOrderByInsumoNombreAsc(nivel.getId()).stream()
+                .map(this::mapNivelInsumo)
+                .toList());
+        dto.setOperaciones(nivelOperacionRepository.findByNivelIdOrderByOrdenAsc(nivel.getId()).stream()
+                .map(this::mapNivelOperacion)
+                .toList());
         return dto;
+    }
+
+    private ModeloInsumoDTO mapNivelInsumo(NivelInsumoModel nivelInsumo) {
+        InsumoModel insumo = nivelInsumo.getInsumo();
+        return ModeloInsumoDTO.builder()
+                .id(insumo.getId())
+                .codigo(insumo.getCodigo())
+                .nombre(insumo.getNombre())
+                .unidadMedida(insumo.getUnidadMedida() != null ? insumo.getUnidadMedida().getSimbolo() : null)
+                .cantidad(nivelInsumo.getCantidad())
+                .activo(insumo.getActivo())
+                .build();
+    }
+
+    private ModeloOperacionDTO mapNivelOperacion(NivelOperacionModel nivelOperacion) {
+        OperacionModel operacion = nivelOperacion.getOperacion();
+        return ModeloOperacionDTO.builder()
+                .id(operacion.getId())
+                .codigo(operacion.getCodigo())
+                .nombre(operacion.getNombre())
+                .centroTrabajoNombre(operacion.getCentroTrabajo() != null
+                        ? operacion.getCentroTrabajo().getNombre()
+                        : null)
+                .cantidad(nivelOperacion.getCantidad())
+                .orden(nivelOperacion.getOrden())
+                .activo(operacion.getActivo())
+                .build();
     }
 
     private MaterialResponseDTO mapMaterial(MaterialModel material) {
@@ -607,40 +625,9 @@ public class ModeloService {
         modelo.getMateriales().addAll(materiales);
     }
 
-    private void sincronizarInsumos(ModeloModel modelo, List<Long> insumoIds) {
-        if (insumoIds == null) {
-            return;
-        }
-        Set<InsumoModel> insumos = new LinkedHashSet<>();
-        Set<Long> idsUnicos = new HashSet<>();
-        for (Long insumoId : insumoIds) {
-            if (insumoId == null || !idsUnicos.add(insumoId)) {
-                continue;
-            }
-            InsumoModel insumo = insumoRepository.findById(insumoId)
-                    .orElseThrow(() -> new NotFoundException("Insumo no encontrado con ID: " + insumoId));
-            insumos.add(insumo);
-        }
+    private void limpiarPlantillaGlobal(ModeloModel modelo) {
         modelo.getInsumos().clear();
-        modelo.getInsumos().addAll(insumos);
-    }
-
-    private void sincronizarOperaciones(ModeloModel modelo, List<Long> operacionIds) {
-        if (operacionIds == null) {
-            return;
-        }
-        List<OperacionModel> operaciones = new java.util.ArrayList<>();
-        Set<Long> idsUnicos = new HashSet<>();
-        for (Long operacionId : operacionIds) {
-            if (operacionId == null || !idsUnicos.add(operacionId)) {
-                continue;
-            }
-            OperacionModel operacion = operacionRepository.findById(operacionId)
-                    .orElseThrow(() -> new NotFoundException("Operacion no encontrada con ID: " + operacionId));
-            operaciones.add(operacion);
-        }
         modelo.getOperaciones().clear();
-        modelo.getOperaciones().addAll(operaciones);
     }
 
     private void sincronizarCategorias(ModeloModel modelo, List<ModeloCategoriaDTO> categorias) {
@@ -689,6 +676,8 @@ public class ModeloService {
             nivel.setActivo(catalogo.getActivo() == null || Boolean.TRUE.equals(catalogo.getActivo()));
 
             NivelModel guardado = nivelRepository.save(nivel);
+            sincronizarInsumosCategoria(guardado, categoria.getInsumos());
+            sincronizarOperacionesCategoria(guardado, categoria.getOperaciones());
             idsConservados.add(guardado.getId());
         }
 
@@ -700,8 +689,71 @@ public class ModeloService {
                 throw new BadRequestException(
                         "No se puede eliminar la categoria " + existente.getNombre() + " porque tiene productos asociados");
             }
+            nivelInsumoRepository.deleteByNivelId(existente.getId());
+            nivelOperacionRepository.deleteByNivelId(existente.getId());
             nivelRepository.delete(existente);
         }
+    }
+
+    private void sincronizarInsumosCategoria(NivelModel nivel, List<ModeloInsumoDTO> insumosDto) {
+        nivelInsumoRepository.deleteByNivelId(nivel.getId());
+        if (insumosDto == null || insumosDto.isEmpty()) {
+            return;
+        }
+
+        Set<Long> idsUnicos = new HashSet<>();
+        List<NivelInsumoModel> insumos = new java.util.ArrayList<>();
+        for (ModeloInsumoDTO item : insumosDto) {
+            if (item == null || item.getId() == null) {
+                continue;
+            }
+            if (!idsUnicos.add(item.getId())) {
+                throw new BadRequestException("No se pueden repetir insumos en la categoria " + nivel.getNombre());
+            }
+            if (item.getCantidad() == null || item.getCantidad() <= 0) {
+                throw new BadRequestException("La cantidad del insumo debe ser mayor a cero en la categoria " + nivel.getNombre());
+            }
+            InsumoModel insumo = insumoRepository.findById(item.getId())
+                    .orElseThrow(() -> new NotFoundException("Insumo no encontrado con ID: " + item.getId()));
+            insumos.add(NivelInsumoModel.builder()
+                    .nivel(nivel)
+                    .insumo(insumo)
+                    .cantidad(item.getCantidad())
+                    .build());
+        }
+        nivelInsumoRepository.saveAll(insumos);
+    }
+
+    private void sincronizarOperacionesCategoria(NivelModel nivel, List<ModeloOperacionDTO> operacionesDto) {
+        nivelOperacionRepository.deleteByNivelId(nivel.getId());
+        if (operacionesDto == null || operacionesDto.isEmpty()) {
+            return;
+        }
+
+        Set<Long> idsUnicos = new HashSet<>();
+        List<NivelOperacionModel> operaciones = new java.util.ArrayList<>();
+        int orden = 1;
+        for (ModeloOperacionDTO item : operacionesDto) {
+            if (item == null || item.getId() == null) {
+                continue;
+            }
+            if (!idsUnicos.add(item.getId())) {
+                throw new BadRequestException("No se pueden repetir operaciones en la categoria " + nivel.getNombre());
+            }
+            Integer cantidad = item.getCantidad() != null ? item.getCantidad() : 1;
+            if (cantidad < 1) {
+                throw new BadRequestException("La cantidad de la operacion debe ser al menos 1 en la categoria " + nivel.getNombre());
+            }
+            OperacionModel operacion = operacionRepository.findById(item.getId())
+                    .orElseThrow(() -> new NotFoundException("Operacion no encontrada con ID: " + item.getId()));
+            operaciones.add(NivelOperacionModel.builder()
+                    .nivel(nivel)
+                    .operacion(operacion)
+                    .cantidad(cantidad)
+                    .orden(orden++)
+                    .build());
+        }
+        nivelOperacionRepository.saveAll(operaciones);
     }
 
     private CategoriaModel resolverCategoriaGlobal(ModeloCategoriaDTO categoria, NivelModel nivelExistente) {

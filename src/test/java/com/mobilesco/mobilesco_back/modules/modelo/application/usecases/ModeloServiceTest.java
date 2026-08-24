@@ -27,6 +27,8 @@ import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.Mo
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelInsumoRepository;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelOperacionRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.out.persistence.repositories.OperacionRepository;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoPlantillaModeloService;
@@ -47,6 +49,8 @@ class ModeloServiceTest {
     private AlmacenamientoImagenesService almacenamientoImagenesService;
     private InsumoRepository insumoRepository;
     private OperacionRepository operacionRepository;
+    private NivelInsumoRepository nivelInsumoRepository;
+    private NivelOperacionRepository nivelOperacionRepository;
     private ProductoPlantillaModeloService productoPlantillaModeloService;
     private ModeloService modeloService;
 
@@ -62,6 +66,8 @@ class ModeloServiceTest {
         almacenamientoImagenesService = mock(AlmacenamientoImagenesService.class);
         insumoRepository = mock(InsumoRepository.class);
         operacionRepository = mock(OperacionRepository.class);
+        nivelInsumoRepository = mock(NivelInsumoRepository.class);
+        nivelOperacionRepository = mock(NivelOperacionRepository.class);
         productoPlantillaModeloService = mock(ProductoPlantillaModeloService.class);
         modeloService = new ModeloService(
                 modeloRepository,
@@ -74,6 +80,8 @@ class ModeloServiceTest {
                 almacenamientoImagenesService,
                 insumoRepository,
                 operacionRepository,
+                nivelInsumoRepository,
+                nivelOperacionRepository,
                 productoPlantillaModeloService);
     }
 

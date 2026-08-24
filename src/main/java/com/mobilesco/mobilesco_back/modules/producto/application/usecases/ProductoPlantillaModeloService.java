@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelInsumoRepository;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelOperacionRepository;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoOperacionModel;
@@ -23,38 +25,40 @@ public class ProductoPlantillaModeloService {
     private final ProductoRepository productoRepository;
     private final ProductoInsumoRepository productoInsumoRepository;
     private final ProductoOperacionRepository productoOperacionRepository;
+    private final NivelInsumoRepository nivelInsumoRepository;
+    private final NivelOperacionRepository nivelOperacionRepository;
 
     @Transactional
     public void aplicarAProducto(ProductoModel producto) {
-        if (producto == null || producto.getId() == null || producto.getModelo() == null) {
+        if (producto == null || producto.getId() == null || producto.getNivel() == null) {
             return;
         }
 
-        ModeloModel modelo = producto.getModelo();
         List<ProductoInsumoModel> insumosNuevos = new ArrayList<>();
-        modelo.getInsumos().forEach(insumo -> {
+        nivelInsumoRepository.findByNivelIdOrderByInsumoNombreAsc(producto.getNivel().getId()).forEach(plantilla -> {
+            var insumo = plantilla.getInsumo();
             if (!productoInsumoRepository.existsByProductoIdAndInsumoId(producto.getId(), insumo.getId())) {
                 insumosNuevos.add(ProductoInsumoModel.builder()
                         .producto(producto)
                         .insumo(insumo)
-                        .cantidad(null)
+                        .cantidad(plantilla.getCantidad())
                         .desperdicioPorcentaje(0.0)
-                        .observaciones("Heredado de la plantilla del modelo")
+                        .observaciones("Heredado de la categoria del modelo")
                         .build());
             }
         });
         productoInsumoRepository.saveAll(insumosNuevos);
 
         List<ProductoOperacionModel> operacionesNuevas = new ArrayList<>();
-        for (int index = 0; index < modelo.getOperaciones().size(); index++) {
-            var operacion = modelo.getOperaciones().get(index);
+        for (var plantilla : nivelOperacionRepository.findByNivelIdOrderByOrdenAsc(producto.getNivel().getId())) {
+            var operacion = plantilla.getOperacion();
             if (!productoOperacionRepository.existsByProductoIdAndOperacionId(producto.getId(), operacion.getId())) {
                 operacionesNuevas.add(ProductoOperacionModel.builder()
                         .producto(producto)
                         .operacion(operacion)
-                        .cantidad(null)
-                        .orden(index + 1)
-                        .observaciones("Heredado de la plantilla del modelo")
+                        .cantidad(plantilla.getCantidad())
+                        .orden(plantilla.getOrden())
+                        .observaciones("Heredado de la categoria del modelo")
                         .activo(true)
                         .build());
             }

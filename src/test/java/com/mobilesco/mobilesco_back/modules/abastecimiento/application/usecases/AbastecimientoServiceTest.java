@@ -32,7 +32,6 @@ import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraMo
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.application.usecases.InsumoService;
-import com.mobilesco.mobilesco_back.modules.insumo.domain.enums.TipoInsumo;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoResponseDTO;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
@@ -78,7 +77,7 @@ class AbastecimientoServiceTest {
                 .id(1L)
                 .codigo("INS-1")
                 .nombre("Tablero")
-                .tipoInsumo(TipoInsumo.CARPINTERIA)
+                .tipoInsumo("CARPINTERIA")
                 .unidadMedidaId(1L)
                 .unidadMedidaSimbolo("pz")
                 .stockActual(2.0)
@@ -258,7 +257,7 @@ class AbastecimientoServiceTest {
         UnidadMedidaModel pieza = unidad(1L, "Pieza", "pz");
         InsumoModel insumoEntidad = insumo(1L, "I-1", "Madera", pieza, 0.0, 2.0, 12.0);
         InsumoResponseDTO insumo = respuesta(insumoEntidad, "C");
-        insumo.setTipoInsumo(TipoInsumo.CARPINTERIA);
+        insumo.setTipoInsumo("CARPINTERIA");
         ProveedorModel historico = proveedor(10L, "Histórico", new BigDecimal("80"));
         ProveedorModel compatible = proveedor(11L, "Compatible", new BigDecimal("100"));
         TipoInsumoModel tipo = new TipoInsumoModel();
@@ -411,7 +410,7 @@ class AbastecimientoServiceTest {
                 .id(id)
                 .codigo(codigo)
                 .nombre(nombre)
-                .tipoInsumo(TipoInsumo.CARPINTERIA)
+                .tipoInsumo("CARPINTERIA")
                 .unidadMedida(unidad)
                 .stockActual(stock)
                 .stockApartado(0.0)

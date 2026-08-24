@@ -23,7 +23,7 @@ class ExistingDatabaseBaselineTest {
         Flyway flyway = baselineFlyway(url);
         flyway.migrate();
 
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("7");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
         try (Connection connection = DriverManager.getConnection(url, "sa", "");
                 Statement statement = connection.createStatement();
                 ResultSet resultSet = statement.executeQuery(

@@ -1,8 +1,11 @@
 package com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -24,6 +27,12 @@ public class ModeloCategoriaDTO {
     private String descripcion;
 
     private Boolean activo;
+
+    @Valid
+    private List<ModeloInsumoDTO> insumos;
+
+    @Valid
+    private List<ModeloOperacionDTO> operaciones;
 
     public Long getId() {
         return id;
@@ -71,5 +80,21 @@ public class ModeloCategoriaDTO {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public List<ModeloInsumoDTO> getInsumos() {
+        return insumos;
+    }
+
+    public void setInsumos(List<ModeloInsumoDTO> insumos) {
+        this.insumos = insumos;
+    }
+
+    public List<ModeloOperacionDTO> getOperaciones() {
+        return operaciones;
+    }
+
+    public void setOperaciones(List<ModeloOperacionDTO> operaciones) {
+        this.operaciones = operaciones;
     }
 }

@@ -1,21 +1,23 @@
 package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
-import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelInsumoModel;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
+import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelOperacionModel;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelInsumoRepository;
+import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelOperacionRepository;
 import com.mobilesco.mobilesco_back.modules.operacion.domain.models.OperacionModel;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
@@ -28,6 +30,8 @@ class ProductoPlantillaModeloServiceTest {
 
     private ProductoInsumoRepository productoInsumoRepository;
     private ProductoOperacionRepository productoOperacionRepository;
+    private NivelInsumoRepository nivelInsumoRepository;
+    private NivelOperacionRepository nivelOperacionRepository;
     private ProductoPlantillaModeloService service;
 
     @BeforeEach
@@ -35,25 +39,31 @@ class ProductoPlantillaModeloServiceTest {
         ProductoRepository productoRepository = mock(ProductoRepository.class);
         productoInsumoRepository = mock(ProductoInsumoRepository.class);
         productoOperacionRepository = mock(ProductoOperacionRepository.class);
+        nivelInsumoRepository = mock(NivelInsumoRepository.class);
+        nivelOperacionRepository = mock(NivelOperacionRepository.class);
         service = new ProductoPlantillaModeloService(
                 productoRepository,
                 productoInsumoRepository,
-                productoOperacionRepository);
+                productoOperacionRepository,
+                nivelInsumoRepository,
+                nivelOperacionRepository);
     }
 
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
-    void heredaInsumosYOperacionesComoPendientesDeCantidad() {
+    void heredaInsumosYOperacionesDeLaCategoriaDelProducto() {
         InsumoModel insumo = new InsumoModel();
         insumo.setId(11L);
         OperacionModel operacion = OperacionModel.builder().id(21L).build();
 
-        ModeloModel modelo = new ModeloModel();
-        modelo.setId(5L);
-        modelo.setInsumos(Set.of(insumo));
-        modelo.setOperaciones(List.of(operacion));
+        NivelModel nivel = new NivelModel();
+        nivel.setId(5L);
 
-        ProductoModel producto = ProductoModel.builder().id(7L).modelo(modelo).build();
+        ProductoModel producto = ProductoModel.builder().id(7L).nivel(nivel).build();
+        when(nivelInsumoRepository.findByNivelIdOrderByInsumoNombreAsc(5L)).thenReturn(List.of(
+                NivelInsumoModel.builder().nivel(nivel).insumo(insumo).cantidad(2.5).build()));
+        when(nivelOperacionRepository.findByNivelIdOrderByOrdenAsc(5L)).thenReturn(List.of(
+                NivelOperacionModel.builder().nivel(nivel).operacion(operacion).cantidad(3).orden(2).build()));
         when(productoInsumoRepository.existsByProductoIdAndInsumoId(7L, 11L)).thenReturn(false);
         when(productoOperacionRepository.existsByProductoIdAndOperacionId(7L, 21L)).thenReturn(false);
         when(productoInsumoRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -70,9 +80,9 @@ class ProductoPlantillaModeloServiceTest {
         ProductoOperacionModel productoOperacion = ((List<ProductoOperacionModel>) operacionesCaptor.getValue()).get(0);
 
         assertEquals(11L, productoInsumo.getInsumo().getId());
-        assertNull(productoInsumo.getCantidad());
+        assertEquals(2.5, productoInsumo.getCantidad());
         assertEquals(21L, productoOperacion.getOperacion().getId());
-        assertNull(productoOperacion.getCantidad());
-        assertEquals(1, productoOperacion.getOrden());
+        assertEquals(3, productoOperacion.getCantidad());
+        assertEquals(2, productoOperacion.getOrden());
     }
 }
