@@ -276,12 +276,11 @@ public class ProductoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
         List<ProductoInsumoModel> productoInsumos = productoInsumoRepository.findByProductoId(productoId);
-        validarCostosCotizacion(productoInsumos);
 
         List<ProductoInsumoResponseDTO> insumos = productoInsumos
                 .stream()
                 .map(pi -> {
-                    double costoUnitarioSeguro = obtenerCostoCotizacionValido(pi.getInsumo());
+                    double costoUnitarioSeguro = obtenerCostoCotizacionOpcional(pi.getInsumo());
                     double cantidad = nz(pi.getCantidad());
                     double desperdicio = nz(pi.getDesperdicioPorcentaje());
                     double cantidadConDesperdicio = cantidad * (1 + desperdicio / 100);

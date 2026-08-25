@@ -44,4 +44,8 @@ public class NivelInsumoModel {
 
     @Column(name = "cantidad", nullable = false)
     private Double cantidad;
+
+    @Column(name = "desperdicio_porcentaje", nullable = false)
+    @Builder.Default
+    private Double desperdicioPorcentaje = 0.0;
 }

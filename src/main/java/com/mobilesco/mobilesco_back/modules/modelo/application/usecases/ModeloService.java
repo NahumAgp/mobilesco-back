@@ -8,10 +8,12 @@
 package com.mobilesco.mobilesco_back.modules.modelo.application.usecases;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,6 +44,7 @@ import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.Mo
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloOperacionDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionInsumosVariantesResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
 import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.out.persistence.repositories.SubfamiliaRepository;
@@ -57,6 +60,9 @@ import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelOperacionMo
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelOperacionRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoPlantillaModeloService;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
@@ -65,6 +71,7 @@ import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.Almacena
 public class ModeloService {
 
     private static final int PAGE_SIZE = 10;
+    private static final String OBSERVACION_HEREDADO_CATEGORIA = "Heredado de la categoria del modelo";
 
     private final ModeloRepository modeloRepository;
     private final FamiliaRepository familiaRepository;
@@ -78,6 +85,7 @@ public class ModeloService {
     private final OperacionRepository operacionRepository;
     private final NivelInsumoRepository nivelInsumoRepository;
     private final NivelOperacionRepository nivelOperacionRepository;
+    private final ProductoInsumoRepository productoInsumoRepository;
     private final ProductoPlantillaModeloService productoPlantillaModeloService;
 
     public ModeloService(ModeloRepository modeloRepository,
@@ -92,6 +100,7 @@ public class ModeloService {
                          OperacionRepository operacionRepository,
                          NivelInsumoRepository nivelInsumoRepository,
                          NivelOperacionRepository nivelOperacionRepository,
+                         ProductoInsumoRepository productoInsumoRepository,
                          ProductoPlantillaModeloService productoPlantillaModeloService) {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
@@ -105,6 +114,7 @@ public class ModeloService {
         this.operacionRepository = operacionRepository;
         this.nivelInsumoRepository = nivelInsumoRepository;
         this.nivelOperacionRepository = nivelOperacionRepository;
+        this.productoInsumoRepository = productoInsumoRepository;
         this.productoPlantillaModeloService = productoPlantillaModeloService;
     }
 
@@ -488,6 +498,104 @@ public class ModeloService {
     }
 
     @Transactional
+    public SincronizacionInsumosVariantesResponseDTO sincronizarInsumosVariantes(
+            Long modeloId,
+            Long nivelId,
+            List<ModeloInsumoDTO> insumosDto) {
+        ModeloModel modelo = modeloRepository.findById(modeloId)
+                .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + modeloId));
+        NivelModel nivel = nivelRepository.findById(nivelId)
+                .orElseThrow(() -> new NotFoundException("Categoria del modelo no encontrada con ID: " + nivelId));
+
+        if (nivel.getModelo() == null || !Objects.equals(nivel.getModelo().getId(), modelo.getId())) {
+            throw new BadRequestException("La categoria seleccionada no pertenece al modelo");
+        }
+
+        Map<Long, ModeloInsumoDTO> plantilla = normalizarPlantillaInsumos(nivel, insumosDto);
+        sincronizarInsumosCategoria(nivel, List.copyOf(plantilla.values()));
+
+        int productosActualizados = 0;
+        int insumosAgregados = 0;
+        int insumosActualizados = 0;
+        int insumosEliminados = 0;
+
+        for (ProductoModel producto : productoRepository.findByModeloIdAndNivelId(modeloId, nivelId)) {
+            List<ProductoInsumoModel> actuales = productoInsumoRepository.findByProductoId(producto.getId());
+            Map<Long, ProductoInsumoModel> porInsumo = actuales.stream()
+                    .filter(item -> item.getInsumo() != null && item.getInsumo().getId() != null)
+                    .collect(Collectors.toMap(
+                            item -> item.getInsumo().getId(),
+                            item -> item,
+                            (primero, segundo) -> primero,
+                            LinkedHashMap::new));
+
+            List<ProductoInsumoModel> guardar = new java.util.ArrayList<>();
+            List<ProductoInsumoModel> eliminar = new java.util.ArrayList<>();
+
+            for (ProductoInsumoModel actual : actuales) {
+                Long insumoId = actual.getInsumo() != null ? actual.getInsumo().getId() : null;
+                if (esInsumoHeredado(actual) && (insumoId == null || !plantilla.containsKey(insumoId))) {
+                    eliminar.add(actual);
+                }
+            }
+
+            for (ModeloInsumoDTO itemPlantilla : plantilla.values()) {
+                Long insumoId = itemPlantilla.getId();
+                ProductoInsumoModel actual = porInsumo.get(insumoId);
+                if (actual == null) {
+                    InsumoModel insumo = insumoRepository.findById(insumoId)
+                            .orElseThrow(() -> new NotFoundException("Insumo no encontrado con ID: " + insumoId));
+                    guardar.add(ProductoInsumoModel.builder()
+                            .producto(producto)
+                            .insumo(insumo)
+                            .cantidad(itemPlantilla.getCantidad())
+                            .desperdicioPorcentaje(itemPlantilla.getDesperdicioPorcentaje())
+                            .observaciones(OBSERVACION_HEREDADO_CATEGORIA)
+                            .build());
+                    continue;
+                }
+
+                if (esInsumoHeredado(actual)) {
+                    boolean cambioCantidad = !Objects.equals(actual.getCantidad(), itemPlantilla.getCantidad());
+                    boolean cambioDesperdicio = !Objects.equals(
+                            valorSeguro(actual.getDesperdicioPorcentaje()),
+                            valorSeguro(itemPlantilla.getDesperdicioPorcentaje()));
+                    if (cambioCantidad || cambioDesperdicio) {
+                        actual.setCantidad(itemPlantilla.getCantidad());
+                        actual.setDesperdicioPorcentaje(itemPlantilla.getDesperdicioPorcentaje());
+                        guardar.add(actual);
+                    }
+                }
+            }
+
+            if (!guardar.isEmpty() || !eliminar.isEmpty()) {
+                int agregadosProducto = (int) guardar.stream().filter(item -> item.getId() == null).count();
+                productosActualizados++;
+                insumosAgregados += agregadosProducto;
+                insumosActualizados += guardar.size() - agregadosProducto;
+                insumosEliminados += eliminar.size();
+            }
+
+            if (!eliminar.isEmpty()) {
+                productoInsumoRepository.deleteAll(eliminar);
+            }
+            if (!guardar.isEmpty()) {
+                productoInsumoRepository.saveAll(guardar);
+            }
+        }
+
+        return SincronizacionInsumosVariantesResponseDTO.builder()
+                .modeloId(modelo.getId())
+                .nivelId(nivel.getId())
+                .nivelNombre(nivel.getNombre())
+                .productosActualizados(productosActualizados)
+                .insumosAgregados(insumosAgregados)
+                .insumosActualizados(insumosActualizados)
+                .insumosEliminados(insumosEliminados)
+                .build();
+    }
+
+    @Transactional
     public void eliminar(Long id) {
         if (!modeloRepository.existsById(id)) {
             throw new NotFoundException("Modelo no encontrado con ID: " + id);
@@ -532,6 +640,8 @@ public class ModeloService {
                 .nombre(insumo.getNombre())
                 .unidadMedida(insumo.getUnidadMedida() != null ? insumo.getUnidadMedida().getSimbolo() : null)
                 .cantidad(nivelInsumo.getCantidad())
+                .desperdicioPorcentaje(valorSeguro(nivelInsumo.getDesperdicioPorcentaje()))
+                .costoCotizacion(valorSeguro(insumo.getCostoCotizacion()))
                 .activo(insumo.getActivo())
                 .build();
     }
@@ -630,6 +740,32 @@ public class ModeloService {
         modelo.getOperaciones().clear();
     }
 
+    private Map<Long, ModeloInsumoDTO> normalizarPlantillaInsumos(NivelModel nivel, List<ModeloInsumoDTO> insumosDto) {
+        Map<Long, ModeloInsumoDTO> plantilla = new LinkedHashMap<>();
+        if (insumosDto == null) {
+            return plantilla;
+        }
+
+        for (ModeloInsumoDTO item : insumosDto) {
+            if (item == null || item.getId() == null) {
+                continue;
+            }
+            if (plantilla.containsKey(item.getId())) {
+                throw new BadRequestException("No se pueden repetir insumos en la categoria " + nivel.getNombre());
+            }
+            if (item.getCantidad() == null || item.getCantidad() <= 0) {
+                throw new BadRequestException("La cantidad del insumo debe ser mayor a cero en la categoria " + nivel.getNombre());
+            }
+            item.setDesperdicioPorcentaje(validarDesperdicioInsumo(nivel, item.getDesperdicioPorcentaje()));
+            plantilla.put(item.getId(), item);
+        }
+        return plantilla;
+    }
+
+    private boolean esInsumoHeredado(ProductoInsumoModel item) {
+        return item != null && OBSERVACION_HEREDADO_CATEGORIA.equals(item.getObservaciones());
+    }
+
     private void sincronizarCategorias(ModeloModel modelo, List<ModeloCategoriaDTO> categorias) {
         if (categorias == null || categorias.isEmpty()) {
             throw new BadRequestException("El modelo debe tener al menos una categoria");
@@ -713,15 +849,29 @@ public class ModeloService {
             if (item.getCantidad() == null || item.getCantidad() <= 0) {
                 throw new BadRequestException("La cantidad del insumo debe ser mayor a cero en la categoria " + nivel.getNombre());
             }
+            double desperdicio = validarDesperdicioInsumo(nivel, item.getDesperdicioPorcentaje());
             InsumoModel insumo = insumoRepository.findById(item.getId())
                     .orElseThrow(() -> new NotFoundException("Insumo no encontrado con ID: " + item.getId()));
             insumos.add(NivelInsumoModel.builder()
                     .nivel(nivel)
                     .insumo(insumo)
                     .cantidad(item.getCantidad())
+                    .desperdicioPorcentaje(desperdicio)
                     .build());
         }
         nivelInsumoRepository.saveAll(insumos);
+    }
+
+    private double validarDesperdicioInsumo(NivelModel nivel, Double desperdicioPorcentaje) {
+        double desperdicio = desperdicioPorcentaje != null ? desperdicioPorcentaje : 0.0;
+        if (desperdicio < 0) {
+            throw new BadRequestException("El desperdicio del insumo debe ser mayor o igual a cero en la categoria " + nivel.getNombre());
+        }
+        return desperdicio;
+    }
+
+    private double valorSeguro(Double valor) {
+        return valor != null ? valor : 0.0;
     }
 
     private void sincronizarOperacionesCategoria(NivelModel nivel, List<ModeloOperacionDTO> operacionesDto) {

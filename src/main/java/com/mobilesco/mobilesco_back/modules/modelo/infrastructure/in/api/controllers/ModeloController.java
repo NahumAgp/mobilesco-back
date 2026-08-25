@@ -30,8 +30,10 @@ import com.mobilesco.mobilesco_back.config.ApiPaths;
 import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.application.usecases.ModeloService;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCreateDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloInsumoDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionInsumosVariantesResponseDTO;
 
 import jakarta.validation.Valid;
 
@@ -126,6 +128,14 @@ public class ModeloController {
             @PathVariable Long id,
             @Valid @RequestBody ModeloUpdateDTO dto) {
         return ResponseEntity.ok(modeloService.actualizar(id, dto));
+    }
+
+    @PutMapping("/{id}/categorias/{nivelId}/insumos/sincronizar-variantes")
+    public ResponseEntity<SincronizacionInsumosVariantesResponseDTO> sincronizarInsumosVariantes(
+            @PathVariable Long id,
+            @PathVariable Long nivelId,
+            @RequestBody List<@Valid ModeloInsumoDTO> insumos) {
+        return ResponseEntity.ok(modeloService.sincronizarInsumosVariantes(id, nivelId, insumos));
     }
 
     @PostMapping(value = "/{id}/imagen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

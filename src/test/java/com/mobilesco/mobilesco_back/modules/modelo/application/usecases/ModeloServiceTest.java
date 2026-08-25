@@ -32,6 +32,7 @@ import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.operacion.infrastructure.out.persistence.repositories.OperacionRepository;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoPlantillaModeloService;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.BadRequestException;
 import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
@@ -51,6 +52,7 @@ class ModeloServiceTest {
     private OperacionRepository operacionRepository;
     private NivelInsumoRepository nivelInsumoRepository;
     private NivelOperacionRepository nivelOperacionRepository;
+    private ProductoInsumoRepository productoInsumoRepository;
     private ProductoPlantillaModeloService productoPlantillaModeloService;
     private ModeloService modeloService;
 
@@ -68,6 +70,7 @@ class ModeloServiceTest {
         operacionRepository = mock(OperacionRepository.class);
         nivelInsumoRepository = mock(NivelInsumoRepository.class);
         nivelOperacionRepository = mock(NivelOperacionRepository.class);
+        productoInsumoRepository = mock(ProductoInsumoRepository.class);
         productoPlantillaModeloService = mock(ProductoPlantillaModeloService.class);
         modeloService = new ModeloService(
                 modeloRepository,
@@ -82,6 +85,7 @@ class ModeloServiceTest {
                 operacionRepository,
                 nivelInsumoRepository,
                 nivelOperacionRepository,
+                productoInsumoRepository,
                 productoPlantillaModeloService);
     }
 

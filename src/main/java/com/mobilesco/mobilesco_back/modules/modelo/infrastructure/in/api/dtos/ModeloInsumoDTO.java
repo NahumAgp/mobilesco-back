@@ -20,5 +20,9 @@ public class ModeloInsumoDTO {
     private String unidadMedida;
     @JsonProperty("cantidad")
     private Double cantidad;
+    @JsonAlias({"desperdicio", "desperdicio_porcentaje"})
+    private Double desperdicioPorcentaje;
+    @JsonAlias({"costo", "costo_cotizar", "costo_cotizacion"})
+    private Double costoCotizacion;
     private Boolean activo;
 }

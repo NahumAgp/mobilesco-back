@@ -42,7 +42,7 @@ public class ProductoPlantillaModeloService {
                         .producto(producto)
                         .insumo(insumo)
                         .cantidad(plantilla.getCantidad())
-                        .desperdicioPorcentaje(0.0)
+                        .desperdicioPorcentaje(plantilla.getDesperdicioPorcentaje() != null ? plantilla.getDesperdicioPorcentaje() : 0.0)
                         .observaciones("Heredado de la categoria del modelo")
                         .build());
             }
