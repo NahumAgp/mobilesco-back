@@ -63,8 +63,18 @@ public class JpaColorPersistenceAdapter implements ColorPersistencePort {
     }
 
     @Override
+    public boolean existsByCodigoAndIdNot(String codigo, Long id) {
+        return colorRepository.existsByCodigoAndIdNot(codigo, id);
+    }
+
+    @Override
     public boolean existsByNombre(String nombre) {
         return colorRepository.existsByNombre(nombre);
+    }
+
+    @Override
+    public boolean existsByNombreAndIdNot(String nombre, Long id) {
+        return colorRepository.existsByNombreAndIdNot(nombre, id);
     }
 
     @Override

@@ -27,8 +27,12 @@ public interface ColorRepository extends JpaRepository<ColorModel, Long> {
     List<ColorModel> findByActivo(Boolean activo);
     
     boolean existsByCodigo(String codigo);
+
+    boolean existsByCodigoAndIdNot(String codigo, Long id);
     
     boolean existsByNombre(String nombre);
+
+    boolean existsByNombreAndIdNot(String nombre, Long id);
 
     @Query("""
             SELECT c

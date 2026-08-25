@@ -31,7 +31,11 @@ public interface ColorPersistencePort {
 
     boolean existsByCodigo(String codigo);
 
+    boolean existsByCodigoAndIdNot(String codigo, Long id);
+
     boolean existsByNombre(String nombre);
+
+    boolean existsByNombreAndIdNot(String nombre, Long id);
 
     boolean existsById(Long id);
 

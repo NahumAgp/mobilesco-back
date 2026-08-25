@@ -121,14 +121,14 @@ public class ColorServiceImpl implements ColorUseCase {
                 .orElseThrow(() -> new NotFoundException("Color no encontrado con ID: " + id));
 
         if (dto.getCodigo() != null && !dto.getCodigo().equals(existente.getCodigo())) {
-            if (colorRepository.existsByCodigo(dto.getCodigo())) {
+            if (colorRepository.existsByCodigoAndIdNot(dto.getCodigo(), id)) {
                 throw new BadRequestException("Ya existe un color con el codigo: " + dto.getCodigo());
             }
             existente.setCodigo(dto.getCodigo());
         }
 
         if (dto.getNombre() != null && !dto.getNombre().equals(existente.getNombre())) {
-            if (colorRepository.existsByNombre(dto.getNombre())) {
+            if (colorRepository.existsByNombreAndIdNot(dto.getNombre(), id)) {
                 throw new BadRequestException("Ya existe un color con el nombre: " + dto.getNombre());
             }
             existente.setNombre(dto.getNombre());
