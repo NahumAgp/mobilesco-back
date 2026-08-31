@@ -18,6 +18,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 
 import jakarta.persistence.LockModeType;
 
@@ -47,6 +48,15 @@ public interface ProductoRepository extends JpaRepository<ProductoModel, Long> {
     List<ProductoModel> findByLineaId(Long lineaId);
     
     List<ProductoModel> findByModeloId(Long modeloId);
+
+    @Query("""
+            SELECT DISTINCT mat
+            FROM ProductoModel p
+            JOIN p.material mat
+            WHERE p.modelo.id = :modeloId
+            ORDER BY mat.nombre ASC, mat.id ASC
+            """)
+    List<MaterialModel> findMaterialesByModeloId(@Param("modeloId") Long modeloId);
 
     List<ProductoModel> findByModeloIdAndNivelId(Long modeloId, Long nivelId);
 

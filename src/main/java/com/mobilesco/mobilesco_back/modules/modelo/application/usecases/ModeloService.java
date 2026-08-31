@@ -149,7 +149,7 @@ public class ModeloService {
         dto.setCategorias(nivelRepository.findByModeloIdOrderByCodigoAsc(modelo.getId()).stream()
                 .map(this::mapCategoria)
                 .toList());
-        dto.setMateriales(modelo.getMateriales().stream()
+        dto.setMateriales(resolverMaterialesDelModelo(modelo).stream()
                 .sorted((izq, der) -> {
                     String nombreIzq = izq.getNombre() == null ? "" : izq.getNombre().toLowerCase(Locale.ROOT);
                     String nombreDer = der.getNombre() == null ? "" : der.getNombre().toLowerCase(Locale.ROOT);
@@ -167,6 +167,25 @@ public class ModeloService {
         dto.setOperaciones(List.of());
 
         return dto;
+    }
+
+    private List<MaterialModel> resolverMaterialesDelModelo(ModeloModel modelo) {
+        Map<Long, MaterialModel> materiales = new LinkedHashMap<>();
+        modelo.getMateriales().forEach(material -> {
+            if (material != null && material.getId() != null) {
+                materiales.put(material.getId(), material);
+            }
+        });
+
+        if (modelo.getId() != null) {
+            productoRepository.findMaterialesByModeloId(modelo.getId()).forEach(material -> {
+                if (material != null && material.getId() != null) {
+                    materiales.putIfAbsent(material.getId(), material);
+                }
+            });
+        }
+
+        return List.copyOf(materiales.values());
     }
 
     private List<ModeloResponseDTO> mapToResponseDTOList(List<ModeloModel> modelos) {

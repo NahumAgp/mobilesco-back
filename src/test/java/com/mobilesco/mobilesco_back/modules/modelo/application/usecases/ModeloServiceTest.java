@@ -20,6 +20,7 @@ import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.familia.infrastructure.out.persistence.repositories.FamiliaRepository;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.out.persistence.repositories.InsumoRepository;
+import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persistence.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCategoriaDTO;
@@ -157,6 +158,28 @@ class ModeloServiceTest {
         verify(modeloRepository).existsBySubfamiliaIdAndNombreIgnoreCase(21L, "Mesabanco");
     }
 
+    @Test
+    void muestraMaterialesUsadosPorVariantesAunqueElModeloNoLosTengaAsociados() {
+        ModeloModel modelo = new ModeloModel();
+        modelo.setId(40L);
+        modelo.setCodigo("ME");
+        modelo.setNombre("Mesa Binaria");
+        modelo.setActivo(true);
+
+        MaterialModel formica = material(7L, "F", "Formica");
+        MaterialModel triplay = material(9L, "T", "Triplay");
+
+        when(modeloRepository.findById(40L)).thenReturn(Optional.of(modelo));
+        when(nivelRepository.findByModeloIdOrderByCodigoAsc(40L)).thenReturn(List.of());
+        when(productoRepository.findMaterialesByModeloId(40L)).thenReturn(List.of(formica, triplay));
+
+        ModeloResponseDTO resultado = modeloService.obtenerPorId(40L);
+
+        assertEquals(List.of(7L, 9L), resultado.getMateriales().stream()
+                .map(material -> material.getId())
+                .toList());
+    }
+
     private ModeloCreateDTO modelo(String nombre, Long familiaId) {
         ModeloCategoriaDTO categoria = new ModeloCategoriaDTO();
         categoria.setNombre("Escolar");
@@ -182,5 +205,14 @@ class ModeloServiceTest {
         categoria.setNombre(nombre);
         categoria.setActivo(true);
         return categoria;
+    }
+
+    private MaterialModel material(Long id, String codigo, String nombre) {
+        MaterialModel material = new MaterialModel();
+        material.setId(id);
+        material.setCodigo(codigo);
+        material.setNombre(nombre);
+        material.setActivo(true);
+        return material;
     }
 }
