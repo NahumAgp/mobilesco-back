@@ -89,7 +89,7 @@ class ProductoPlantillaModeloServiceTest {
 
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
-    void aplicaInsumosComunesYSoloLosDelMaterialDelProducto() {
+    void aplicaSoloLosInsumosDelMaterialDelProducto() {
         NivelModel nivel = new NivelModel();
         nivel.setId(5L);
 
@@ -118,12 +118,40 @@ class ProductoPlantillaModeloServiceTest {
         verify(productoInsumoRepository).saveAll(insumosCaptor.capture());
         List<ProductoInsumoModel> insumos = (List<ProductoInsumoModel>) insumosCaptor.getValue();
 
-        assertEquals(List.of(11L, 12L), insumos.stream().map(item -> item.getInsumo().getId()).toList());
+        assertEquals(List.of(12L), insumos.stream().map(item -> item.getInsumo().getId()).toList());
     }
 
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
-    void elInsumoEspecificoDelMaterialReemplazaAlComunEnLaVariante() {
+    void aplicaInsumosComunesSoloCuandoElProductoNoTieneMaterial() {
+        NivelModel nivel = new NivelModel();
+        nivel.setId(5L);
+
+        MaterialModel formica = MaterialModel.builder().id(1L).nombre("FORMICA").build();
+        InsumoModel comun = new InsumoModel();
+        comun.setId(11L);
+        InsumoModel formicaInsumo = new InsumoModel();
+        formicaInsumo.setId(12L);
+
+        ProductoModel producto = ProductoModel.builder().id(7L).nivel(nivel).build();
+        when(nivelInsumoRepository.findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(5L)).thenReturn(List.of(
+                NivelInsumoModel.builder().nivel(nivel).insumo(comun).cantidad(1.0).build(),
+                NivelInsumoModel.builder().nivel(nivel).material(formica).insumo(formicaInsumo).cantidad(2.0).build()));
+        when(productoInsumoRepository.existsByProductoIdAndInsumoId(7L, 11L)).thenReturn(false);
+        when(productoInsumoRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.aplicarAProducto(producto);
+
+        ArgumentCaptor<Iterable> insumosCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(productoInsumoRepository).saveAll(insumosCaptor.capture());
+        List<ProductoInsumoModel> insumos = (List<ProductoInsumoModel>) insumosCaptor.getValue();
+
+        assertEquals(List.of(11L), insumos.stream().map(item -> item.getInsumo().getId()).toList());
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void ignoraInsumosComunesCuandoElProductoTieneMaterial() {
         NivelModel nivel = new NivelModel();
         nivel.setId(5L);
 

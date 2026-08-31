@@ -95,12 +95,7 @@ public class ProductoPlantillaModeloService {
         Map<Long, com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelInsumoModel> efectiva = new LinkedHashMap<>();
         Long materialProductoId = producto.getMaterial() != null ? producto.getMaterial().getId() : null;
         plantilla.forEach((key, item) -> {
-            if (key.materialId() == null) {
-                efectiva.put(key.insumoId(), item);
-            }
-        });
-        plantilla.forEach((key, item) -> {
-            if (materialProductoId != null && Objects.equals(key.materialId(), materialProductoId)) {
+            if (Objects.equals(key.materialId(), materialProductoId)) {
                 efectiva.put(key.insumoId(), item);
             }
         });
