@@ -137,8 +137,9 @@ public class ModeloController {
     public ResponseEntity<SincronizacionInsumosVariantesResponseDTO> sincronizarInsumosVariantes(
             @PathVariable Long id,
             @PathVariable Long nivelId,
+            @RequestParam(required = false) Long materialId,
             @RequestBody List<@Valid ModeloInsumoDTO> insumos) {
-        return ResponseEntity.ok(modeloService.sincronizarInsumosVariantes(id, nivelId, insumos));
+        return ResponseEntity.ok(modeloService.sincronizarInsumosVariantes(id, nivelId, materialId, insumos));
     }
 
     @PostMapping(value = "/{id}/imagen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -529,6 +529,7 @@ public class ModeloService {
     public SincronizacionInsumosVariantesResponseDTO sincronizarInsumosVariantes(
             Long modeloId,
             Long nivelId,
+            Long materialId,
             List<ModeloInsumoDTO> insumosDto) {
         ModeloModel modelo = modeloRepository.findById(modeloId)
                 .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + modeloId));
@@ -538,6 +539,7 @@ public class ModeloService {
         if (nivel.getModelo() == null || !Objects.equals(nivel.getModelo().getId(), modelo.getId())) {
             throw new BadRequestException("La categoria seleccionada no pertenece al modelo");
         }
+        validarMaterialPlantilla(modelo, nivel, materialId);
 
         Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla = normalizarPlantillaInsumos(modelo, nivel, insumosDto);
         sincronizarInsumosCategoria(nivel, List.copyOf(plantilla.values()));
@@ -547,7 +549,11 @@ public class ModeloService {
         int insumosActualizados = 0;
         int insumosEliminados = 0;
 
-        for (ProductoModel producto : productoRepository.findByModeloIdAndNivelId(modeloId, nivelId)) {
+        List<ProductoModel> productos = productoRepository.findByModeloIdAndNivelId(modeloId, nivelId).stream()
+                .filter(producto -> materialId == null || Objects.equals(getProductoMaterialId(producto), materialId))
+                .toList();
+
+        for (ProductoModel producto : productos) {
             List<ProductoInsumoModel> actuales = productoInsumoRepository.findByProductoId(producto.getId());
             Map<Long, ProductoInsumoModel> porInsumo = actuales.stream()
                     .filter(item -> item.getInsumo() != null && item.getInsumo().getId() != null)
@@ -622,6 +628,10 @@ public class ModeloService {
                 .insumosActualizados(insumosActualizados)
                 .insumosEliminados(insumosEliminados)
                 .build();
+    }
+
+    private Long getProductoMaterialId(ProductoModel producto) {
+        return producto != null && producto.getMaterial() != null ? producto.getMaterial().getId() : null;
     }
 
     @Transactional
