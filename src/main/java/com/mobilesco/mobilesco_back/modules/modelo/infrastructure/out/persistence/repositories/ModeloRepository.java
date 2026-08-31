@@ -80,6 +80,7 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
             LEFT JOIN f.linea l
             WHERE (:activo IS NULL OR m.activo = :activo)
               AND (:familiaId IS NULL OR f.id = :familiaId)
+              AND (:lineaId IS NULL OR l.id = :lineaId)
               AND (
                 :busqueda IS NULL
                 OR LOWER(m.codigo) LIKE LOWER(CONCAT('%', :busqueda, '%'))
@@ -95,5 +96,6 @@ public interface ModeloRepository extends JpaRepository<ModeloModel, Long> {
             @Param("activo") Boolean activo,
             @Param("busqueda") String busqueda,
             @Param("familiaId") Long familiaId,
+            @Param("lineaId") Long lineaId,
             Pageable pageable);
 }

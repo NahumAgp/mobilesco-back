@@ -1,7 +1,10 @@
 package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +31,9 @@ public class ProductoPlantillaModeloService {
     private final NivelInsumoRepository nivelInsumoRepository;
     private final NivelOperacionRepository nivelOperacionRepository;
 
+    private record PlantillaInsumoKey(Long materialId, Long insumoId) {
+    }
+
     @Transactional
     public void aplicarAProducto(ProductoModel producto) {
         if (producto == null || producto.getId() == null || producto.getNivel() == null) {
@@ -35,7 +41,7 @@ public class ProductoPlantillaModeloService {
         }
 
         List<ProductoInsumoModel> insumosNuevos = new ArrayList<>();
-        nivelInsumoRepository.findByNivelIdOrderByInsumoNombreAsc(producto.getNivel().getId()).forEach(plantilla -> {
+        construirPlantillaParaProducto(producto).values().forEach(plantilla -> {
             var insumo = plantilla.getInsumo();
             if (!productoInsumoRepository.existsByProductoIdAndInsumoId(producto.getId(), insumo.getId())) {
                 insumosNuevos.add(ProductoInsumoModel.builder()
@@ -72,5 +78,32 @@ public class ProductoPlantillaModeloService {
             return;
         }
         productoRepository.findByModeloId(modelo.getId()).forEach(this::aplicarAProducto);
+    }
+
+    private Map<Long, com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelInsumoModel> construirPlantillaParaProducto(
+            ProductoModel producto) {
+        Map<PlantillaInsumoKey, com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelInsumoModel> plantilla = new LinkedHashMap<>();
+        nivelInsumoRepository.findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(producto.getNivel().getId())
+                .forEach(item -> {
+                    Long materialId = item.getMaterial() != null ? item.getMaterial().getId() : null;
+                    Long insumoId = item.getInsumo() != null ? item.getInsumo().getId() : null;
+                    if (insumoId != null) {
+                        plantilla.put(new PlantillaInsumoKey(materialId, insumoId), item);
+                    }
+                });
+
+        Map<Long, com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelInsumoModel> efectiva = new LinkedHashMap<>();
+        Long materialProductoId = producto.getMaterial() != null ? producto.getMaterial().getId() : null;
+        plantilla.forEach((key, item) -> {
+            if (key.materialId() == null) {
+                efectiva.put(key.insumoId(), item);
+            }
+        });
+        plantilla.forEach((key, item) -> {
+            if (materialProductoId != null && Objects.equals(key.materialId(), materialProductoId)) {
+                efectiva.put(key.insumoId(), item);
+            }
+        });
+        return efectiva;
     }
 }

@@ -13,6 +13,8 @@ public interface NivelInsumoRepository extends JpaRepository<NivelInsumoModel, L
 
     List<NivelInsumoModel> findByNivelIdOrderByInsumoNombreAsc(Long nivelId);
 
+    List<NivelInsumoModel> findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(Long nivelId);
+
     @Modifying
     @Query("DELETE FROM NivelInsumoModel ni WHERE ni.nivel.id = :nivelId")
     void deleteByNivelId(@Param("nivelId") Long nivelId);

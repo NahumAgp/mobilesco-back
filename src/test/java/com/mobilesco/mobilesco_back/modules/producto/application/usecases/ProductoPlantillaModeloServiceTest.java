@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
+import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelInsumoModel;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelOperacionModel;
@@ -60,7 +61,7 @@ class ProductoPlantillaModeloServiceTest {
         nivel.setId(5L);
 
         ProductoModel producto = ProductoModel.builder().id(7L).nivel(nivel).build();
-        when(nivelInsumoRepository.findByNivelIdOrderByInsumoNombreAsc(5L)).thenReturn(List.of(
+        when(nivelInsumoRepository.findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(5L)).thenReturn(List.of(
                 NivelInsumoModel.builder().nivel(nivel).insumo(insumo).cantidad(2.5).build()));
         when(nivelOperacionRepository.findByNivelIdOrderByOrdenAsc(5L)).thenReturn(List.of(
                 NivelOperacionModel.builder().nivel(nivel).operacion(operacion).cantidad(3).orden(2).build()));
@@ -84,5 +85,67 @@ class ProductoPlantillaModeloServiceTest {
         assertEquals(21L, productoOperacion.getOperacion().getId());
         assertEquals(3, productoOperacion.getCantidad());
         assertEquals(2, productoOperacion.getOrden());
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void aplicaInsumosComunesYSoloLosDelMaterialDelProducto() {
+        NivelModel nivel = new NivelModel();
+        nivel.setId(5L);
+
+        MaterialModel formica = MaterialModel.builder().id(1L).nombre("FORMICA").build();
+        MaterialModel polipropileno = MaterialModel.builder().id(2L).nombre("POLIPROPILENO").build();
+        InsumoModel comun = new InsumoModel();
+        comun.setId(11L);
+        InsumoModel formicaInsumo = new InsumoModel();
+        formicaInsumo.setId(12L);
+        InsumoModel polipropilenoInsumo = new InsumoModel();
+        polipropilenoInsumo.setId(13L);
+
+        ProductoModel producto = ProductoModel.builder().id(7L).nivel(nivel).material(formica).build();
+        when(nivelInsumoRepository.findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(5L)).thenReturn(List.of(
+                NivelInsumoModel.builder().nivel(nivel).insumo(comun).cantidad(1.0).build(),
+                NivelInsumoModel.builder().nivel(nivel).material(formica).insumo(formicaInsumo).cantidad(2.0).build(),
+                NivelInsumoModel.builder().nivel(nivel).material(polipropileno).insumo(polipropilenoInsumo).cantidad(3.0).build()));
+        when(productoInsumoRepository.existsByProductoIdAndInsumoId(7L, 11L)).thenReturn(false);
+        when(productoInsumoRepository.existsByProductoIdAndInsumoId(7L, 12L)).thenReturn(false);
+        when(productoInsumoRepository.existsByProductoIdAndInsumoId(7L, 13L)).thenReturn(false);
+        when(productoInsumoRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.aplicarAProducto(producto);
+
+        ArgumentCaptor<Iterable> insumosCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(productoInsumoRepository).saveAll(insumosCaptor.capture());
+        List<ProductoInsumoModel> insumos = (List<ProductoInsumoModel>) insumosCaptor.getValue();
+
+        assertEquals(List.of(11L, 12L), insumos.stream().map(item -> item.getInsumo().getId()).toList());
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void elInsumoEspecificoDelMaterialReemplazaAlComunEnLaVariante() {
+        NivelModel nivel = new NivelModel();
+        nivel.setId(5L);
+
+        MaterialModel formica = MaterialModel.builder().id(1L).nombre("FORMICA").build();
+        InsumoModel tablero = new InsumoModel();
+        tablero.setId(11L);
+
+        ProductoModel producto = ProductoModel.builder().id(7L).nivel(nivel).material(formica).build();
+        when(nivelInsumoRepository.findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(5L)).thenReturn(List.of(
+                NivelInsumoModel.builder().nivel(nivel).insumo(tablero).cantidad(1.0).build(),
+                NivelInsumoModel.builder().nivel(nivel).material(formica).insumo(tablero).cantidad(2.0).build()));
+        when(productoInsumoRepository.existsByProductoIdAndInsumoId(7L, 11L)).thenReturn(false);
+        when(productoInsumoRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.aplicarAProducto(producto);
+
+        ArgumentCaptor<Iterable> insumosCaptor = ArgumentCaptor.forClass(Iterable.class);
+        verify(productoInsumoRepository).saveAll(insumosCaptor.capture());
+        List<ProductoInsumoModel> insumos = (List<ProductoInsumoModel>) insumosCaptor.getValue();
+
+        assertEquals(1, insumos.size());
+        assertEquals(11L, insumos.get(0).getInsumo().getId());
+        assertEquals(2.0, insumos.get(0).getCantidad());
     }
 }

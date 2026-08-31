@@ -73,6 +73,9 @@ public class ModeloService {
     private static final int PAGE_SIZE = 10;
     private static final String OBSERVACION_HEREDADO_CATEGORIA = "Heredado de la categoria del modelo";
 
+    private record PlantillaInsumoKey(Long materialId, Long insumoId) {
+    }
+
     private final ModeloRepository modeloRepository;
     private final FamiliaRepository familiaRepository;
     private final MaterialRepository materialRepository;
@@ -234,8 +237,8 @@ public class ModeloService {
         modelo.setSubfamilia(subfamilia);
 
         ModeloModel guardado = modeloRepository.save(modelo);
-        sincronizarCategorias(guardado, dto.getCategorias());
         sincronizarMateriales(guardado, dto.getMateriales());
+        sincronizarCategorias(guardado, dto.getCategorias());
         limpiarPlantillaGlobal(guardado);
         guardado = modeloRepository.save(guardado);
         return mapToResponseDTO(guardado);
@@ -277,7 +280,7 @@ public class ModeloService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] generarReporteExcel(Boolean activo, String busqueda, String familia, Long familiaId, String sortBy, String direction) {
+    public byte[] generarReporteExcel(Boolean activo, String busqueda, String familia, Long familiaId, Long lineaId, String sortBy, String direction) {
         List<ModeloResponseDTO> modelos = mapToResponseDTOList(
                 modeloRepository.findAll(construirSortModelos(sortBy, direction)));
 
@@ -285,9 +288,12 @@ public class ModeloService {
         List<ModeloResponseDTO> filtrados = modelos.stream()
                 .filter(modelo -> activo == null || Objects.equals(modelo.getActivo(), activo))
                 .filter(modelo -> familiaId == null || Objects.equals(modelo.getFamiliaId(), familiaId))
+                .filter(modelo -> lineaId == null || Objects.equals(modelo.getLineaId(), lineaId))
                 .filter(modelo -> familiaNormalizada.isBlank()
-                        || (modelo.getFamiliaNombre() != null
-                        && modelo.getFamiliaNombre().toLowerCase(Locale.ROOT).contains(familiaNormalizada)))
+                        || Stream.of(modelo.getLineaNombre(), modelo.getFamiliaNombre(), modelo.getSubfamiliaNombre())
+                        .filter(valor -> valor != null && !valor.isBlank())
+                        .map(valor -> valor.toLowerCase(Locale.ROOT))
+                        .anyMatch(valor -> valor.contains(familiaNormalizada)))
                 .filter(modelo -> coincideBusqueda(modelo, busqueda))
                 .collect(Collectors.toList());
 
@@ -320,12 +326,13 @@ public class ModeloService {
             String direction,
             Boolean activo,
             String busqueda,
-            Long familiaId) {
+            Long familiaId,
+            Long lineaId) {
         int pageNumber = Math.max(page, 0);
         PageRequest pageable = PageRequest.of(pageNumber, PAGE_SIZE, construirSortModelos(sortBy, direction));
 
         Page<ModeloResponseDTO> result = modeloRepository
-                .buscarPaginado(activo, normalizarBusqueda(busqueda), familiaId, pageable)
+                .buscarPaginado(activo, normalizarBusqueda(busqueda), familiaId, lineaId, pageable)
                 .map(this::mapToResponseDTO);
 
         return new PageResponseDTO<>(
@@ -372,7 +379,9 @@ public class ModeloService {
                         modelo.getCodigo(),
                         modelo.getNombre(),
                         modelo.getDescripcion(),
+                        modelo.getLineaNombre(),
                         modelo.getFamiliaNombre(),
+                        modelo.getSubfamiliaNombre(),
                         modelo.getFamiliaId() != null ? String.valueOf(modelo.getFamiliaId()) : null,
                         modelo.getActivo() != null ? (modelo.getActivo() ? "activo" : "inactivo") : null,
                         modelo.getCreatedAt() != null ? modelo.getCreatedAt().toString() : null,
@@ -444,11 +453,11 @@ public class ModeloService {
         }
 
         ModeloModel actualizado = modeloRepository.save(existente);
-        if (dto.getCategorias() != null) {
-            sincronizarCategorias(actualizado, dto.getCategorias());
-        }
         if (dto.getMateriales() != null) {
             sincronizarMateriales(actualizado, dto.getMateriales());
+        }
+        if (dto.getCategorias() != null) {
+            sincronizarCategorias(actualizado, dto.getCategorias());
         }
         limpiarPlantillaGlobal(actualizado);
         actualizado = modeloRepository.save(actualizado);
@@ -511,7 +520,7 @@ public class ModeloService {
             throw new BadRequestException("La categoria seleccionada no pertenece al modelo");
         }
 
-        Map<Long, ModeloInsumoDTO> plantilla = normalizarPlantillaInsumos(nivel, insumosDto);
+        Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla = normalizarPlantillaInsumos(modelo, nivel, insumosDto);
         sincronizarInsumosCategoria(nivel, List.copyOf(plantilla.values()));
 
         int productosActualizados = 0;
@@ -531,15 +540,16 @@ public class ModeloService {
 
             List<ProductoInsumoModel> guardar = new java.util.ArrayList<>();
             List<ProductoInsumoModel> eliminar = new java.util.ArrayList<>();
+            Map<Long, ModeloInsumoDTO> plantillaProducto = construirPlantillaParaProducto(plantilla, producto);
 
             for (ProductoInsumoModel actual : actuales) {
                 Long insumoId = actual.getInsumo() != null ? actual.getInsumo().getId() : null;
-                if (esInsumoHeredado(actual) && (insumoId == null || !plantilla.containsKey(insumoId))) {
+                if (esInsumoHeredado(actual) && (insumoId == null || !plantillaProducto.containsKey(insumoId))) {
                     eliminar.add(actual);
                 }
             }
 
-            for (ModeloInsumoDTO itemPlantilla : plantilla.values()) {
+            for (ModeloInsumoDTO itemPlantilla : plantillaProducto.values()) {
                 Long insumoId = itemPlantilla.getId();
                 ProductoInsumoModel actual = porInsumo.get(insumoId);
                 if (actual == null) {
@@ -623,7 +633,7 @@ public class ModeloService {
         dto.setNombre(nivel.getNombre());
         dto.setDescripcion(nivel.getDescripcion());
         dto.setActivo(nivel.getActivo());
-        dto.setInsumos(nivelInsumoRepository.findByNivelIdOrderByInsumoNombreAsc(nivel.getId()).stream()
+        dto.setInsumos(nivelInsumoRepository.findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(nivel.getId()).stream()
                 .map(this::mapNivelInsumo)
                 .toList());
         dto.setOperaciones(nivelOperacionRepository.findByNivelIdOrderByOrdenAsc(nivel.getId()).stream()
@@ -639,6 +649,9 @@ public class ModeloService {
                 .codigo(insumo.getCodigo())
                 .nombre(insumo.getNombre())
                 .unidadMedida(insumo.getUnidadMedida() != null ? insumo.getUnidadMedida().getSimbolo() : null)
+                .materialId(nivelInsumo.getMaterial() != null ? nivelInsumo.getMaterial().getId() : null)
+                .materialCodigo(nivelInsumo.getMaterial() != null ? nivelInsumo.getMaterial().getCodigo() : null)
+                .materialNombre(nivelInsumo.getMaterial() != null ? nivelInsumo.getMaterial().getNombre() : null)
                 .cantidad(nivelInsumo.getCantidad())
                 .desperdicioPorcentaje(valorSeguro(nivelInsumo.getDesperdicioPorcentaje()))
                 .costoCotizacion(valorSeguro(insumo.getCostoCotizacion()))
@@ -740,8 +753,11 @@ public class ModeloService {
         modelo.getOperaciones().clear();
     }
 
-    private Map<Long, ModeloInsumoDTO> normalizarPlantillaInsumos(NivelModel nivel, List<ModeloInsumoDTO> insumosDto) {
-        Map<Long, ModeloInsumoDTO> plantilla = new LinkedHashMap<>();
+    private Map<PlantillaInsumoKey, ModeloInsumoDTO> normalizarPlantillaInsumos(
+            ModeloModel modelo,
+            NivelModel nivel,
+            List<ModeloInsumoDTO> insumosDto) {
+        Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla = new LinkedHashMap<>();
         if (insumosDto == null) {
             return plantilla;
         }
@@ -750,16 +766,49 @@ public class ModeloService {
             if (item == null || item.getId() == null) {
                 continue;
             }
-            if (plantilla.containsKey(item.getId())) {
-                throw new BadRequestException("No se pueden repetir insumos en la categoria " + nivel.getNombre());
+            validarMaterialPlantilla(modelo, nivel, item.getMaterialId());
+            PlantillaInsumoKey key = new PlantillaInsumoKey(item.getMaterialId(), item.getId());
+            if (plantilla.containsKey(key)) {
+                throw new BadRequestException("No se pueden repetir insumos en la misma seccion de la categoria " + nivel.getNombre());
             }
             if (item.getCantidad() == null || item.getCantidad() <= 0) {
                 throw new BadRequestException("La cantidad del insumo debe ser mayor a cero en la categoria " + nivel.getNombre());
             }
             item.setDesperdicioPorcentaje(validarDesperdicioInsumo(nivel, item.getDesperdicioPorcentaje()));
-            plantilla.put(item.getId(), item);
+            plantilla.put(key, item);
         }
         return plantilla;
+    }
+
+    private void validarMaterialPlantilla(ModeloModel modelo, NivelModel nivel, Long materialId) {
+        if (materialId == null) {
+            return;
+        }
+        boolean asociado = modelo.getMateriales().stream()
+                .anyMatch(material -> Objects.equals(material.getId(), materialId));
+        if (!asociado) {
+            throw new BadRequestException("El material seleccionado en la categoria " + nivel.getNombre() + " no pertenece al modelo");
+        }
+    }
+
+    private Map<Long, ModeloInsumoDTO> construirPlantillaParaProducto(
+            Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla,
+            ProductoModel producto) {
+        Map<Long, ModeloInsumoDTO> efectiva = new LinkedHashMap<>();
+        Long materialProductoId = producto.getMaterial() != null ? producto.getMaterial().getId() : null;
+
+        plantilla.forEach((key, item) -> {
+            if (key.materialId() == null) {
+                efectiva.put(key.insumoId(), item);
+            }
+        });
+        plantilla.forEach((key, item) -> {
+            if (materialProductoId != null && Objects.equals(key.materialId(), materialProductoId)) {
+                efectiva.put(key.insumoId(), item);
+            }
+        });
+
+        return efectiva;
     }
 
     private boolean esInsumoHeredado(ProductoInsumoModel item) {
@@ -837,14 +886,16 @@ public class ModeloService {
             return;
         }
 
-        Set<Long> idsUnicos = new HashSet<>();
+        Set<PlantillaInsumoKey> idsUnicos = new HashSet<>();
         List<NivelInsumoModel> insumos = new java.util.ArrayList<>();
         for (ModeloInsumoDTO item : insumosDto) {
             if (item == null || item.getId() == null) {
                 continue;
             }
-            if (!idsUnicos.add(item.getId())) {
-                throw new BadRequestException("No se pueden repetir insumos en la categoria " + nivel.getNombre());
+            validarMaterialPlantilla(nivel.getModelo(), nivel, item.getMaterialId());
+            PlantillaInsumoKey key = new PlantillaInsumoKey(item.getMaterialId(), item.getId());
+            if (!idsUnicos.add(key)) {
+                throw new BadRequestException("No se pueden repetir insumos en la misma seccion de la categoria " + nivel.getNombre());
             }
             if (item.getCantidad() == null || item.getCantidad() <= 0) {
                 throw new BadRequestException("La cantidad del insumo debe ser mayor a cero en la categoria " + nivel.getNombre());
@@ -855,6 +906,10 @@ public class ModeloService {
             insumos.add(NivelInsumoModel.builder()
                     .nivel(nivel)
                     .insumo(insumo)
+                    .material(item.getMaterialId() != null
+                            ? materialRepository.findById(item.getMaterialId())
+                                    .orElseThrow(() -> new NotFoundException("Material no encontrado con ID: " + item.getMaterialId()))
+                            : null)
                     .cantidad(item.getCantidad())
                     .desperdicioPorcentaje(desperdicio)
                     .build());

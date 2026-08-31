@@ -18,6 +18,10 @@ public class ModeloInsumoDTO {
     private String codigo;
     private String nombre;
     private String unidadMedida;
+    @JsonAlias({"materialId", "material_id"})
+    private Long materialId;
+    private String materialCodigo;
+    private String materialNombre;
     @JsonProperty("cantidad")
     private Double cantidad;
     @JsonAlias({"desperdicio", "desperdicio_porcentaje"})

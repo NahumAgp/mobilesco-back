@@ -60,7 +60,8 @@ public class ModeloController {
             @RequestParam(required = false, defaultValue = "asc") String direction,
             @RequestParam(required = false) Boolean activo,
             @RequestParam(required = false) String busqueda,
-            @RequestParam(required = false) Long familiaId) {
+            @RequestParam(required = false) Long familiaId,
+            @RequestParam(required = false) Long lineaId) {
         if (page != null) {
             PageResponseDTO<ModeloResponseDTO> resultado = modeloService.obtenerPaginado(
                     page,
@@ -68,7 +69,8 @@ public class ModeloController {
                     direction,
                     activo,
                     busqueda,
-                    familiaId);
+                    familiaId,
+                    lineaId);
             return ResponseEntity.ok(resultado);
         }
 
@@ -81,9 +83,10 @@ public class ModeloController {
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) String familia,
             @RequestParam(required = false) Long familiaId,
+            @RequestParam(required = false) Long lineaId,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false, defaultValue = "asc") String direction) {
-        byte[] excel = modeloService.generarReporteExcel(activo, busqueda, familia, familiaId, sortBy, direction);
+        byte[] excel = modeloService.generarReporteExcel(activo, busqueda, familia, familiaId, lineaId, sortBy, direction);
         String filename = "modelos.xlsx";
 
         return ResponseEntity.ok()

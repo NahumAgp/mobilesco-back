@@ -1,6 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.nivel.domain.models;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
+import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,7 +22,7 @@ import lombok.Setter;
 @Entity
 @Table(
         name = "nivel_insumo",
-        uniqueConstraints = @UniqueConstraint(name = "uk_nivel_insumo", columnNames = {"nivel_id", "insumo_id"})
+        uniqueConstraints = @UniqueConstraint(name = "uk_nivel_insumo_material", columnNames = {"nivel_id", "material_id", "insumo_id"})
 )
 @Getter
 @Setter
@@ -41,6 +42,10 @@ public class NivelInsumoModel {
     @ManyToOne
     @JoinColumn(name = "insumo_id", nullable = false, foreignKey = @ForeignKey(name = "fk_nivel_insumo_insumo"))
     private InsumoModel insumo;
+
+    @ManyToOne
+    @JoinColumn(name = "material_id", foreignKey = @ForeignKey(name = "fk_nivel_insumo_material"))
+    private MaterialModel material;
 
     @Column(name = "cantidad", nullable = false)
     private Double cantidad;
