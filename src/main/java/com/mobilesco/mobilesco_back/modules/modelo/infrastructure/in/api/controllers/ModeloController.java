@@ -31,9 +31,11 @@ import com.mobilesco.mobilesco_back.dto.common.PageResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.application.usecases.ModeloService;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCreateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloInsumoDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloMedidasDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionInsumosVariantesResponseDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionMedidasVariantesResponseDTO;
 
 import jakarta.validation.Valid;
 
@@ -140,6 +142,15 @@ public class ModeloController {
             @RequestParam(required = false) Long materialId,
             @RequestBody List<@Valid ModeloInsumoDTO> insumos) {
         return ResponseEntity.ok(modeloService.sincronizarInsumosVariantes(id, nivelId, materialId, insumos));
+    }
+
+    @PutMapping("/{id}/categorias/{nivelId}/medidas/sincronizar-variantes")
+    public ResponseEntity<SincronizacionMedidasVariantesResponseDTO> sincronizarMedidasVariantes(
+            @PathVariable Long id,
+            @PathVariable Long nivelId,
+            @RequestParam(required = false) Long materialId,
+            @Valid @RequestBody ModeloMedidasDTO medidas) {
+        return ResponseEntity.ok(modeloService.sincronizarMedidasVariantes(id, nivelId, materialId, medidas));
     }
 
     @PostMapping(value = "/{id}/imagen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

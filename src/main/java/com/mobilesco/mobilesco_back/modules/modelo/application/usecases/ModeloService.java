@@ -41,10 +41,12 @@ import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCreateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloCategoriaDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloInsumoDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloMedidasDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloOperacionDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionInsumosVariantesResponseDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionMedidasVariantesResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
 import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.out.persistence.repositories.SubfamiliaRepository;
@@ -632,6 +634,72 @@ public class ModeloService {
 
     private Long getProductoMaterialId(ProductoModel producto) {
         return producto != null && producto.getMaterial() != null ? producto.getMaterial().getId() : null;
+    }
+
+    @Transactional
+    public SincronizacionMedidasVariantesResponseDTO sincronizarMedidasVariantes(
+            Long modeloId,
+            Long nivelId,
+            Long materialId,
+            ModeloMedidasDTO medidas) {
+        ModeloModel modelo = modeloRepository.findById(modeloId)
+                .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + modeloId));
+        NivelModel nivel = nivelRepository.findById(nivelId)
+                .orElseThrow(() -> new NotFoundException("Categoria del modelo no encontrada con ID: " + nivelId));
+
+        if (nivel.getModelo() == null || !Objects.equals(nivel.getModelo().getId(), modelo.getId())) {
+            throw new BadRequestException("La categoria seleccionada no pertenece al modelo");
+        }
+        validarMaterialPlantilla(modelo, nivel, materialId);
+        validarMedidaNoNegativa(nivel, medidas != null ? medidas.getAncho() : null, "ancho");
+        validarMedidaNoNegativa(nivel, medidas != null ? medidas.getAlto() : null, "alto");
+        validarMedidaNoNegativa(nivel, medidas != null ? medidas.getFondo() : null, "fondo");
+        validarMedidaNoNegativa(nivel, medidas != null ? medidas.getPesoKg() : null, "peso fisico");
+        validarMedidaNoNegativa(nivel, medidas != null ? medidas.getPesoVolumetrico() : null, "peso volumetrico");
+
+        List<ProductoModel> productos = productoRepository.findByModeloIdAndNivelId(modeloId, nivelId).stream()
+                .filter(producto -> materialId == null || Objects.equals(getProductoMaterialId(producto), materialId))
+                .toList();
+
+        for (ProductoModel producto : productos) {
+            producto.setAncho(medidas != null ? medidas.getAncho() : null);
+            producto.setAlto(medidas != null ? medidas.getAlto() : null);
+            producto.setFondo(medidas != null ? medidas.getFondo() : null);
+            producto.setPesoKg(medidas != null ? medidas.getPesoKg() : null);
+            producto.setPesoVolumetrico(medidas != null ? medidas.getPesoVolumetrico() : null);
+            producto.setDimensiones(normalizarDimensiones(medidas));
+        }
+
+        if (!productos.isEmpty()) {
+            productoRepository.saveAll(productos);
+        }
+
+        return SincronizacionMedidasVariantesResponseDTO.builder()
+                .modeloId(modelo.getId())
+                .nivelId(nivel.getId())
+                .nivelNombre(nivel.getNombre())
+                .materialId(materialId)
+                .productosActualizados(productos.size())
+                .build();
+    }
+
+    private void validarMedidaNoNegativa(NivelModel nivel, Double valor, String campo) {
+        if (valor != null && valor < 0) {
+            throw new BadRequestException("El " + campo + " debe ser mayor o igual a cero en la categoria " + nivel.getNombre());
+        }
+    }
+
+    private String normalizarDimensiones(ModeloMedidasDTO medidas) {
+        if (medidas == null) {
+            return null;
+        }
+        if (medidas.getDimensiones() != null && !medidas.getDimensiones().isBlank()) {
+            return medidas.getDimensiones().trim();
+        }
+        if (medidas.getAncho() != null && medidas.getAlto() != null && medidas.getFondo() != null) {
+            return String.format(Locale.ROOT, "%.2f x %.2f x %.2f", medidas.getAncho(), medidas.getAlto(), medidas.getFondo());
+        }
+        return null;
     }
 
     @Transactional
