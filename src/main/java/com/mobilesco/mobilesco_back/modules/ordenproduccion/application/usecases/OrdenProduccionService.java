@@ -114,10 +114,9 @@ public class OrdenProduccionService {
             List<ProductoOperacionModel> ruta=productoOperacionRepository.findByProductoIdOrderByOrdenAsc(producto.getId()).stream().filter(p->Boolean.TRUE.equals(p.getActivo())).toList();
             if(bom.isEmpty()||bom.stream().anyMatch(x->x.getCantidad()==null||x.getCantidad()<=0)) throw new ValidationException("El producto "+producto.getSku()+" no tiene una BOM de insumos completa");
             if(ruta.isEmpty()||ruta.stream().anyMatch(x->x.getCantidad()==null||x.getCantidad()<=0)) throw new ValidationException("El producto "+producto.getSku()+" no tiene una ruta de operaciones completa");
-            for(ProductoInsumoModel pi:bom){
-                InsumoModel ins=pi.getInsumo();
-                BigDecimal cantidad=bd(pi.getCantidad()).multiply(BigDecimal.valueOf(unidades))
-                    .multiply(BigDecimal.ONE.add(bd(pi.getDesperdicioPorcentaje()).divide(CIEN,8,RoundingMode.HALF_UP))).setScale(4,RoundingMode.HALF_UP);
+            for(var consumo:com.mobilesco.mobilesco_back.modules.producto.application.usecases.DespieceProducto.consolidar(bom)){
+                InsumoModel ins=consumo.insumo();
+                BigDecimal cantidad=consumo.cantidad().multiply(BigDecimal.valueOf(unidades)).setScale(4,RoundingMode.HALF_UP);
                 consolidados.compute(ins.getId(),(key,actual)->{
                     if(actual==null) return OrdenProduccionInsumoModel.builder().orden(orden).insumo(ins).codigoSnapshot(ins.getCodigo())
                         .nombreSnapshot(ins.getNombre()).unidadSnapshot(ins.getUnidadMedida().getSimbolo()).cantidadRequerida(cantidad)

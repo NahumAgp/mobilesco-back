@@ -24,6 +24,8 @@ public class ProductoInsumoResponseDTO {
     
     private Long insumoId;
     private String insumoNombre;
+    private boolean conjunto;
+    private java.util.List<com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.ConjuntoInsumoDTO.Componente> componentes;
     private String insumoUnidad;
     private Double cantidad;
     private Double desperdicioPorcentaje;

@@ -85,6 +85,7 @@ public class InsumoService {
         InsumoModel insumo = insumoRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
         Double stockMinimoAnterior = insumo.getStockMinimo();
+        if (insumo.isConjunto()) throw new ValidationException("Edita el conjunto desde Conjuntos de insumos");
 
         // Validar nombre único (excepto si es el mismo)
         if (!insumo.getNombre().equalsIgnoreCase(dto.getNombre()) && 
@@ -303,6 +304,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     public InsumoCostoResponseDTO actualizarCostoCotizacion(Long id, Double costoCotizacion) {
         InsumoModel insumo = insumoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
+        if (insumo.isConjunto()) throw new ValidationException("El costo del conjunto se calcula desde su despiece");
 
         if (costoCotizacion == null || costoCotizacion <= 0) {
             throw new ValidationException("El costo de cotizacion debe ser mayor a 0");
@@ -576,6 +578,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
         InsumoModel insumo = insumoRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + id));
 
+        insumo.exigirInsumoDirecto();
         double stockAnterior = insumo.getStockActual() != null ? insumo.getStockActual() : 0.0;
         double stockNuevo;
 
@@ -816,7 +819,8 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     }
 
     private boolean puedeEliminarDefinitivo(Long insumoId) {
-        return !detalleCompraRepository.existsByInsumoId(insumoId)
+        return !insumoRepository.esComponente(insumoId)
+                && !detalleCompraRepository.existsByInsumoId(insumoId)
                 && !productoInsumoRepository.existsByInsumoId(insumoId)
                 && !kardexRepository.existsByInsumoId(insumoId)
                 && !detalleSalidaInsumoRepository.existsByInsumoId(insumoId);

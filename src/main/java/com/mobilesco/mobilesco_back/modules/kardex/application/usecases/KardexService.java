@@ -51,6 +51,7 @@ public class KardexService {
         
         InsumoModel insumo = insumoRepository.findById(insumoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado"));
+        insumo.exigirInsumoDirecto();
 
         Double stockAnteriorSeguro = stockAnterior != null ? stockAnterior : 0.0;
         Double stockNuevoSeguro = stockNuevo != null ? stockNuevo : stockAnteriorSeguro + cantidad;
@@ -96,6 +97,7 @@ public class KardexService {
         
         InsumoModel insumo = insumoRepository.findById(insumoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado"));
+        insumo.exigirInsumoDirecto();
 
         Double stockAnteriorSeguro = stockAnterior != null ? stockAnterior : 0.0;
         Double stockNuevoSeguro = stockNuevo != null ? stockNuevo : stockAnteriorSeguro - cantidad;
@@ -146,6 +148,7 @@ public class KardexService {
 
         InsumoModel insumo = insumoRepository.findById(insumoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado"));
+        insumo.exigirInsumoDirecto();
 
         Double cantidadSegura = cantidad != null ? cantidad : 0.0;
         Double costoSeguro = costoUnitario != null ? costoUnitario : 0.0;
@@ -189,6 +192,7 @@ public class KardexService {
         
         InsumoModel insumo = insumoRepository.findById(insumoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado"));
+        insumo.exigirInsumoDirecto();
 
         Double stockAnteriorSeguro = stockAnterior != null ? stockAnterior : 0.0;
         Double nuevoStockSeguro = nuevoStock != null ? nuevoStock : stockAnteriorSeguro;

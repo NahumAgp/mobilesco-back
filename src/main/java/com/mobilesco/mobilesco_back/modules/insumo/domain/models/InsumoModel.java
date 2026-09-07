@@ -1,6 +1,11 @@
 package com.mobilesco.mobilesco_back.modules.insumo.domain.models;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import com.mobilesco.mobilesco_back.modules.unidadmedida.domain.models.UnidadMedidaModel;
 
@@ -60,6 +65,32 @@ public class InsumoModel {
 
     @Column(name = "costo_cotizar")
     private Double costoCotizacion;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean conjunto = false;
+
+    @OneToMany(mappedBy = "conjunto", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @JsonIgnore
+    private List<ComponenteInsumoModel> componentes = new ArrayList<>();
+
+    // Los conjuntos mantienen referencias al despiece vigente, nunca copias del costo.
+    public Double getCostoCotizacion() {
+        if (!conjunto) return costoCotizacion;
+        double total = 0;
+        for (var componente : componentes) {
+            Double costo = componente.getInsumo().getCostoCotizacion();
+            if (costo == null || costo <= 0) return null;
+            total += componente.getCantidad() * costo;
+        }
+        return total;
+    }
+
+    public void exigirInsumoDirecto() {
+        if (conjunto) throw new com.mobilesco.mobilesco_back.modules.shared.application.exceptions.ValidationException(
+                "Los conjuntos no tienen existencias propias; utiliza los insumos de su despiece");
+    }
 
     @Column(name = "tipo_insumo", length = 80)
     private String tipoInsumo;

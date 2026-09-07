@@ -305,6 +305,8 @@ public class ProductoInsumoService {
             .id(pi.getId())
             .insumoId(pi.getInsumo().getId())
             .insumoNombre(pi.getInsumo().getNombre())
+            .conjunto(pi.getInsumo().isConjunto())
+            .componentes(com.mobilesco.mobilesco_back.modules.insumo.application.usecases.ConjuntoInsumoService.componentes(pi.getInsumo()))
             .insumoUnidad(pi.getInsumo().getUnidadMedida().getSimbolo())
             .cantidad(pi.getCantidad())
             .desperdicioPorcentaje(pi.getDesperdicioPorcentaje())

@@ -71,6 +71,7 @@ public class RequisicionAlmacenService {
             InsumoModel insumo = insumoRepository.findById(partida.getInsumoId())
                     .filter(item -> Boolean.TRUE.equals(item.getActivo()))
                     .orElseThrow(() -> new BadRequestException("El insumo seleccionado no existe o está inactivo"));
+            insumo.exigirInsumoDirecto();
             requisicion.agregarDetalle(crearDetalle(insumo, partida));
         }
 

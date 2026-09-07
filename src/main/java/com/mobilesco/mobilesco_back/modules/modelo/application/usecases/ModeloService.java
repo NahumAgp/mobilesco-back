@@ -752,6 +752,8 @@ public class ModeloService {
                 .cantidad(nivelInsumo.getCantidad())
                 .desperdicioPorcentaje(valorSeguro(nivelInsumo.getDesperdicioPorcentaje()))
                 .costoCotizacion(valorSeguro(insumo.getCostoCotizacion()))
+                .conjunto(insumo.isConjunto())
+                .componentes(com.mobilesco.mobilesco_back.modules.insumo.application.usecases.ConjuntoInsumoService.componentes(insumo))
                 .activo(insumo.getActivo())
                 .build();
     }

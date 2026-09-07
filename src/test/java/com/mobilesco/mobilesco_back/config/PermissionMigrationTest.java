@@ -74,7 +74,7 @@ class PermissionMigrationTest {
         int assignmentsBefore = countAssignments(url);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThat(countAssignments(url)).isEqualTo(assignmentsBefore);
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("10");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("11");
     }
 
     private void seedLegacyAccess(Connection connection) throws Exception {

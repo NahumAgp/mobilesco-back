@@ -29,4 +29,6 @@ public class ModeloInsumoDTO {
     @JsonAlias({"costo", "costo_cotizar", "costo_cotizacion"})
     private Double costoCotizacion;
     private Boolean activo;
+    private boolean conjunto;
+    private java.util.List<com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.ConjuntoInsumoDTO.Componente> componentes;
 }

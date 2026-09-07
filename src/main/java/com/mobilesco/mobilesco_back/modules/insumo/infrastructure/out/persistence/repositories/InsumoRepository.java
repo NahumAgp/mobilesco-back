@@ -18,8 +18,23 @@ import jakarta.persistence.LockModeType;
 
 public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
 
+    @EntityGraph(attributePaths = {"unidadMedida", "componentes.insumo.unidadMedida"})
+    List<InsumoModel> findByConjuntoTrueOrderByNombreAsc();
+
+    @Query("SELECT COUNT(c) > 0 FROM ComponenteInsumoModel c WHERE c.insumo.id = :id")
+    boolean esComponente(@Param("id") Long id);
+
+    @Override
+    @Query("SELECT i FROM InsumoModel i WHERE i.conjunto = false")
+    List<InsumoModel> findAll();
+
+    @Override
+    @Query("SELECT i FROM InsumoModel i WHERE i.conjunto = false")
+    List<InsumoModel> findAll(org.springframework.data.domain.Sort sort);
+
     @Override
     @EntityGraph(attributePaths = "unidadMedida")
+    @Query("SELECT i FROM InsumoModel i WHERE i.conjunto = false")
     Page<InsumoModel> findAll(Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -44,17 +59,18 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
     boolean existsByNombreIgnoreCase(@Param("nombre") String nombre);
     
     // Listar activos
+    @Query("SELECT i FROM InsumoModel i WHERE i.activo = true AND i.conjunto = false")
     List<InsumoModel> findByActivoTrue();
     
     // Buscar por nombre (para búsquedas)
-    @Query("SELECT i FROM InsumoModel i WHERE LOWER(i.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')) AND i.activo = true")
+    @Query("SELECT i FROM InsumoModel i WHERE LOWER(i.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')) AND i.activo = true AND i.conjunto = false")
     List<InsumoModel> buscarPorNombre(@Param("nombre") String nombre);
 
     @Query("""
         SELECT i
         FROM InsumoModel i
         LEFT JOIN i.unidadMedida um
-        WHERE (:activo IS NULL OR i.activo = :activo)
+        WHERE i.conjunto = false AND (:activo IS NULL OR i.activo = :activo)
           AND (
                 :busqueda IS NULL OR :busqueda = '' OR
                 LOWER(COALESCE(i.codigo, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
@@ -78,7 +94,7 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
             SELECT i
             FROM InsumoModel i
             LEFT JOIN i.unidadMedida um
-            WHERE (:activo IS NULL OR i.activo = :activo)
+            WHERE i.conjunto = false AND (:activo IS NULL OR i.activo = :activo)
               AND (:stockBajo = false OR (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo)
               AND (
                     :busqueda IS NULL OR :busqueda = '' OR
@@ -108,25 +124,26 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
     @Query("""
             SELECT i FROM InsumoModel i
             LEFT JOIN i.unidadMedida um
-            WHERE :busqueda IS NULL OR :busqueda = ''
+            WHERE i.conjunto = false AND (:busqueda IS NULL OR :busqueda = ''
                OR LOWER(COALESCE(i.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
                OR LOWER(COALESCE(i.codigo, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
                OR LOWER(COALESCE(i.codigoBarras, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
                OR LOWER(COALESCE(um.nombre, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
-               OR LOWER(COALESCE(um.simbolo, '')) LIKE LOWER(CONCAT('%', :busqueda, '%'))
+               OR LOWER(COALESCE(um.simbolo, '')) LIKE LOWER(CONCAT('%', :busqueda, '%')))
             """)
     Page<InsumoModel> buscarCostos(@Param("busqueda") String busqueda, Pageable pageable);
     
     // Filtrar por unidad de medida
-    List<InsumoModel> findByUnidadMedidaId(Long unidadMedidaId);
+    @Query("SELECT i FROM InsumoModel i WHERE i.unidadMedida.id = :unidadMedidaId AND i.conjunto = false")
+    List<InsumoModel> findByUnidadMedidaId(@Param("unidadMedidaId") Long unidadMedidaId);
     
     // Stock bajo (stock actual <= stock mínimo)
-    @Query("SELECT i FROM InsumoModel i WHERE (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo AND i.activo = true")
+    @Query("SELECT i FROM InsumoModel i WHERE (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo AND i.activo = true AND i.conjunto = false")
     List<InsumoModel> findWithStockBajo();
 
     @Query("""
             SELECT COUNT(i) FROM InsumoModel i
-            WHERE i.activo = true AND i.stockMinimo IS NOT NULL AND (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo
+            WHERE i.conjunto = false AND i.activo = true AND i.stockMinimo IS NOT NULL AND (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo
             """)
     long countWithStockBajo();
 

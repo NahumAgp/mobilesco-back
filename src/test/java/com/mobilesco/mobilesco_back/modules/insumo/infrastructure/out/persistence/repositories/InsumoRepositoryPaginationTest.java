@@ -44,6 +44,32 @@ class InsumoRepositoryPaginationTest {
 
     private UnidadMedidaModel pieza;
 
+    @Autowired
+    private com.mobilesco.mobilesco_back.modules.insumo.application.usecases.ConjuntoInsumoService conjuntos;
+
+    @Test
+    void guardaYActualizaDespieceSinIncluirConjuntosEnInventario() {
+        var tubo = insumoRepository.findByNombre("Tornillo suficiente").orElseThrow();
+        tubo.setCostoCotizacion(5.0);
+        var solicitud = new com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.ConjuntoInsumoDTO(
+                null, "Travesanos", "", pieza.getId(), null, null, null,
+                java.util.List.of(new com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.ConjuntoInsumoDTO.Componente(
+                        tubo.getId(), null, null, 2.0, null)));
+        var creado = conjuntos.guardar(null, solicitud);
+        entityManager.clear();
+        assertEquals(10.0, conjuntos.listar().getFirst().costoCotizacion());
+        assertEquals(4, insumoRepository.findAll(PageRequest.of(0, 20)).getTotalElements());
+        assertTrue(insumoRepository.esComponente(tubo.getId()));
+        var cambio = new com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.ConjuntoInsumoDTO(
+                creado.id(), creado.nombre(), "", pieza.getId(), null, null, creado.version(),
+                java.util.List.of(new com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.ConjuntoInsumoDTO.Componente(
+                        tubo.getId(), null, null, 3.0, null)));
+        var actualizado = conjuntos.guardar(creado.id(), cambio);
+        entityManager.clear();
+        assertEquals(15.0, conjuntos.listar().getFirst().costoCotizacion());
+        assertTrue(actualizado.version() > creado.version());
+    }
+
     @BeforeEach
     void setUp() {
         pieza = new UnidadMedidaModel();

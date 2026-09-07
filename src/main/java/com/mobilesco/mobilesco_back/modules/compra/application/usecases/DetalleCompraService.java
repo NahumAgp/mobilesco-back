@@ -50,6 +50,7 @@ public class DetalleCompraService {
         
         InsumoModel insumo = insumoRepository.findById(dto.getInsumoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo no encontrado con id: " + dto.getInsumoId()));
+        insumo.exigirInsumoDirecto();
         
         UnidadMedidaModel unidadCompra = unidadMedidaRepository.findById(dto.getUnidadCompraId())
                 .orElseThrow(() -> new ResourceNotFoundException("Unidad de compra no encontrada con id: " + dto.getUnidadCompraId()));
@@ -129,6 +130,7 @@ public class DetalleCompraService {
 
         for (DetalleCompraCreateDTO dto : dtos) {
             InsumoModel insumo = insumosBloqueados.get(dto.getInsumoId());
+            insumo.exigirInsumoDirecto();
             if (!Boolean.TRUE.equals(insumo.getActivo())) {
                 throw new ValidationException("El insumo está inactivo: " + insumo.getNombre());
             }
