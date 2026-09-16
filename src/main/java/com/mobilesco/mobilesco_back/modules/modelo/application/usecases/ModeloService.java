@@ -47,6 +47,7 @@ import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.Mo
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.ModeloUpdateDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionInsumosVariantesResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionMedidasVariantesResponseDTO;
+import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.in.api.dtos.SincronizacionOperacionesVariantesResponseDTO;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
 import com.mobilesco.mobilesco_back.modules.subfamilia.infrastructure.out.persistence.repositories.SubfamiliaRepository;
@@ -64,7 +65,9 @@ import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoOperacionModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
+import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoOperacionRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoPlantillaModeloService;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.AlmacenamientoImagenesService;
@@ -76,6 +79,20 @@ public class ModeloService {
     private static final String OBSERVACION_HEREDADO_CATEGORIA = "Heredado de la categoria del modelo";
 
     private record PlantillaInsumoKey(Long materialId, Long insumoId) {
+    }
+
+    private record SincronizacionInsumosConteo(
+            int productosActualizados,
+            int insumosAgregados,
+            int insumosActualizados,
+            int insumosEliminados) {
+    }
+
+    private record SincronizacionOperacionesConteo(
+            int productosActualizados,
+            int operacionesAgregadas,
+            int operacionesActualizadas,
+            int operacionesEliminadas) {
     }
 
     private final ModeloRepository modeloRepository;
@@ -91,6 +108,7 @@ public class ModeloService {
     private final NivelInsumoRepository nivelInsumoRepository;
     private final NivelOperacionRepository nivelOperacionRepository;
     private final ProductoInsumoRepository productoInsumoRepository;
+    private final ProductoOperacionRepository productoOperacionRepository;
     private final ProductoPlantillaModeloService productoPlantillaModeloService;
 
     public ModeloService(ModeloRepository modeloRepository,
@@ -106,6 +124,7 @@ public class ModeloService {
                          NivelInsumoRepository nivelInsumoRepository,
                          NivelOperacionRepository nivelOperacionRepository,
                          ProductoInsumoRepository productoInsumoRepository,
+                         ProductoOperacionRepository productoOperacionRepository,
                          ProductoPlantillaModeloService productoPlantillaModeloService) {
         this.modeloRepository = modeloRepository;
         this.familiaRepository = familiaRepository;
@@ -120,6 +139,7 @@ public class ModeloService {
         this.nivelInsumoRepository = nivelInsumoRepository;
         this.nivelOperacionRepository = nivelOperacionRepository;
         this.productoInsumoRepository = productoInsumoRepository;
+        this.productoOperacionRepository = productoOperacionRepository;
         this.productoPlantillaModeloService = productoPlantillaModeloService;
     }
 
@@ -545,18 +565,51 @@ public class ModeloService {
 
         Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla = normalizarPlantillaInsumos(modelo, nivel, insumosDto);
         sincronizarInsumosCategoria(nivel, List.copyOf(plantilla.values()));
+        SincronizacionInsumosConteo conteo = sincronizarInsumosHeredadosEnVariantes(modelo, nivel, materialId, plantilla);
+
+        return SincronizacionInsumosVariantesResponseDTO.builder()
+                .modeloId(modelo.getId())
+                .nivelId(nivel.getId())
+                .nivelNombre(nivel.getNombre())
+                .productosActualizados(conteo.productosActualizados())
+                .insumosAgregados(conteo.insumosAgregados())
+                .insumosActualizados(conteo.insumosActualizados())
+                .insumosEliminados(conteo.insumosEliminados())
+                .build();
+    }
+
+    private Long getProductoMaterialId(ProductoModel producto) {
+        return producto != null && producto.getMaterial() != null ? producto.getMaterial().getId() : null;
+    }
+
+    private SincronizacionInsumosConteo sincronizarInsumosHeredadosEnVariantes(
+            ModeloModel modelo,
+            NivelModel nivel,
+            Long materialId,
+            Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla) {
+        if (modelo == null || modelo.getId() == null || nivel == null || nivel.getId() == null) {
+            return new SincronizacionInsumosConteo(0, 0, 0, 0);
+        }
 
         int productosActualizados = 0;
         int insumosAgregados = 0;
         int insumosActualizados = 0;
         int insumosEliminados = 0;
 
-        List<ProductoModel> productos = productoRepository.findByModeloIdAndNivelId(modeloId, nivelId).stream()
+        List<ProductoModel> productosModelo = productoRepository.findByModeloIdAndNivelId(modelo.getId(), nivel.getId());
+        if (productosModelo == null || productosModelo.isEmpty()) {
+            return new SincronizacionInsumosConteo(0, 0, 0, 0);
+        }
+
+        List<ProductoModel> productos = productosModelo.stream()
                 .filter(producto -> materialId == null || Objects.equals(getProductoMaterialId(producto), materialId))
                 .toList();
 
         for (ProductoModel producto : productos) {
             List<ProductoInsumoModel> actuales = productoInsumoRepository.findByProductoId(producto.getId());
+            if (actuales == null) {
+                actuales = List.of();
+            }
             Map<Long, ProductoInsumoModel> porInsumo = actuales.stream()
                     .filter(item -> item.getInsumo() != null && item.getInsumo().getId() != null)
                     .collect(Collectors.toMap(
@@ -571,7 +624,7 @@ public class ModeloService {
 
             for (ProductoInsumoModel actual : actuales) {
                 Long insumoId = actual.getInsumo() != null ? actual.getInsumo().getId() : null;
-                if (esInsumoHeredado(actual) && (insumoId == null || !plantillaProducto.containsKey(insumoId))) {
+                if (insumoId == null || !plantillaProducto.containsKey(insumoId)) {
                     eliminar.add(actual);
                 }
             }
@@ -592,16 +645,16 @@ public class ModeloService {
                     continue;
                 }
 
-                if (esInsumoHeredado(actual)) {
-                    boolean cambioCantidad = !Objects.equals(actual.getCantidad(), itemPlantilla.getCantidad());
-                    boolean cambioDesperdicio = !Objects.equals(
-                            valorSeguro(actual.getDesperdicioPorcentaje()),
-                            valorSeguro(itemPlantilla.getDesperdicioPorcentaje()));
-                    if (cambioCantidad || cambioDesperdicio) {
-                        actual.setCantidad(itemPlantilla.getCantidad());
-                        actual.setDesperdicioPorcentaje(itemPlantilla.getDesperdicioPorcentaje());
-                        guardar.add(actual);
-                    }
+                boolean cambioCantidad = !Objects.equals(actual.getCantidad(), itemPlantilla.getCantidad());
+                boolean cambioDesperdicio = !Objects.equals(
+                        valorSeguro(actual.getDesperdicioPorcentaje()),
+                        valorSeguro(itemPlantilla.getDesperdicioPorcentaje()));
+                boolean cambioObservaciones = !Objects.equals(actual.getObservaciones(), OBSERVACION_HEREDADO_CATEGORIA);
+                if (cambioCantidad || cambioDesperdicio || cambioObservaciones) {
+                    actual.setCantidad(itemPlantilla.getCantidad());
+                    actual.setDesperdicioPorcentaje(itemPlantilla.getDesperdicioPorcentaje());
+                    actual.setObservaciones(OBSERVACION_HEREDADO_CATEGORIA);
+                    guardar.add(actual);
                 }
             }
 
@@ -621,19 +674,151 @@ public class ModeloService {
             }
         }
 
-        return SincronizacionInsumosVariantesResponseDTO.builder()
+        return new SincronizacionInsumosConteo(
+                productosActualizados,
+                insumosAgregados,
+                insumosActualizados,
+                insumosEliminados);
+    }
+
+    @Transactional
+    public SincronizacionOperacionesVariantesResponseDTO sincronizarOperacionesVariantes(
+            Long modeloId,
+            Long nivelId,
+            List<ModeloOperacionDTO> operacionesDto) {
+        ModeloModel modelo = modeloRepository.findById(modeloId)
+                .orElseThrow(() -> new NotFoundException("Modelo no encontrado con ID: " + modeloId));
+        NivelModel nivel = nivelRepository.findById(nivelId)
+                .orElseThrow(() -> new NotFoundException("Categoria del modelo no encontrada con ID: " + nivelId));
+
+        if (nivel.getModelo() == null || !Objects.equals(nivel.getModelo().getId(), modelo.getId())) {
+            throw new BadRequestException("La categoria seleccionada no pertenece al modelo");
+        }
+
+        List<ModeloOperacionDTO> plantilla = normalizarPlantillaOperaciones(nivel, operacionesDto);
+        sincronizarOperacionesCategoria(nivel, plantilla);
+        SincronizacionOperacionesConteo conteo = sincronizarOperacionesHeredadasEnVariantes(modelo, nivel, plantilla);
+
+        return SincronizacionOperacionesVariantesResponseDTO.builder()
                 .modeloId(modelo.getId())
                 .nivelId(nivel.getId())
                 .nivelNombre(nivel.getNombre())
-                .productosActualizados(productosActualizados)
-                .insumosAgregados(insumosAgregados)
-                .insumosActualizados(insumosActualizados)
-                .insumosEliminados(insumosEliminados)
+                .productosActualizados(conteo.productosActualizados())
+                .operacionesAgregadas(conteo.operacionesAgregadas())
+                .operacionesActualizadas(conteo.operacionesActualizadas())
+                .operacionesEliminadas(conteo.operacionesEliminadas())
                 .build();
     }
 
-    private Long getProductoMaterialId(ProductoModel producto) {
-        return producto != null && producto.getMaterial() != null ? producto.getMaterial().getId() : null;
+    private SincronizacionOperacionesConteo sincronizarOperacionesHeredadasEnVariantes(
+            ModeloModel modelo,
+            NivelModel nivel,
+            List<ModeloOperacionDTO> plantilla) {
+        if (modelo == null || modelo.getId() == null || nivel == null || nivel.getId() == null) {
+            return new SincronizacionOperacionesConteo(0, 0, 0, 0);
+        }
+
+        int productosActualizados = 0;
+        int operacionesAgregadas = 0;
+        int operacionesActualizadas = 0;
+        int operacionesEliminadas = 0;
+
+        List<ProductoModel> productos = productoRepository.findByModeloIdAndNivelId(modelo.getId(), nivel.getId());
+        if (productos == null || productos.isEmpty()) {
+            return new SincronizacionOperacionesConteo(0, 0, 0, 0);
+        }
+
+        Map<Long, ModeloOperacionDTO> plantillaPorOperacion = plantilla.stream()
+                .filter(item -> item != null && item.getId() != null)
+                .collect(Collectors.toMap(
+                        ModeloOperacionDTO::getId,
+                        item -> item,
+                        (primero, segundo) -> primero,
+                        LinkedHashMap::new));
+
+        for (ProductoModel producto : productos) {
+            List<ProductoOperacionModel> actuales = productoOperacionRepository.findByProductoIdOrderByOrdenAsc(producto.getId());
+            if (actuales == null) {
+                actuales = List.of();
+            }
+
+            Map<Long, ProductoOperacionModel> porOperacion = actuales.stream()
+                    .filter(item -> item.getOperacion() != null && item.getOperacion().getId() != null)
+                    .collect(Collectors.toMap(
+                            item -> item.getOperacion().getId(),
+                            item -> item,
+                            (primero, segundo) -> primero,
+                            LinkedHashMap::new));
+
+            List<ProductoOperacionModel> guardar = new java.util.ArrayList<>();
+            List<ProductoOperacionModel> eliminar = new java.util.ArrayList<>();
+
+            for (ProductoOperacionModel actual : actuales) {
+                Long operacionId = actual.getOperacion() != null ? actual.getOperacion().getId() : null;
+                if (operacionId == null || !plantillaPorOperacion.containsKey(operacionId)) {
+                    eliminar.add(actual);
+                }
+            }
+
+            int orden = 1;
+            for (ModeloOperacionDTO itemPlantilla : plantillaPorOperacion.values()) {
+                Long operacionId = itemPlantilla.getId();
+                ProductoOperacionModel actual = porOperacion.get(operacionId);
+                Integer cantidad = itemPlantilla.getCantidad() != null ? itemPlantilla.getCantidad() : 1;
+                Integer ordenPlantilla = itemPlantilla.getOrden() != null ? itemPlantilla.getOrden() : orden;
+                orden++;
+
+                if (actual == null) {
+                    OperacionModel operacion = operacionRepository.findById(operacionId)
+                            .orElseThrow(() -> new NotFoundException("Operacion no encontrada con ID: " + operacionId));
+                    ProductoOperacionModel nuevo = ProductoOperacionModel.builder()
+                            .producto(producto)
+                            .operacion(operacion)
+                            .cantidad(cantidad)
+                            .orden(ordenPlantilla)
+                            .observaciones(OBSERVACION_HEREDADO_CATEGORIA)
+                            .activo(true)
+                            .build();
+                    nuevo.calcularTotales();
+                    guardar.add(nuevo);
+                    continue;
+                }
+
+                boolean cambioCantidad = !Objects.equals(actual.getCantidad(), cantidad);
+                boolean cambioOrden = !Objects.equals(actual.getOrden(), ordenPlantilla);
+                boolean cambioObservaciones = !Objects.equals(actual.getObservaciones(), OBSERVACION_HEREDADO_CATEGORIA);
+                boolean cambioActivo = !Boolean.TRUE.equals(actual.getActivo());
+                if (cambioCantidad || cambioOrden || cambioObservaciones || cambioActivo) {
+                    actual.setCantidad(cantidad);
+                    actual.setOrden(ordenPlantilla);
+                    actual.setObservaciones(OBSERVACION_HEREDADO_CATEGORIA);
+                    actual.setActivo(true);
+                    actual.calcularTotales();
+                    guardar.add(actual);
+                }
+            }
+
+            if (!guardar.isEmpty() || !eliminar.isEmpty()) {
+                int agregadasProducto = (int) guardar.stream().filter(item -> item.getId() == null).count();
+                productosActualizados++;
+                operacionesAgregadas += agregadasProducto;
+                operacionesActualizadas += guardar.size() - agregadasProducto;
+                operacionesEliminadas += eliminar.size();
+            }
+
+            if (!eliminar.isEmpty()) {
+                productoOperacionRepository.deleteAll(eliminar);
+            }
+            if (!guardar.isEmpty()) {
+                productoOperacionRepository.saveAll(guardar);
+            }
+        }
+
+        return new SincronizacionOperacionesConteo(
+                productosActualizados,
+                operacionesAgregadas,
+                operacionesActualizadas,
+                operacionesEliminadas);
     }
 
     @Transactional
@@ -746,6 +931,7 @@ public class ModeloService {
                 .codigo(insumo.getCodigo())
                 .nombre(insumo.getNombre())
                 .unidadMedida(insumo.getUnidadMedida() != null ? insumo.getUnidadMedida().getSimbolo() : null)
+                .tipoInsumo(insumo.getTipoInsumo())
                 .materialId(nivelInsumo.getMaterial() != null ? nivelInsumo.getMaterial().getId() : null)
                 .materialCodigo(nivelInsumo.getMaterial() != null ? nivelInsumo.getMaterial().getCodigo() : null)
                 .materialNombre(nivelInsumo.getMaterial() != null ? nivelInsumo.getMaterial().getNombre() : null)
@@ -767,6 +953,8 @@ public class ModeloService {
                 .centroTrabajoNombre(operacion.getCentroTrabajo() != null
                         ? operacion.getCentroTrabajo().getNombre()
                         : null)
+                .tiempoOperacion(valorSeguro(operacion.getTiempoOperacion()))
+                .costoMinuto(valorSeguro(operacion.getCostoMinuto()))
                 .cantidad(nivelOperacion.getCantidad())
                 .orden(nivelOperacion.getOrden())
                 .activo(operacion.getActivo())
@@ -905,10 +1093,6 @@ public class ModeloService {
         return efectiva;
     }
 
-    private boolean esInsumoHeredado(ProductoInsumoModel item) {
-        return item != null && OBSERVACION_HEREDADO_CATEGORIA.equals(item.getObservaciones());
-    }
-
     private void sincronizarCategorias(ModeloModel modelo, List<ModeloCategoriaDTO> categorias) {
         if (categorias == null || categorias.isEmpty()) {
             throw new BadRequestException("El modelo debe tener al menos una categoria");
@@ -955,8 +1139,10 @@ public class ModeloService {
             nivel.setActivo(catalogo.getActivo() == null || Boolean.TRUE.equals(catalogo.getActivo()));
 
             NivelModel guardado = nivelRepository.save(nivel);
-            sincronizarInsumosCategoria(guardado, categoria.getInsumos());
+            Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla = normalizarPlantillaInsumos(modelo, guardado, categoria.getInsumos());
+            sincronizarInsumosCategoria(guardado, List.copyOf(plantilla.values()));
             sincronizarOperacionesCategoria(guardado, categoria.getOperaciones());
+            sincronizarInsumosHeredadosEnVariantes(modelo, guardado, null, plantilla);
             idsConservados.add(guardado.getId());
         }
 
@@ -1009,6 +1195,37 @@ public class ModeloService {
                     .build());
         }
         nivelInsumoRepository.saveAll(insumos);
+    }
+
+    private List<ModeloOperacionDTO> normalizarPlantillaOperaciones(
+            NivelModel nivel,
+            List<ModeloOperacionDTO> operacionesDto) {
+        List<ModeloOperacionDTO> plantilla = new java.util.ArrayList<>();
+        if (operacionesDto == null) {
+            return plantilla;
+        }
+
+        Set<Long> idsUnicos = new HashSet<>();
+        int orden = 1;
+        for (ModeloOperacionDTO item : operacionesDto) {
+            if (item == null || item.getId() == null) {
+                continue;
+            }
+            if (!idsUnicos.add(item.getId())) {
+                throw new BadRequestException("No se pueden repetir operaciones en la categoria " + nivel.getNombre());
+            }
+            Integer cantidad = item.getCantidad() != null ? item.getCantidad() : 1;
+            if (cantidad < 1) {
+                throw new BadRequestException("La cantidad de la operacion debe ser al menos 1 en la categoria " + nivel.getNombre());
+            }
+            plantilla.add(ModeloOperacionDTO.builder()
+                    .id(item.getId())
+                    .cantidad(cantidad)
+                    .orden(item.getOrden() != null ? item.getOrden() : orden)
+                    .build());
+            orden++;
+        }
+        return plantilla;
     }
 
     private double validarDesperdicioInsumo(NivelModel nivel, Double desperdicioPorcentaje) {

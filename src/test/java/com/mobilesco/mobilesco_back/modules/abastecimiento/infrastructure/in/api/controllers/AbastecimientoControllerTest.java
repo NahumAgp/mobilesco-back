@@ -13,17 +13,17 @@ import com.mobilesco.mobilesco_back.modules.abastecimiento.infrastructure.in.api
 class AbastecimientoControllerTest {
 
     @Test
-    void lecturaDeSugerenciasRequierePermisoDeCompras() throws Exception {
+    void lecturaDeSugerenciasRequierePermisoDeAbastecimientoAsistido() throws Exception {
         assertPreAuthorize(
                 "obtenerSugerencias",
-                "hasAuthority('VIEW_PURCHASES')");
+                "hasAuthority('VIEW_ASSISTED_PROCUREMENT')");
     }
 
     @Test
-    void crearBorradoresRequiereAccionDeCreacion() throws Exception {
+    void crearBorradoresRequiereAccionDeAbastecimientoAsistido() throws Exception {
         assertPreAuthorize(
                 "crearComprasBorrador",
-                "hasAuthority('VIEW_PURCHASES') and hasAuthority('ACTION_PURCHASES_CREATE')",
+                "hasAuthority('VIEW_ASSISTED_PROCUREMENT') and hasAuthority('ACTION_ASSISTED_PROCUREMENT_DRAFTS')",
                 CrearComprasBorradorRequestDTO.class);
     }
 

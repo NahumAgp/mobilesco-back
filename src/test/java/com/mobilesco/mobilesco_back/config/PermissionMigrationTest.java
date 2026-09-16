@@ -40,7 +40,14 @@ class PermissionMigrationTest {
 
         try (Connection connection = DriverManager.getConnection(url, "sa", "")) {
             assertThat(permissionCodes(connection, "role_permissions", "role_id", 1L))
-                    .contains("VIEW_USERS", "ACTION_USER_ROLES", "ACTION_ROLES_PERMISSIONS")
+                    .contains(
+                            "VIEW_USERS",
+                            "ACTION_USER_ROLES",
+                            "ACTION_ROLES_PERMISSIONS",
+                            "VIEW_ASSISTED_PROCUREMENT",
+                            "ACTION_ASSISTED_PROCUREMENT_DRAFTS",
+                            "VIEW_INPUT_SETS",
+                            "ACTION_INPUT_SETS_EDIT")
                     .doesNotContain("ACTION_USERS_WRITE");
             assertThat(permissionCodes(connection, "user_permissions", "user_id", 1L))
                     .contains(
@@ -52,7 +59,11 @@ class PermissionMigrationTest {
                             "ACTION_ROLES_CREATE",
                             "ACTION_ROLES_PERMISSIONS",
                             "ACTION_STOCK_ADJUSTMENTS",
-                            "VIEW_INVENTORY")
+                            "VIEW_INVENTORY",
+                            "VIEW_ASSISTED_PROCUREMENT",
+                            "ACTION_ASSISTED_PROCUREMENT_DRAFTS",
+                            "VIEW_INPUT_SETS",
+                            "ACTION_INPUT_SETS_CREATE")
                     .doesNotContain("ACTION_USERS_WRITE");
             try (Statement statement = connection.createStatement();
                     ResultSet resultSet = statement.executeQuery(
@@ -74,7 +85,7 @@ class PermissionMigrationTest {
         int assignmentsBefore = countAssignments(url);
         assertThat(flyway.migrate().migrationsExecuted).isZero();
         assertThat(countAssignments(url)).isEqualTo(assignmentsBefore);
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("11");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("12");
     }
 
     private void seedLegacyAccess(Connection connection) throws Exception {
@@ -97,7 +108,11 @@ class PermissionMigrationTest {
                 "ACTION_USERS_STATUS",
                 "ACTION_ROLES_CREATE",
                 "ACTION_ROLES_PERMISSIONS",
-                "VIEW_INVENTORY");
+                "VIEW_INVENTORY",
+                "VIEW_PURCHASES",
+                "ACTION_PURCHASES_CREATE",
+                "ACTION_INVENTORY_CREATE",
+                "ACTION_INVENTORY_EDIT");
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO permissions (id, activo, tipo, modulo, code, nombre)
                 VALUES (?, TRUE, ?, 'Prueba', ?, ?)
@@ -115,8 +130,14 @@ class PermissionMigrationTest {
 
         try (Statement statement = connection.createStatement()) {
             statement.execute("INSERT INTO role_permissions (role_id, permission_id) VALUES (1, 1)");
+            statement.execute("INSERT INTO role_permissions (role_id, permission_id) VALUES (1, 10)");
+            statement.execute("INSERT INTO role_permissions (role_id, permission_id) VALUES (1, 11)");
+            statement.execute("INSERT INTO role_permissions (role_id, permission_id) VALUES (1, 12)");
+            statement.execute("INSERT INTO role_permissions (role_id, permission_id) VALUES (1, 14)");
             statement.execute("INSERT INTO user_permissions (user_id, permission_id) VALUES (1, 2)");
             statement.execute("INSERT INTO user_permissions (user_id, permission_id) VALUES (1, 3)");
+            statement.execute("INSERT INTO user_permissions (user_id, permission_id) VALUES (1, 12)");
+            statement.execute("INSERT INTO user_permissions (user_id, permission_id) VALUES (1, 13)");
         }
     }
 

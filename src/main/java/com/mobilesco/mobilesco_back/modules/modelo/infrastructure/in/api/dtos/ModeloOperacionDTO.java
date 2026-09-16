@@ -18,6 +18,8 @@ public class ModeloOperacionDTO {
     private String codigo;
     private String nombre;
     private String centroTrabajoNombre;
+    private Double tiempoOperacion;
+    private Double costoMinuto;
     @JsonProperty("cantidad")
     private Integer cantidad;
     private Integer orden;

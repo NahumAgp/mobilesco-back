@@ -32,14 +32,14 @@ public class AbastecimientoController {
 
     @Operation(summary = "Obtener sugerencias de abastecimiento")
     @GetMapping("/sugerencias")
-    @PreAuthorize("hasAuthority('VIEW_PURCHASES')")
+    @PreAuthorize("hasAuthority('VIEW_ASSISTED_PROCUREMENT')")
     public ResponseEntity<List<SugerenciaAbastecimientoDTO>> obtenerSugerencias() {
         return ResponseEntity.ok(abastecimientoService.obtenerSugerencias());
     }
 
     @Operation(summary = "Crear compras en borrador agrupadas por proveedor")
     @PostMapping("/compras-borrador")
-    @PreAuthorize("hasAuthority('VIEW_PURCHASES') and hasAuthority('ACTION_PURCHASES_CREATE')")
+    @PreAuthorize("hasAuthority('VIEW_ASSISTED_PROCUREMENT') and hasAuthority('ACTION_ASSISTED_PROCUREMENT_DRAFTS')")
     public ResponseEntity<ComprasBorradorResponseDTO> crearComprasBorrador(
             @Valid @RequestBody CrearComprasBorradorRequestDTO request) {
         return new ResponseEntity<>(abastecimientoService.crearComprasBorrador(request), HttpStatus.CREATED);

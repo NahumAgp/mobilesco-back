@@ -16,15 +16,15 @@ public class ConjuntoInsumoController {
     private final ConjuntoInsumoService service;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('VIEW_INVENTORY')")
+    @PreAuthorize("hasAuthority('VIEW_INPUT_SETS')")
     public List<ConjuntoInsumoDTO> listar() { return service.listar(); }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('VIEW_INVENTORY') and hasAuthority('ACTION_INVENTORY_CREATE')")
+    @PreAuthorize("hasAuthority('VIEW_INPUT_SETS') and hasAuthority('ACTION_INPUT_SETS_CREATE')")
     public ConjuntoInsumoDTO crear(@Valid @RequestBody ConjuntoInsumoDTO dto) { return service.guardar(null, dto); }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('VIEW_INVENTORY') and hasAuthority('ACTION_INVENTORY_EDIT')")
+    @PreAuthorize("hasAuthority('VIEW_INPUT_SETS') and hasAuthority('ACTION_INPUT_SETS_EDIT')")
     public ConjuntoInsumoDTO actualizar(@PathVariable Long id, @Valid @RequestBody ConjuntoInsumoDTO dto) {
         return service.guardar(id, dto);
     }

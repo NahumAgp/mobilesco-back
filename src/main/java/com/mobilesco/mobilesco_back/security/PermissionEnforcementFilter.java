@@ -2,6 +2,7 @@ package com.mobilesco.mobilesco_back.security;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.mobilesco.mobilesco_back.modules.auth.application.usecases.PermisoCatalog;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,7 +25,12 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
 
     private record Rule(String prefix, String view, String create, String edit, String delete) {}
 
+    private static final Set<String> FULL_ACCESS_AUTHORITIES = PermisoCatalog.FULL_ACCESS_ROLES.stream()
+            .map(role -> "ROLE_" + role)
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
+
     private static final List<Rule> RULES = List.of(
+            new Rule("/api/v1/abastecimiento", "VIEW_ASSISTED_PROCUREMENT", "ACTION_ASSISTED_PROCUREMENT_DRAFTS", null, null),
             new Rule("/api/v1/cuentas-por-pagar", "VIEW_ACCOUNTS_PAYABLE", null, "ACTION_ACCOUNTS_PAYABLE_EDIT", null),
             new Rule("/api/v1/detalles-compra", "VIEW_PURCHASES", "ACTION_PURCHASES_EDIT", "ACTION_PURCHASES_RECEIVE", "ACTION_PURCHASES_EDIT"),
             new Rule("/api/v1/compras", "VIEW_PURCHASES", "ACTION_PURCHASES_CREATE", "ACTION_PURCHASES_EDIT", "ACTION_PURCHASES_DELETE"),
@@ -30,6 +38,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
             new Rule("/api/v1/salidas-insumos", "VIEW_INVENTORY_OUTPUTS", "ACTION_INVENTORY_OUTPUTS_CREATE", null, "ACTION_INVENTORY_OUTPUTS_DELETE"),
             new Rule("/api/v1/tipos-insumo", "VIEW_INPUT_TYPES", "ACTION_INPUT_TYPES_CREATE", "ACTION_INPUT_TYPES_EDIT", "ACTION_INPUT_TYPES_STATUS"),
             new Rule("/api/v1/unidades-medida", "VIEW_MEASURE_UNITS", "ACTION_MEASURE_UNITS_CREATE", "ACTION_MEASURE_UNITS_EDIT", "ACTION_MEASURE_UNITS_DELETE"),
+            new Rule("/api/v1/insumos/conjuntos", "VIEW_INPUT_SETS", "ACTION_INPUT_SETS_CREATE", "ACTION_INPUT_SETS_EDIT", null),
             new Rule("/api/v1/insumos", "VIEW_INVENTORY", "ACTION_INVENTORY_CREATE", "ACTION_INVENTORY_EDIT", "ACTION_INVENTORY_STATUS"),
             new Rule("/api/v1/kardex", "VIEW_KARDEX", null, null, null),
             new Rule("/api/v1/areas-trabajo", "VIEW_WORK_AREAS", "ACTION_WORK_AREAS_CREATE", "ACTION_WORK_AREAS_EDIT", "ACTION_WORK_AREAS_STATUS"),
@@ -92,6 +101,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
     private String resolveAction(HttpServletRequest request, Rule rule) {
         String path = request.getRequestURI();
         String method = request.getMethod();
+        if (path.startsWith("/api/v1/insumos/conjuntos")) return resolveInputSetAction(method);
         if (path.matches(".*/productos/[^/]+/(insumos|operaciones)(/.*)?$")) return "ACTION_PRODUCTS_BOM";
         if (path.endsWith("/ajustar-stock")) return "ACTION_STOCK_ADJUSTMENTS";
         if (path.endsWith("/costo-cotizacion") || path.endsWith("/costos")) return "ACTION_INSUMOS_COSTS";
@@ -104,6 +114,12 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
         if (HttpMethod.POST.matches(method)) return rule.create();
         if (HttpMethod.PUT.matches(method) || HttpMethod.PATCH.matches(method)) return rule.edit();
         if (HttpMethod.DELETE.matches(method)) return rule.delete();
+        return null;
+    }
+
+    private String resolveInputSetAction(String method) {
+        if (HttpMethod.POST.matches(method)) return "ACTION_INPUT_SETS_CREATE";
+        if (HttpMethod.PUT.matches(method) || HttpMethod.PATCH.matches(method)) return "ACTION_INPUT_SETS_EDIT";
         return null;
     }
 
@@ -140,6 +156,6 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
         if (authentication == null || !authentication.isAuthenticated()) return false;
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch(required::equals);
+                .anyMatch(authority -> required.equals(authority) || FULL_ACCESS_AUTHORITIES.contains(authority));
     }
 }

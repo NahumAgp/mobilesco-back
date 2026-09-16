@@ -18,6 +18,7 @@ public class ModeloInsumoDTO {
     private String codigo;
     private String nombre;
     private String unidadMedida;
+    private String tipoInsumo;
     @JsonAlias({"materialId", "material_id"})
     private Long materialId;
     private String materialCodigo;
@@ -29,6 +30,15 @@ public class ModeloInsumoDTO {
     @JsonAlias({"costo", "costo_cotizar", "costo_cotizacion"})
     private Double costoCotizacion;
     private Boolean activo;
-    private boolean conjunto;
+    @Builder.Default
+    private Boolean conjunto = Boolean.FALSE;
     private java.util.List<com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.ConjuntoInsumoDTO.Componente> componentes;
+
+    public Boolean getConjunto() {
+        return Boolean.TRUE.equals(conjunto);
+    }
+
+    public void setConjunto(Boolean conjunto) {
+        this.conjunto = Boolean.TRUE.equals(conjunto);
+    }
 }

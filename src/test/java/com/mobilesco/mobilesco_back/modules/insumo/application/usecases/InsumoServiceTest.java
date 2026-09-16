@@ -176,6 +176,28 @@ class InsumoServiceTest {
     }
 
     @Test
+    void directorGeneralPuedeActualizarCostoDeCotizacion() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "directora",
+                        "n/a",
+                        List.of(new SimpleGrantedAuthority("ROLE_DIRECTOR_GENERAL"))));
+        UnidadMedidaModel unidad = new UnidadMedidaModel();
+        unidad.setId(7L);
+        unidad.setNombre("Pieza");
+        unidad.setSimbolo("pz");
+        unidad.setEstado(true);
+        InsumoModel insumo = insumo(1L, "Tornillo", unidad);
+        insumo.setCostoCotizacion(10.0);
+        when(insumoRepository.findById(1L)).thenReturn(Optional.of(insumo));
+
+        var response = service.actualizarCostoCotizacion(1L, 12.5);
+
+        assertEquals(12.5, response.getCostoCotizacion(), 0.0001);
+        verify(insumoRepository).save(insumo);
+    }
+
+    @Test
     void listarPaginadoDelegaFiltrosYLimitesALaBaseDeDatosYEnriquecePorLote() {
         UnidadMedidaModel unidad = new UnidadMedidaModel();
         unidad.setId(7L);
