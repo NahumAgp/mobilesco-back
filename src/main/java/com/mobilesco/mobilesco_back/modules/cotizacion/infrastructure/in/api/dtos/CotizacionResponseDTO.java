@@ -44,6 +44,7 @@ public class CotizacionResponseDTO {
         private String sku;
         private String nombre;
         private Integer cantidad;
+        private BigDecimal utilidadPorcentaje;
         private BigDecimal costoUnitario;
         private BigDecimal precioUnitario;
         private BigDecimal importe;

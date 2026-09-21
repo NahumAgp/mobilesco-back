@@ -40,5 +40,8 @@ public class CotizacionRequestDTO {
         @NotNull
         @Min(1)
         private Integer cantidad;
+        @DecimalMin("0.01")
+        @DecimalMax("95.00")
+        private BigDecimal utilidadPorcentaje;
     }
 }

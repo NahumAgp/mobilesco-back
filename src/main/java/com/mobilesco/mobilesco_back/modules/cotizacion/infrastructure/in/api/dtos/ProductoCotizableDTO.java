@@ -11,6 +11,10 @@ public class ProductoCotizableDTO {
     private Long id;
     private String sku;
     private String nombre;
+    private String modelo;
+    private String linea;
+    private String familia;
+    private String imagenPrincipalUrl;
     private boolean cotizable;
     private BigDecimal costoTotal;
     private List<String> faltantes;

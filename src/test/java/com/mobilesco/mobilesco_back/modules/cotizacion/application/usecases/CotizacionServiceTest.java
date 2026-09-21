@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
 
 import com.mobilesco.mobilesco_back.modules.cliente.domain.models.ClienteModel;
 import com.mobilesco.mobilesco_back.modules.cliente.infrastructure.out.persistence.repositories.ClienteRepository;
@@ -100,6 +99,30 @@ class CotizacionServiceTest {
     }
 
     @Test
+    void calculaUtilidadPorProductoCuandoLaCotizacionVieneDeCotizacionRapida() {
+        ProductoModel producto = ProductoModel.builder().id(9L).sku("ESC-001").nombre("Pupitre").activo(true).build();
+        when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
+        when(productoService.obtenerEstructuraCostos(9L)).thenReturn(costosCompletos());
+        doAnswer(inv -> {
+            CotizacionModel c = inv.getArgument(0);
+            c.setId(14L);
+            return c;
+        }).when(cotizacionRepository).saveAndFlush(any(CotizacionModel.class));
+        when(cotizacionRepository.save(any(CotizacionModel.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CotizacionRequestDTO dto = solicitud();
+        dto.setClienteId(null);
+        dto.setMargenPorcentaje(null);
+        dto.getDetalles().get(0).setUtilidadPorcentaje(new BigDecimal("50"));
+
+        var respuesta = service.crear(dto);
+
+        assertEquals(new BigDecimal("150.00"), respuesta.getDetalles().get(0).getPrecioUnitario());
+        assertEquals(new BigDecimal("50.00"), respuesta.getDetalles().get(0).getUtilidadPorcentaje());
+        assertNull(respuesta.getMargenPorcentaje());
+    }
+
+    @Test
     void buscarProductosMantieneLosIncompletosComoNoCotizables() {
         ProductoModel producto = ProductoModel.builder()
                 .id(9L)
@@ -107,8 +130,7 @@ class CotizacionServiceTest {
                 .nombre("Pupitre")
                 .activo(true)
                 .build();
-        when(productoRepository.buscarPaginado(any(), any(), any(), any(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(producto)));
+        when(productoRepository.buscarActivosParaCotizacion()).thenReturn(List.of(producto));
         when(productoService.obtenerEstructuraCostos(9L))
                 .thenThrow(new ValidationException("No cotizable: falta operaciones"));
 

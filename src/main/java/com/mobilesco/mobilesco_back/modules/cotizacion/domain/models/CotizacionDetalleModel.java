@@ -36,6 +36,9 @@ public class CotizacionDetalleModel {
     @Column(nullable = false)
     private Integer cantidad;
 
+    @Column(name = "utilidad_porcentaje", precision = 7, scale = 2)
+    private BigDecimal utilidadPorcentaje;
+
     @Column(name = "costo_unitario", nullable = false, precision = 14, scale = 2)
     private BigDecimal costoUnitario;
 

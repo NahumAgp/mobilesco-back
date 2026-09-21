@@ -53,6 +53,11 @@ public class CotizacionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(cotizacionService.crear(dto));
     }
 
+    @PutMapping("/{id}")
+    public CotizacionResponseDTO actualizar(@PathVariable Long id, @Valid @RequestBody CotizacionRequestDTO dto) {
+        return cotizacionService.actualizar(id, dto);
+    }
+
     @PatchMapping("/{id}/estado")
     public CotizacionResponseDTO cambiarEstado(@PathVariable Long id, @RequestParam EstadoCotizacion estado) {
         return cotizacionService.cambiarEstado(id, estado);

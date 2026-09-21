@@ -24,6 +24,18 @@ import jakarta.persistence.LockModeType;
 
 public interface ProductoRepository extends JpaRepository<ProductoModel, Long> {
 
+    @Query("""
+            SELECT DISTINCT p
+            FROM ProductoModel p
+            LEFT JOIN FETCH p.modelo m
+            LEFT JOIN FETCH m.familia f
+            LEFT JOIN FETCH f.linea l
+            LEFT JOIN FETCH p.linea pl
+            WHERE p.activo = true
+            ORDER BY p.nombre ASC
+            """)
+    List<ProductoModel> buscarActivosParaCotizacion();
+
     List<ProductoModel> findAllByOrderByIdAsc();
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

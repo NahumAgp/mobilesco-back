@@ -46,7 +46,7 @@ public class CotizacionModel {
     @Column(name = "fecha_vencimiento", nullable = false)
     private LocalDate fechaVencimiento;
 
-    @Column(name = "margen_porcentaje", nullable = false, precision = 7, scale = 2)
+    @Column(name = "margen_porcentaje", precision = 7, scale = 2)
     private BigDecimal margenPorcentaje;
 
     @Column(name = "descuento_porcentaje", nullable = false, precision = 7, scale = 2)
