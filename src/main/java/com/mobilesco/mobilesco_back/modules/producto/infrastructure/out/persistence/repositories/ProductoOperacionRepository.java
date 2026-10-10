@@ -29,6 +29,4 @@ public interface ProductoOperacionRepository extends JpaRepository<ProductoOpera
     @Query("SELECT SUM(po.tiempoTotal) FROM ProductoOperacionModel po WHERE po.producto.id = :productoId")
     Double sumarTiempoTotalByProducto(@Param("productoId") Long productoId);
     
-    @Query("SELECT SUM(po.importeActividad) FROM ProductoOperacionModel po WHERE po.producto.id = :productoId")
-    Double sumarCostoTotalByProducto(@Param("productoId") Long productoId);
 }

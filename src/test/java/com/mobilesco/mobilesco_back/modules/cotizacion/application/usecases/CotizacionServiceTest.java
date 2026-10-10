@@ -19,6 +19,7 @@ import com.mobilesco.mobilesco_back.modules.cliente.infrastructure.out.persisten
 import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.CotizacionModel;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.in.api.dtos.CotizacionRequestDTO;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
+import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.ImagenService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoService;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.*;
@@ -31,11 +32,17 @@ class CotizacionServiceTest {
     @Mock ClienteRepository clienteRepository;
     @Mock ProductoRepository productoRepository;
     @Mock ProductoService productoService;
+    @Mock ImagenService imagenService;
     CotizacionService service;
 
     @BeforeEach
     void setUp() {
-        service = new CotizacionService(cotizacionRepository, clienteRepository, productoRepository, productoService);
+        service = new CotizacionService(
+                cotizacionRepository,
+                clienteRepository,
+                productoRepository,
+                productoService,
+                imagenService);
     }
 
     @Test

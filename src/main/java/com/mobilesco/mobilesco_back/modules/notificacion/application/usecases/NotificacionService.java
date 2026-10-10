@@ -68,6 +68,30 @@ public class NotificacionService {
         return notificaciones.size();
     }
 
+    @Transactional
+    public int notificarRolesSiNoExiste(
+            Set<String> roles,
+            TipoNotificacion tipo,
+            String titulo,
+            String mensaje,
+            String modulo,
+            String entidadTipo,
+            Long entidadId,
+            String ruta) {
+        if (roles == null || roles.isEmpty()) {
+            return 0;
+        }
+        List<NotificacionModel> notificaciones = destinatarioRepository.buscarActivosPorRoles(roles)
+                .stream()
+                .filter(usuario -> !notificacionRepository
+                        .existsByDestinatarioIdAndEntidadTipoAndEntidadIdAndTituloAndLeidaFalse(
+                                usuario.getId(), entidadTipo, entidadId, titulo))
+                .map(usuario -> crear(usuario, tipo, titulo, mensaje, modulo, entidadTipo, entidadId, ruta))
+                .toList();
+        notificacionRepository.saveAll(notificaciones);
+        return notificaciones.size();
+    }
+
     @Transactional(readOnly = true)
     public Page<NotificacionResponseDTO> listarPropias(
             String email,

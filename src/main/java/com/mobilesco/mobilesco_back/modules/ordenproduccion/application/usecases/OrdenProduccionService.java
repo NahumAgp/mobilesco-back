@@ -24,6 +24,10 @@ import com.mobilesco.mobilesco_back.modules.ordenproduccion.infrastructure.in.ap
 import com.mobilesco.mobilesco_back.modules.ordenproduccion.infrastructure.out.persistence.repositories.*;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.*;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.*;
+import com.mobilesco.mobilesco_back.modules.pedidoventa.domain.models.*;
+import com.mobilesco.mobilesco_back.modules.pedidoventa.infrastructure.out.persistence.repositories.PedidoVentaRepository;
+import com.mobilesco.mobilesco_back.modules.pedidoventa.application.usecases.AlertaFaltanteInsumosPedidoService;
+import com.mobilesco.mobilesco_back.modules.productoterminado.application.usecases.InventarioProductoTerminadoService;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.domain.models.*;
 import com.mobilesco.mobilesco_back.modules.salidainsumo.infrastructure.out.persistence.repositories.*;
 import com.mobilesco.mobilesco_back.modules.shared.application.exceptions.*;
@@ -40,11 +44,14 @@ public class OrdenProduccionService {
     private final ProductoOperacionRepository productoOperacionRepository;
     private final ClienteRepository clienteRepository;
     private final CotizacionRepository cotizacionRepository;
+    private final PedidoVentaRepository pedidoVentaRepository;
     private final InsumoRepository insumoRepository;
     private final SalidaInsumoRepository salidaRepository;
     private final DetalleSalidaInsumoRepository detalleSalidaRepository;
     private final KardexService kardexService;
     private final StockMinimoNotificacionService stockMinimoNotificacionService;
+    private final InventarioProductoTerminadoService inventarioProductoTerminadoService;
+    private final AlertaFaltanteInsumosPedidoService alertaFaltantesPedidoService;
 
     @Transactional(readOnly=true)
     public PageResponseDTO<OrdenProduccionResponseDTO> listar(EstadoOrdenProduccion estado, OrigenOrdenProduccion origen,
@@ -96,6 +103,32 @@ public class OrdenProduccionService {
         for(CotizacionDetalleModel item:cot.getDetalles()) agregarPartida(orden,item.getProducto(),BigDecimal.valueOf(item.getCantidad()));
         ordenRepository.saveAndFlush(orden); orden.setFolio("OP-"+LocalDate.now().getYear()+"-"+String.format("%05d",orden.getId()));
         cot.setEstado(EstadoCotizacion.COMPLETADA); cotizacionRepository.save(cot);
+        return mapear(ordenRepository.save(orden));
+    }
+
+    @Transactional
+    public OrdenProduccionResponseDTO crearDesdePedido(Long pedidoId, Conversion dto, String usuario){
+        PedidoVentaModel pedido=pedidoVentaRepository.findById(pedidoId).orElseThrow(()->new ResourceNotFoundException("Pedido de venta no encontrado"));
+        if(pedido.getEstado()!=EstadoPedidoVenta.CONFIRMADO&&pedido.getEstado()!=EstadoPedidoVenta.EN_PRODUCCION)
+            throw new ValidationException("El pedido debe estar confirmado antes de enviarse a producción");
+        if(ordenRepository.existsByPedidoVentaIdAndEstadoNot(pedidoId,EstadoOrdenProduccion.CANCELADA))
+            throw new ValidationException("El pedido ya tiene una orden de producción activa");
+        validarFechas(dto.getFechaInicioProgramada(),dto.getFechaCompromiso());
+        OrdenProduccionModel orden=OrdenProduccionModel.builder().folio(folioTemporal()).origen(OrigenOrdenProduccion.PEDIDO_VENTA)
+            .estado(EstadoOrdenProduccion.BORRADOR).pedidoVenta(pedido).cliente(pedido.getCliente())
+            .fechaInicioProgramada(dto.getFechaInicioProgramada()).fechaCompromiso(dto.getFechaCompromiso()!=null?dto.getFechaCompromiso():pedido.getFechaCompromiso())
+            .observaciones(limpiar(dto.getObservaciones())).creadoPor(usuario).actualizadoPor(usuario).build();
+        for(PedidoVentaDetalleModel item:pedido.getDetalles()){
+            BigDecimal faltante=item.getCantidadSolicitada().subtract(item.getCantidadReservada()).subtract(item.getCantidadEntregada()).max(BigDecimal.ZERO);
+            if(faltante.signum()>0) agregarPartida(orden,item.getProducto(),faltante,item);
+        }
+        if(orden.getDetalles().isEmpty()){
+            pedido.setEstado(EstadoPedidoVenta.LISTO); pedido.setActualizadoPor(usuario); pedidoVentaRepository.save(pedido);
+            throw new ValidationException("El pedido ya está cubierto con producto terminado disponible");
+        }
+        ordenRepository.saveAndFlush(orden); orden.setFolio("OP-"+LocalDate.now().getYear()+"-"+String.format("%05d",orden.getId()));
+        pedido.setEstado(EstadoPedidoVenta.EN_PRODUCCION); pedido.setActualizadoPor(usuario); pedidoVentaRepository.save(pedido);
+        alertaFaltantesPedidoService.notificarFaltantes(pedido.getId());
         return mapear(ordenRepository.save(orden));
     }
 
@@ -214,13 +247,20 @@ public class OrdenProduccionService {
         if(nuevo.compareTo(partida.getCantidadPlaneada())>0) throw new ValidationException("El avance supera la cantidad planeada");
         partida.setCantidadTerminada(nuevo); var avance=OrdenProduccionAvanceModel.builder().detalle(partida).cantidad(dto.getCantidad())
             .observaciones(limpiar(dto.getObservaciones())).usuario(usuario).build();
-        partida.getAvances().add(avance); avanceRepository.save(avance); activar(orden,usuario); evaluarTerminacion(orden,usuario);
+        partida.getAvances().add(avance); avanceRepository.saveAndFlush(avance);
+        inventarioProductoTerminadoService.registrarEntradaProduccion(orden,partida,dto.getCantidad(),avance.getId(),usuario);
+        actualizarPedidoVenta(orden,usuario); activar(orden,usuario); evaluarTerminacion(orden,usuario);
         return mapear(ordenRepository.save(orden));
     }
 
     @Transactional
     public OrdenProduccionResponseDTO cancelar(Long id,Cancelacion dto,String usuario){
         OrdenProduccionModel orden=buscar(id); exigirActiva(orden); liberarApartados(orden); orden.setEstado(EstadoOrdenProduccion.CANCELADA);
+        PedidoVentaModel pedido=orden.getPedidoVenta();
+        if(pedido!=null){
+            boolean listo=pedido.getDetalles().stream().allMatch(d->d.getCantidadReservada().add(d.getCantidadEntregada()).compareTo(d.getCantidadSolicitada())>=0);
+            pedido.setEstado(listo?EstadoPedidoVenta.LISTO:EstadoPedidoVenta.CONFIRMADO); pedido.setActualizadoPor(usuario); pedidoVentaRepository.save(pedido);
+        }
         orden.setMotivoCancelacion(dto.getMotivo().trim()); orden.setActualizadoPor(usuario); return mapear(ordenRepository.save(orden));
     }
 
@@ -249,6 +289,17 @@ public class OrdenProduccionService {
         if(cantidad==null||cantidad.signum()<=0||cantidad.stripTrailingZeros().scale()>0) throw new ValidationException("La cantidad planeada debe ser un número entero mayor a cero");
         orden.getDetalles().add(OrdenProduccionDetalleModel.builder().orden(orden).producto(p).skuSnapshot(p.getSku()).nombreSnapshot(p.getNombre())
             .cantidadPlaneada(cantidad.setScale(3)).cantidadTerminada(BigDecimal.ZERO.setScale(3)).build());
+    }
+    private void agregarPartida(OrdenProduccionModel orden,ProductoModel p,BigDecimal cantidad,PedidoVentaDetalleModel pedidoDetalle){
+        if(cantidad==null||cantidad.signum()<=0||cantidad.stripTrailingZeros().scale()>0) throw new ValidationException("La cantidad planeada debe ser un número entero mayor a cero");
+        orden.getDetalles().add(OrdenProduccionDetalleModel.builder().orden(orden).producto(p).pedidoVentaDetalle(pedidoDetalle)
+            .skuSnapshot(p.getSku()).nombreSnapshot(p.getNombre()).cantidadPlaneada(cantidad.setScale(3))
+            .cantidadTerminada(BigDecimal.ZERO.setScale(3)).build());
+    }
+    private void actualizarPedidoVenta(OrdenProduccionModel orden,String usuario){
+        PedidoVentaModel pedido=orden.getPedidoVenta(); if(pedido==null)return;
+        boolean listo=pedido.getDetalles().stream().allMatch(d->d.getCantidadReservada().add(d.getCantidadEntregada()).compareTo(d.getCantidadSolicitada())>=0);
+        pedido.setEstado(listo?EstadoPedidoVenta.LISTO:EstadoPedidoVenta.EN_PRODUCCION); pedido.setActualizadoPor(usuario); pedidoVentaRepository.save(pedido);
     }
     private ClienteModel cliente(Long id){ if(id==null)return null; ClienteModel c=clienteRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Cliente no encontrado")); if(!Boolean.TRUE.equals(c.getActivo()))throw new ValidationException("El cliente está inactivo"); return c; }
     private OrdenProduccionModel buscar(Long id){return ordenRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Orden de producción no encontrada"));}
@@ -288,7 +339,7 @@ public class OrdenProduccionService {
     private String limpiar(String s){return s==null||s.isBlank()?null:s.trim();}
     private String nombreCliente(ClienteModel c){if(c==null)return null;if(c.getNombreComercial()!=null&&!c.getNombreComercial().isBlank())return c.getNombreComercial();if(c.getRazonSocial()!=null&&!c.getRazonSocial().isBlank())return c.getRazonSocial();return c.getNombre();}
     private OrdenProduccionResponseDTO mapear(OrdenProduccionModel o){
-        var partidas=o.getDetalles().stream().map(d->OrdenProduccionResponseDTO.Partida.builder().id(d.getId()).productoId(d.getProducto().getId()).sku(d.getSkuSnapshot()).nombre(d.getNombreSnapshot())
+        var partidas=o.getDetalles().stream().map(d->OrdenProduccionResponseDTO.Partida.builder().id(d.getId()).productoId(d.getProducto().getId()).pedidoVentaDetalleId(d.getPedidoVentaDetalle()==null?null:d.getPedidoVentaDetalle().getId()).sku(d.getSkuSnapshot()).nombre(d.getNombreSnapshot())
             .cantidadPlaneada(d.getCantidadPlaneada()).cantidadTerminada(d.getCantidadTerminada()).porcentajeAvance(porcentaje(d.getCantidadTerminada(),d.getCantidadPlaneada())).build()).toList();
         var insumos=o.getInsumos().stream().map(i->{BigDecimal existencia=bd(i.getInsumo().getStockActual()),pendiente=i.getCantidadRequerida().subtract(i.getCantidadSurtida());
             BigDecimal apartado=Optional.ofNullable(i.getCantidadApartada()).orElse(BigDecimal.ZERO), apartadoGlobal=bd(i.getInsumo().getStockApartado());
@@ -305,6 +356,7 @@ public class OrdenProduccionService {
         BigDecimal planeado=o.getDetalles().stream().map(OrdenProduccionDetalleModel::getCantidadPlaneada).reduce(BigDecimal.ZERO,BigDecimal::add), terminado=o.getDetalles().stream().map(OrdenProduccionDetalleModel::getCantidadTerminada).reduce(BigDecimal.ZERO,BigDecimal::add);
         return OrdenProduccionResponseDTO.builder().id(o.getId()).folio(o.getFolio()).origen(o.getOrigen().name()).estado(o.getEstado().name()).cotizacionId(o.getCotizacion()==null?null:o.getCotizacion().getId())
             .cotizacionFolio(o.getCotizacion()==null?null:o.getCotizacion().getFolio()).clienteId(o.getCliente()==null?null:o.getCliente().getId()).clienteNombre(nombreCliente(o.getCliente()))
+            .pedidoVentaId(o.getPedidoVenta()==null?null:o.getPedidoVenta().getId()).pedidoVentaFolio(o.getPedidoVenta()==null?null:o.getPedidoVenta().getFolio())
             .fechaInicioProgramada(o.getFechaInicioProgramada()).fechaCompromiso(o.getFechaCompromiso()).observaciones(o.getObservaciones()).motivoCancelacion(o.getMotivoCancelacion())
             .creadoPor(o.getCreadoPor()).actualizadoPor(o.getActualizadoPor()).fechaRegistro(o.getFechaRegistro()).fechaActualizacion(o.getFechaActualizacion()).porcentajeAvance(porcentaje(terminado,planeado))
             .tieneFaltantes(insumos.stream().anyMatch(OrdenProduccionResponseDTO.Insumo::isFaltante)).partidas(partidas).insumos(insumos).operaciones(ops).avances(avances).build();

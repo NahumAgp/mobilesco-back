@@ -73,4 +73,30 @@ class ProductoOperacionServiceTest {
         assertEquals(30.0, operacionVariante.getImporteActividad());
         verify(productoOperacionRepository, atLeastOnce()).saveAll(anyList());
     }
+
+    @Test
+    void usaTiempoYCostoVigentesAunqueElImporteAlmacenadoEsteDesactualizado() {
+        OperacionModel operacion = OperacionModel.builder()
+                .id(30L)
+                .codigo("CORTE")
+                .nombre("Corte")
+                .tiempoOperacion(5.0)
+                .costoMinuto(3.0)
+                .activo(true)
+                .build();
+        ProductoOperacionModel productoOperacion = ProductoOperacionModel.builder()
+                .id(40L)
+                .operacion(operacion)
+                .cantidad(2)
+                .tiempoTotal(4.0)
+                .importeActividad(10.0)
+                .orden(1)
+                .activo(true)
+                .build();
+
+        when(productoOperacionRepository.findByProductoIdOrderByOrdenAsc(1L))
+                .thenReturn(List.of(productoOperacion));
+
+        assertEquals(30.0, service.calcularCostoTotalOperaciones(1L));
+    }
 }

@@ -286,8 +286,9 @@ public class ProductoOperacionService {
 
         return productoOperacionRepository.findByProductoIdOrderByOrdenAsc(productoIdValidado)
                 .stream()
-                .map(ProductoOperacionModel::getImporteActividad)
-                .mapToDouble(importe -> importe != null ? importe : 0.0)
+                .filter(po -> Boolean.TRUE.equals(po.getActivo()))
+                .filter(po -> po.getOperacion() != null && Boolean.TRUE.equals(po.getOperacion().getActivo()))
+                .mapToDouble(this::calcularImporteActividadActual)
                 .sum();
     }
 
@@ -306,6 +307,8 @@ public class ProductoOperacionService {
     }
 
     private ProductoOperacionResponseDTO mapToResponseDTO(ProductoOperacionModel po) {
+        double tiempoTotalActual = calcularTiempoTotalActual(po);
+        double importeActividadActual = calcularImporteActividadActual(po);
         return ProductoOperacionResponseDTO.builder()
                 .id(po.getId())
                 .productoId(po.getProducto().getId())
@@ -319,13 +322,34 @@ public class ProductoOperacionService {
                 .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null ? 
                     po.getOperacion().getCentroTrabajo().getNombre() : null)
                 .cantidad(po.getCantidad())
-                .tiempoTotal(po.getTiempoTotal())
-                .importeActividad(po.getImporteActividad())
+                .tiempoTotal(tiempoTotalActual)
+                .importeActividad(importeActividadActual)
                 .orden(po.getOrden())
                 .observaciones(po.getObservaciones())
                 .activo(po.getActivo())
                 .fechaRegistro(po.getFechaRegistro())
                 .fechaActualizacion(po.getFechaActualizacion())
                 .build();
+    }
+
+    private double calcularTiempoTotalActual(ProductoOperacionModel po) {
+        if (po == null || po.getOperacion() == null) {
+            return 0.0;
+        }
+        int cantidad = po.getCantidad() == null ? 0 : Math.max(0, po.getCantidad());
+        double tiempoOperacion = po.getOperacion().getTiempoOperacion() == null
+                ? 0.0
+                : Math.max(0.0, po.getOperacion().getTiempoOperacion());
+        return cantidad * tiempoOperacion;
+    }
+
+    private double calcularImporteActividadActual(ProductoOperacionModel po) {
+        if (po == null || po.getOperacion() == null) {
+            return 0.0;
+        }
+        double costoMinuto = po.getOperacion().getCostoMinuto() == null
+                ? 0.0
+                : Math.max(0.0, po.getOperacion().getCostoMinuto());
+        return calcularTiempoTotalActual(po) * costoMinuto;
     }
 }

@@ -60,6 +60,8 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
             new Rule("/api/v1/cif", "VIEW_CIF", "ACTION_CIF_CREATE", "ACTION_CIF_EDIT", "ACTION_CIF_STATUS"),
             new Rule("/api/v1/clientes", "VIEW_CUSTOMERS", "ACTION_CUSTOMERS_CREATE", "ACTION_CUSTOMERS_EDIT", "ACTION_CUSTOMERS_DELETE"),
             new Rule("/api/v1/cotizaciones", "VIEW_QUOTES", "ACTION_QUOTES_CREATE", "ACTION_QUOTES_EDIT", "ACTION_QUOTES_EDIT"),
+            new Rule("/api/v1/pedidos-venta", "VIEW_SALES_ORDERS", "ACTION_SALES_ORDERS_CREATE", "ACTION_SALES_ORDERS_EDIT", null),
+            new Rule("/api/v1/inventario-productos-terminados", "VIEW_FINISHED_GOODS", null, null, null),
             new Rule("/api/v1/tablero", "VIEW_DASHBOARD", null, null, null)
     );
 

@@ -34,6 +34,8 @@ public class OrdenProduccionController {
     public OrdenProduccionResponseDTO actualizar(@PathVariable Long id,@Valid @RequestBody OrdenProduccionRequestDTO dto,Authentication auth){return service.actualizar(id,dto,auth.getName());}
     @PostMapping("/desde-cotizacion/{cotizacionId}") @PreAuthorize("hasAuthority('VIEW_PRODUCTION_ORDERS') and hasAuthority('ACTION_PRODUCTION_ORDERS_CREATE') and hasAuthority('VIEW_QUOTES')")
     public ResponseEntity<OrdenProduccionResponseDTO> convertir(@PathVariable Long cotizacionId,@RequestBody Conversion dto,Authentication auth){return ResponseEntity.status(HttpStatus.CREATED).body(service.convertirCotizacion(cotizacionId,dto,auth.getName()));}
+    @PostMapping("/desde-pedido/{pedidoId}") @PreAuthorize("hasAuthority('VIEW_PRODUCTION_ORDERS') and hasAuthority('ACTION_PRODUCTION_ORDERS_CREATE') and hasAuthority('VIEW_SALES_ORDERS')")
+    public ResponseEntity<OrdenProduccionResponseDTO> convertirPedido(@PathVariable Long pedidoId,@RequestBody Conversion dto,Authentication auth){return ResponseEntity.status(HttpStatus.CREATED).body(service.crearDesdePedido(pedidoId,dto,auth.getName()));}
     @PostMapping("/{id}/liberar") @PreAuthorize("hasAuthority('VIEW_PRODUCTION_ORDERS') and hasAuthority('ACTION_PRODUCTION_ORDERS_RELEASE')")
     public OrdenProduccionResponseDTO liberar(@PathVariable Long id,Authentication auth){return service.liberar(id,auth.getName());}
     @PostMapping("/{id}/surtidos") @PreAuthorize("hasAuthority('VIEW_PRODUCTION_ORDERS') and hasAuthority('ACTION_PRODUCTION_MATERIAL_ISSUE')")

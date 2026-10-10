@@ -3,6 +3,7 @@ package com.mobilesco.mobilesco_back.modules.ordenproduccion.domain.models;
 import java.math.BigDecimal;
 import java.util.*;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.pedidoventa.domain.models.PedidoVentaDetalleModel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,6 +13,7 @@ public class OrdenProduccionDetalleModel {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
     @ManyToOne(optional=false) @JoinColumn(name="orden_produccion_id", nullable=false) private OrdenProduccionModel orden;
     @ManyToOne(optional=false) @JoinColumn(name="producto_id", nullable=false) private ProductoModel producto;
+    @ManyToOne @JoinColumn(name="pedido_venta_detalle_id") private PedidoVentaDetalleModel pedidoVentaDetalle;
     @Column(name="sku_snapshot", nullable=false, length=50) private String skuSnapshot;
     @Column(name="nombre_snapshot", nullable=false, length=200) private String nombreSnapshot;
     @Column(name="cantidad_planeada", nullable=false, precision=14, scale=3) private BigDecimal cantidadPlaneada;

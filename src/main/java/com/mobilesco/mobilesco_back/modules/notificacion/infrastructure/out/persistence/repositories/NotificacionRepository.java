@@ -25,6 +25,12 @@ public interface NotificacionRepository extends JpaRepository<NotificacionModel,
 
     long countByDestinatarioIdAndLeidaFalse(Long usuarioId);
 
+    boolean existsByDestinatarioIdAndEntidadTipoAndEntidadIdAndTituloAndLeidaFalse(
+            Long destinatarioId,
+            String entidadTipo,
+            Long entidadId,
+            String titulo);
+
     Optional<NotificacionModel> findByIdAndDestinatarioId(Long id, Long usuarioId);
 
     @Modifying(clearAutomatically = true)

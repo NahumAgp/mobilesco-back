@@ -36,6 +36,7 @@ import com.mobilesco.mobilesco_back.modules.linea.domain.models.LineaModel;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoOperacionModel;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.out.persistence.repositories.ColorRepository;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persistence.repositories.MaterialRepository;
@@ -309,6 +310,8 @@ public class ProductoService {
         List<ProductoOperacionResponseDTO> operaciones = productoOperacionRepository
                 .findByProductoIdOrderByOrdenAsc(productoId)
                 .stream()
+                .filter(po -> Boolean.TRUE.equals(po.getActivo()))
+                .filter(po -> po.getOperacion() != null && Boolean.TRUE.equals(po.getOperacion().getActivo()))
                 .map(po -> ProductoOperacionResponseDTO.builder()
                         .id(po.getId())
                         .productoId(productoId)
@@ -322,8 +325,8 @@ public class ProductoService {
                         .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null
                                 ? po.getOperacion().getCentroTrabajo().getNombre() : null)
                         .cantidad(po.getCantidad())
-                        .tiempoTotal(po.getTiempoTotal())
-                        .importeActividad(po.getImporteActividad())
+                        .tiempoTotal(calcularTiempoTotalActual(po))
+                        .importeActividad(calcularImporteActividadActual(po))
                         .orden(po.getOrden())
                         .observaciones(po.getObservaciones())
                         .activo(po.getActivo())
@@ -342,7 +345,10 @@ public class ProductoService {
                 .mapToDouble(item -> nz(item.getSubtotal()))
                 .sum();
 
-        double costoOperacionesSeguro = nz(productoOperacionRepository.sumarCostoTotalByProducto(productoId));
+        double costoOperacionesSeguro = operaciones.stream()
+                .filter(item -> Boolean.TRUE.equals(item.getActivo()))
+                .mapToDouble(item -> nz(item.getImporteActividad()))
+                .sum();
         double tiempoOperacionesMinutos = operaciones.stream()
                 .mapToDouble(item -> nz(item.getTiempoTotal()))
                 .sum();
@@ -480,6 +486,8 @@ public class ProductoService {
         List<ProductoOperacionResponseDTO> operaciones = productoOperacionRepository
             .findByProductoIdOrderByOrdenAsc(producto.getId())
             .stream()
+            .filter(po -> Boolean.TRUE.equals(po.getActivo()))
+            .filter(po -> po.getOperacion() != null && Boolean.TRUE.equals(po.getOperacion().getActivo()))
             .map(po -> ProductoOperacionResponseDTO.builder()
                     .id(po.getId())
                     .operacionId(po.getOperacion().getId())
@@ -490,8 +498,8 @@ public class ProductoService {
                     .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null ? 
                         po.getOperacion().getCentroTrabajo().getNombre() : null)
                     .cantidad(po.getCantidad())
-                    .tiempoTotal(po.getTiempoTotal())
-                    .importeActividad(po.getImporteActividad())
+                    .tiempoTotal(calcularTiempoTotalActual(po))
+                    .importeActividad(calcularImporteActividadActual(po))
                     .orden(po.getOrden())
                     .observaciones(po.getObservaciones())
                     .build())
@@ -955,6 +963,22 @@ public class ProductoService {
 
     private double nz(Double value) {
         return value == null ? 0.0 : value;
+    }
+
+    private double calcularTiempoTotalActual(ProductoOperacionModel productoOperacion) {
+        if (productoOperacion == null || productoOperacion.getOperacion() == null) {
+            return 0.0;
+        }
+        return Math.max(0, productoOperacion.getCantidad() == null ? 0 : productoOperacion.getCantidad())
+                * Math.max(0.0, nz(productoOperacion.getOperacion().getTiempoOperacion()));
+    }
+
+    private double calcularImporteActividadActual(ProductoOperacionModel productoOperacion) {
+        if (productoOperacion == null || productoOperacion.getOperacion() == null) {
+            return 0.0;
+        }
+        return calcularTiempoTotalActual(productoOperacion)
+                * Math.max(0.0, nz(productoOperacion.getOperacion().getCostoMinuto()));
     }
 
     private List<ProductoCostoIndirectoDTO> construirDetalleCif(

@@ -5,9 +5,13 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import com.mobilesco.mobilesco_back.modules.ordenproduccion.domain.models.*;
 import java.time.LocalDate;
+import java.util.Optional;
 
 public interface OrdenProduccionRepository extends JpaRepository<OrdenProduccionModel,Long> {
     boolean existsByCotizacionId(Long cotizacionId);
+    boolean existsByPedidoVentaIdAndEstadoNot(Long pedidoVentaId, EstadoOrdenProduccion estado);
+    Optional<OrdenProduccionModel> findFirstByPedidoVentaIdAndEstadoNotOrderByIdDesc(
+        Long pedidoVentaId, EstadoOrdenProduccion estado);
     @Query("""
         select distinct o from OrdenProduccionModel o left join o.detalles d
         where (:estado is null or o.estado=:estado) and (:origen is null or o.origen=:origen)

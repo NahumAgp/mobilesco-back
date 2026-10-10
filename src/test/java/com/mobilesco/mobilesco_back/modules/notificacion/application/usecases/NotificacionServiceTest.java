@@ -89,6 +89,32 @@ class NotificacionServiceTest {
     }
 
     @Test
+    void notificarRolesSiNoExisteOmiteLaAlertaPendienteDuplicada() {
+        UsuarioModel existente = usuario(1L, "existente@mobilesco.mx", true, false);
+        UsuarioModel nuevo = usuario(2L, "nuevo@mobilesco.mx", true, false);
+        Set<String> roles = Set.of("ADMIN");
+        when(destinatarioRepository.buscarActivosPorRoles(roles)).thenReturn(List.of(existente, nuevo));
+        when(notificacionRepository.existsByDestinatarioIdAndEntidadTipoAndEntidadIdAndTituloAndLeidaFalse(
+                1L, "PEDIDO_VENTA", 8L, "Compra prioritaria requerida")).thenReturn(true);
+
+        int creadas = service.notificarRolesSiNoExiste(
+                roles,
+                TipoNotificacion.ACCION_REQUERIDA,
+                "Compra prioritaria requerida",
+                "Faltan insumos",
+                "COMPRAS",
+                "PEDIDO_VENTA",
+                8L,
+                "/pedidos-venta");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<NotificacionModel>> captor = ArgumentCaptor.forClass(List.class);
+        verify(notificacionRepository).saveAll(captor.capture());
+        assertEquals(1, creadas);
+        assertEquals(2L, captor.getValue().get(0).getDestinatario().getId());
+    }
+
+    @Test
     void rechazaRutasExternas() {
         UsuarioModel usuario = usuario(4L, "activo@mobilesco.mx", true, false);
 

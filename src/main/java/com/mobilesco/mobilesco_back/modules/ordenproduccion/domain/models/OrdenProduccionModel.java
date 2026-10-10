@@ -4,6 +4,7 @@ import java.time.*;
 import java.util.*;
 import com.mobilesco.mobilesco_back.modules.cliente.domain.models.ClienteModel;
 import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.CotizacionModel;
+import com.mobilesco.mobilesco_back.modules.pedidoventa.domain.models.PedidoVentaModel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +17,7 @@ public class OrdenProduccionModel {
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private OrigenOrdenProduccion origen;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private EstadoOrdenProduccion estado;
     @ManyToOne @JoinColumn(name = "cotizacion_id", unique = true) private CotizacionModel cotizacion;
+    @ManyToOne @JoinColumn(name = "pedido_venta_id") private PedidoVentaModel pedidoVenta;
     @ManyToOne @JoinColumn(name = "cliente_id") private ClienteModel cliente;
     @Column(name = "fecha_inicio_programada") private LocalDate fechaInicioProgramada;
     @Column(name = "fecha_compromiso") private LocalDate fechaCompromiso;
