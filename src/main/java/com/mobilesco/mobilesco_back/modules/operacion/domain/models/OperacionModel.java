@@ -3,8 +3,10 @@ package com.mobilesco.mobilesco_back.modules.operacion.domain.models;
 import java.time.LocalDateTime;
 
 import com.mobilesco.mobilesco_back.modules.centrotrabajo.domain.models.CentroTrabajoModel;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -52,10 +54,12 @@ public class OperacionModel {
     @Column(name = "tiempo_operacion", nullable = false)
     private Double tiempoOperacion;  // Tiempo estándar en minutos por unidad
 
-    @Column(name = "costo_hora")
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_hora", precision = 18, scale = 6)
     private Double costoHora;
 
-    @Column(name = "costo_minuto")
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_minuto", precision = 18, scale = 6)
     private Double costoMinuto;
 
     @ManyToOne

@@ -21,6 +21,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import com.mobilesco.mobilesco_back.modules.operacion.domain.models.OperacionModel;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
+import com.mobilesco.mobilesco_back.modules.shared.application.costos.CostoDecimal;
+import jakarta.persistence.Convert;
 
 @Entity
 @Table(
@@ -56,7 +59,8 @@ public class ProductoOperacionModel {
     @Column(name = "tiempo_total")
     private Double tiempoTotal;  // cantidad * operacion.tiempoOperacion
 
-    @Column(name = "importe_actividad")
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "importe_actividad", precision = 18, scale = 6)
     private Double importeActividad;  // tiempoTotal * operacion.costoMinuto
 
     @Column(nullable = false)
@@ -92,11 +96,23 @@ public class ProductoOperacionModel {
     // DESPUÉS (sí funciona)
     public void calcularTotales() {  // 👈 CAMBIAR A PUBLIC
         if (operacion != null && cantidad != null) {
-            this.tiempoTotal = cantidad * operacion.getTiempoOperacion();
-            this.importeActividad = this.tiempoTotal * operacion.getCostoMinuto();
+            this.tiempoTotal = getTiempoTotalVigente();
+            this.importeActividad = getImporteActividadVigente();
         } else {
             this.tiempoTotal = null;
             this.importeActividad = null;
         }
+    }
+
+    /** El costo vigente se deriva de la operación, sin depender del importe persistido. */
+    public double getTiempoTotalVigente() {
+        if (operacion == null || cantidad == null || operacion.getTiempoOperacion() == null) return 0.0;
+        return CostoDecimal.de(cantidad).multiply(CostoDecimal.de(operacion.getTiempoOperacion())).doubleValue();
+    }
+
+    public double getImporteActividadVigente() {
+        if (operacion == null || operacion.getCostoMinuto() == null) return 0.0;
+        return CostoDecimal.de(getTiempoTotalVigente())
+                .multiply(CostoDecimal.de(operacion.getCostoMinuto())).doubleValue();
     }
 }

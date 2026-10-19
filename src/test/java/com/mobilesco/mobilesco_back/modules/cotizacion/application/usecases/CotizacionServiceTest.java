@@ -19,6 +19,8 @@ import com.mobilesco.mobilesco_back.modules.cliente.infrastructure.out.persisten
 import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.CotizacionModel;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.in.api.dtos.CotizacionRequestDTO;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.models.CifTarifaVersionModel;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.out.persistence.repositories.CifTarifaVersionRepository;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.ImagenService;
 import com.mobilesco.mobilesco_back.modules.producto.application.usecases.ProductoService;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
@@ -33,16 +35,13 @@ class CotizacionServiceTest {
     @Mock ProductoRepository productoRepository;
     @Mock ProductoService productoService;
     @Mock ImagenService imagenService;
+    @Mock CifTarifaVersionRepository cifTarifaVersionRepository;
     CotizacionService service;
 
     @BeforeEach
     void setUp() {
-        service = new CotizacionService(
-                cotizacionRepository,
-                clienteRepository,
-                productoRepository,
-                productoService,
-                imagenService);
+        service = new CotizacionService(cotizacionRepository, clienteRepository, productoRepository,
+                productoService, imagenService, cifTarifaVersionRepository);
     }
 
     @Test
@@ -52,6 +51,8 @@ class CotizacionServiceTest {
         when(clienteRepository.findById(7L)).thenReturn(Optional.of(cliente));
         when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
         when(productoService.obtenerEstructuraCostos(9L)).thenReturn(costosCompletos());
+        when(cifTarifaVersionRepository.save(any())).thenReturn(CifTarifaVersionModel.builder()
+                .id(5L).anio(2026).mes(10).tasaMinuto(new BigDecimal("2.00000000")).build());
         doAnswer(inv -> {
             CotizacionModel c = inv.getArgument(0);
             c.setId(12L);
@@ -65,6 +66,8 @@ class CotizacionServiceTest {
         assertEquals(new BigDecimal("307.70"), respuesta.getSubtotalVenta());
         assertEquals(new BigDecimal("356.93"), respuesta.getTotal());
         assertEquals(1, respuesta.getDetalles().size());
+        assertEquals(5L, respuesta.getDetalles().get(0).getCifTarifaVersionId());
+        assertEquals(new BigDecimal("10.00"), respuesta.getDetalles().get(0).getCostoCif());
         verify(cotizacionRepository).saveAndFlush(any(CotizacionModel.class));
     }
 
@@ -82,6 +85,20 @@ class CotizacionServiceTest {
         assertTrue(error.getMessage().contains("insumos"));
         assertTrue(error.getMessage().contains("operaciones"));
         verify(cotizacionRepository, never()).save(any());
+    }
+
+    @Test
+    void rechazaCostoDeInsumoSinRevisionReciente() {
+        ProductoModel producto = ProductoModel.builder().id(9L).sku("ESC-001").nombre("Pupitre").activo(true).build();
+        when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
+        ProductoEstructuraCostosDTO costos = costosCompletos();
+        costos.getInsumos().get(0).setFechaCostoCotizacion(java.time.LocalDateTime.now().minusDays(91));
+        when(productoService.obtenerEstructuraCostos(9L)).thenReturn(costos);
+        CotizacionRequestDTO dto = solicitud();
+        dto.setClienteId(null);
+
+        ValidationException error = assertThrows(ValidationException.class, () -> service.crear(dto));
+        assertTrue(error.getMessage().contains("revisión reciente"));
     }
 
     @Test
@@ -148,6 +165,49 @@ class CotizacionServiceTest {
         assertTrue(resultados.get(0).getFaltantes().get(0).contains("operaciones"));
     }
 
+    @Test
+    void obtieneLaVarianteExactaDelCatalogoParaCotizar() {
+        ProductoModel producto = ProductoModel.builder().id(9L).sku("ESC-001-ROJO")
+                .nombre("Pupitre rojo").activo(true).build();
+        when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
+        when(productoService.obtenerEstructuraCostos(9L)).thenReturn(costosCompletos());
+
+        var resultado = service.obtenerProductoCotizable(9L);
+
+        assertEquals(9L, resultado.getId());
+        assertEquals("ESC-001-ROJO", resultado.getSku());
+        assertTrue(resultado.isCotizable());
+        assertEquals(new BigDecimal("100.00"), resultado.getCostoTotal());
+        verify(productoRepository, never()).buscarActivosParaCotizacion();
+    }
+
+    @Test
+    void impideCotizarUnaVarianteInactivaDelCatalogo() {
+        ProductoModel producto = ProductoModel.builder().id(9L).sku("ESC-001")
+                .nombre("Pupitre").activo(false).build();
+        when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
+
+        ValidationException error = assertThrows(ValidationException.class,
+                () -> service.obtenerProductoCotizable(9L));
+
+        assertTrue(error.getMessage().contains("inactivo"));
+        verifyNoInteractions(productoService);
+    }
+
+    @Test
+    void descuentoQueEliminaLaUtilidadSoloPuedeGuardarseComoBorrador() {
+        ProductoModel producto = ProductoModel.builder().id(9L).sku("ESC-001").nombre("Pupitre").activo(true).build();
+        when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
+        when(productoService.obtenerEstructuraCostos(9L)).thenReturn(costosCompletos());
+        CotizacionRequestDTO dto = solicitud();
+        dto.setClienteId(null);
+        dto.setDescuentoPorcentaje(new BigDecimal("40"));
+
+        ValidationException error = assertThrows(ValidationException.class, () -> service.crear(dto));
+        assertTrue(error.getMessage().contains("sin utilidad"));
+        verify(cotizacionRepository, never()).saveAndFlush(any());
+    }
+
     private CotizacionRequestDTO solicitud() {
         CotizacionRequestDTO dto = new CotizacionRequestDTO();
         dto.setClienteId(7L);
@@ -165,11 +225,16 @@ class CotizacionServiceTest {
     private ProductoEstructuraCostosDTO costosCompletos() {
         return ProductoEstructuraCostosDTO.builder()
                 .costoTotal(100.0)
+                .costoInsumosConDesperdicio(40.0)
+                .costoOperaciones(50.0)
+                .cifMensual(1000.0)
+                .minutosProductivosMes(500.0)
                 .costoCif(10.0)
                 .tasaCifMinuto(2.0)
                 .configuracionCifId(1L)
                 .insumos(List.of(ProductoInsumoResponseDTO.builder()
-                        .cantidad(2.0).costoUnitario(20.0).build()))
+                        .cantidad(2.0).costoUnitario(20.0)
+                        .fechaCostoCotizacion(java.time.LocalDateTime.now()).build()))
                 .operaciones(List.of(ProductoOperacionResponseDTO.builder()
                         .cantidad(1).tiempoTotal(5.0).costoMinutoOperacion(10.0).importeActividad(50.0).build()))
                 .build();

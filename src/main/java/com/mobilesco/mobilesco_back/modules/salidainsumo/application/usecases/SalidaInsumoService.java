@@ -1,5 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.salidainsumo.application.usecases;
 
+import com.mobilesco.mobilesco_back.modules.shared.application.costos.CostoDecimal;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -208,7 +210,7 @@ public class SalidaInsumoService {
         if (costoUnitario == null) {
             costoUnitario = 0.0;
         }
-        Double costoTotal = cantidad * costoUnitario;
+        Double costoTotal = CostoDecimal.de(cantidad).multiply(CostoDecimal.de(costoUnitario)).doubleValue();
 
         insumo.setStockActual(stockNuevo);
         insumoRepository.save(insumo);

@@ -7,6 +7,8 @@
  */
 package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,6 +56,7 @@ import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.excel.ExcelReportBuilder;
 import com.mobilesco.mobilesco_back.modules.shared.infrastructure.sort.TypeSafeSorts;
+import com.mobilesco.mobilesco_back.modules.shared.application.costos.CostoDecimal;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoOperacionRepository;
@@ -284,8 +287,11 @@ public class ProductoService {
                     double costoUnitarioSeguro = obtenerCostoCotizacionOpcional(pi.getInsumo());
                     double cantidad = nz(pi.getCantidad());
                     double desperdicio = nz(pi.getDesperdicioPorcentaje());
-                    double cantidadConDesperdicio = cantidad * (1 + desperdicio / 100);
-                    double subtotal = cantidadConDesperdicio * costoUnitarioSeguro;
+                    BigDecimal cantidadConDesperdicioDecimal = CostoDecimal.de(cantidad)
+                            .multiply(BigDecimal.ONE.add(CostoDecimal.de(desperdicio).movePointLeft(2)));
+                    double cantidadConDesperdicio = cantidadConDesperdicioDecimal.doubleValue();
+                    double subtotal = cantidadConDesperdicioDecimal
+                            .multiply(CostoDecimal.de(costoUnitarioSeguro)).doubleValue();
 
                     return ProductoInsumoResponseDTO.builder()
                             .id(pi.getId())
@@ -300,6 +306,7 @@ public class ProductoService {
                             .cantidadConDesperdicio(cantidadConDesperdicio)
                             .observaciones(pi.getObservaciones())
                             .costoUnitario(costoUnitarioSeguro)
+                            .fechaCostoCotizacion(pi.getInsumo().getFechaCostoCotizacion())
                             .subtotal(subtotal)
                             .fechaRegistro(pi.getFechaRegistro())
                             .fechaActualizacion(pi.getFechaActualizacion())
@@ -325,8 +332,8 @@ public class ProductoService {
                         .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null
                                 ? po.getOperacion().getCentroTrabajo().getNombre() : null)
                         .cantidad(po.getCantidad())
-                        .tiempoTotal(calcularTiempoTotalActual(po))
-                        .importeActividad(calcularImporteActividadActual(po))
+                        .tiempoTotal(po.getTiempoTotalVigente())
+                        .importeActividad(po.getImporteActividadVigente())
                         .orden(po.getOrden())
                         .observaciones(po.getObservaciones())
                         .activo(po.getActivo())
@@ -334,35 +341,33 @@ public class ProductoService {
                 .collect(Collectors.toList());
 
         double costoInsumosBase = insumos.stream()
-                .mapToDouble(item -> {
-                    double costoUnitario = nz(item.getCostoUnitario());
-                    double cantidad = nz(item.getCantidad());
-                    return costoUnitario * cantidad;
-                })
-                .sum();
+                .map(item -> CostoDecimal.de(item.getCostoUnitario()).multiply(CostoDecimal.de(item.getCantidad())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
 
         double costoInsumosConDesperdicio = insumos.stream()
-                .mapToDouble(item -> nz(item.getSubtotal()))
-                .sum();
+                .map(item -> CostoDecimal.de(item.getSubtotal()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
 
         double costoOperacionesSeguro = operaciones.stream()
                 .filter(item -> Boolean.TRUE.equals(item.getActivo()))
-                .mapToDouble(item -> nz(item.getImporteActividad()))
-                .sum();
+                .map(item -> CostoDecimal.de(item.getImporteActividad()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
         double tiempoOperacionesMinutos = operaciones.stream()
                 .mapToDouble(item -> nz(item.getTiempoTotal()))
                 .sum();
         CifResumenDTO resumenCif = costoIndirectoService.obtenerResumen();
         double totalMensualCif = nz(resumenCif.getTotalMensual());
         double tasaCifMinuto = nz(resumenCif.getCostoMinuto());
-        double costoCif = tiempoOperacionesMinutos * tasaCifMinuto;
+        double costoCif = CostoDecimal.de(tiempoOperacionesMinutos)
+                .multiply(CostoDecimal.de(tasaCifMinuto)).doubleValue();
         List<ProductoCostoIndirectoDTO> costosIndirectos = construirDetalleCif(
                 tiempoOperacionesMinutos,
                 totalMensualCif,
                 nz(resumenCif.getMinutosProductivosMes()));
 
-        double costoPrimo = costoInsumosConDesperdicio + costoOperacionesSeguro;
-        double costoTotal = costoPrimo + costoCif;
+        double costoPrimo = CostoDecimal.de(costoInsumosConDesperdicio)
+                .add(CostoDecimal.de(costoOperacionesSeguro)).doubleValue();
+        double costoTotal = CostoDecimal.de(costoPrimo).add(CostoDecimal.de(costoCif)).doubleValue();
 
         return ProductoEstructuraCostosDTO.builder()
                 .productoId(producto.getId())
@@ -379,8 +384,8 @@ public class ProductoService {
                 .cifMensual(totalMensualCif)
                 .minutosProductivosMes(nz(resumenCif.getMinutosProductivosMes()))
                 .configuracionCifId(resumenCif.getConfiguracionId())
-                .anioCif(null)
-                .mesCif(null)
+                .anioCif(java.time.YearMonth.now().getYear())
+                .mesCif(java.time.YearMonth.now().getMonthValue())
                 .insumos(insumos)
                 .operaciones(operaciones)
                 .costosIndirectos(costosIndirectos)
@@ -435,11 +440,9 @@ public class ProductoService {
         validarCostosCotizacion(insumos);
         
         return insumos.stream()
-                .mapToDouble(pi -> {
-                    double costoUnitario = obtenerCostoCotizacionValido(pi.getInsumo());
-                    return nz(pi.getCantidad()) * costoUnitario;
-                })
-                .sum();
+                .map(pi -> CostoDecimal.de(pi.getCantidad())
+                        .multiply(CostoDecimal.de(obtenerCostoCotizacionValido(pi.getInsumo()))))
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
     }
 
     @Transactional(readOnly = true)
@@ -448,12 +451,10 @@ public class ProductoService {
         validarCostosCotizacion(insumos);
         
         return insumos.stream()
-                .mapToDouble(pi -> {
-                    double costoUnitario = obtenerCostoCotizacionValido(pi.getInsumo());
-                    double cantidadConDesperdicio = nz(pi.getCantidad()) * (1 + nz(pi.getDesperdicioPorcentaje()) / 100);
-                    return cantidadConDesperdicio * costoUnitario;
-                })
-                .sum();
+                .map(pi -> CostoDecimal.de(pi.getCantidad())
+                        .multiply(BigDecimal.ONE.add(CostoDecimal.de(pi.getDesperdicioPorcentaje()).movePointLeft(2)))
+                        .multiply(CostoDecimal.de(obtenerCostoCotizacionValido(pi.getInsumo()))))
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
     }
 
     private ProductoResponseDTO mapToResponseDTO(ProductoModel producto) {
@@ -476,7 +477,9 @@ public class ProductoService {
                         .cantidadConDesperdicio(cantidadConDesperdicio)
                         .observaciones(pi.getObservaciones())
                         .costoUnitario(costoUnitario)
-                        .subtotal(cantidadConDesperdicio * costoUnitario)
+                        .fechaCostoCotizacion(pi.getInsumo().getFechaCostoCotizacion())
+                        .subtotal(CostoDecimal.de(cantidadConDesperdicio)
+                                .multiply(CostoDecimal.de(costoUnitario)).doubleValue())
                         .fechaRegistro(pi.getFechaRegistro())
                         .fechaActualizacion(pi.getFechaActualizacion())
                         .build();
@@ -498,8 +501,8 @@ public class ProductoService {
                     .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null ? 
                         po.getOperacion().getCentroTrabajo().getNombre() : null)
                     .cantidad(po.getCantidad())
-                    .tiempoTotal(calcularTiempoTotalActual(po))
-                    .importeActividad(calcularImporteActividadActual(po))
+                    .tiempoTotal(po.getTiempoTotalVigente())
+                    .importeActividad(po.getImporteActividadVigente())
                     .orden(po.getOrden())
                     .observaciones(po.getObservaciones())
                     .build())
@@ -989,8 +992,11 @@ public class ProductoService {
                 .stream()
                 .map(costo -> {
                     double montoMensual = nz(costo.getMontoMensualEquivalente());
-                    double costoMinuto = minutosProductivosMes > 0 ? montoMensual / minutosProductivosMes : 0.0;
-                    double montoAsignado = costoMinuto * tiempoOperacionesMinutos;
+                    double costoMinuto = minutosProductivosMes > 0
+                            ? CostoDecimal.de(montoMensual).divide(CostoDecimal.de(minutosProductivosMes), 8,
+                                    RoundingMode.HALF_UP).doubleValue() : 0.0;
+                    double montoAsignado = CostoDecimal.de(costoMinuto)
+                            .multiply(CostoDecimal.de(tiempoOperacionesMinutos)).doubleValue();
                     double participacion = totalMensualCif > 0 ? (montoMensual / totalMensualCif) * 100.0 : 0.0;
 
                     return ProductoCostoIndirectoDTO.builder()

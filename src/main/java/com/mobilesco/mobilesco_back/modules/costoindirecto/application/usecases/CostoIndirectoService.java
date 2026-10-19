@@ -1,5 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.costoindirecto.application.usecases;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,7 @@ import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.models.CifConf
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.models.CostoIndirectoModel;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.out.persistence.repositories.CifConfiguracionRepository;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.out.persistence.repositories.CostoIndirectoRepository;
+import com.mobilesco.mobilesco_back.modules.shared.application.costos.CostoDecimal;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +40,7 @@ public class CostoIndirectoService {
 
     @Transactional
     public CostoIndirectoResponseDTO crear(CostoIndirectoCreateDTO dto) {
+        validarDistribucion(dto.getBaseDistribucion(), dto.getPorcentajeAsignado(), dto.getTasaVariable());
         String codigo = normalizarCodigo(dto.getCodigo());
         log.info("Creando nuevo costo indirecto con codigo: {}", codigo);
 
@@ -70,6 +74,7 @@ public class CostoIndirectoService {
 
     @Transactional
     public CostoIndirectoResponseDTO actualizar(Long id, CostoIndirectoUpdateDTO dto) {
+        validarDistribucion(dto.getBaseDistribucion(), dto.getPorcentajeAsignado(), dto.getTasaVariable());
         log.info("Actualizando costo indirecto ID: {}", id);
 
         CostoIndirectoModel costo = costoIndirectoRepository.findById(id)
@@ -259,8 +264,8 @@ public class CostoIndirectoService {
     public double calcularTotalMensualActivo() {
         return costoIndirectoRepository.findByActivoTrue()
                 .stream()
-                .mapToDouble(this::calcularMontoMensualEquivalente)
-                .sum();
+                .map(costo -> CostoDecimal.de(calcularMontoMensualEquivalente(costo)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
     }
 
     public double calcularMontoMensualEquivalente(CostoIndirectoModel costo) {
@@ -269,10 +274,12 @@ public class CostoIndirectoService {
                 ? costo.getPeriodicidad()
                 : PeriodicidadCostoIndirecto.MENSUAL;
 
+        BigDecimal valor = CostoDecimal.de(monto);
         return switch (periodicidad) {
-            case SEMANAL -> monto * 52.0 / 12.0;
-            case QUINCENAL -> monto * 2.0;
-            case ANUAL -> monto / 12.0;
+            case SEMANAL -> valor.multiply(BigDecimal.valueOf(52))
+                    .divide(BigDecimal.valueOf(12), 8, RoundingMode.HALF_UP).doubleValue();
+            case QUINCENAL -> valor.multiply(BigDecimal.valueOf(2)).doubleValue();
+            case ANUAL -> valor.divide(BigDecimal.valueOf(12), 8, RoundingMode.HALF_UP).doubleValue();
             case MENSUAL -> monto;
         };
     }
@@ -323,11 +330,20 @@ public class CostoIndirectoService {
     }
 
     private double calcularTasaMinuto(double totalMensual, double minutosProductivosMes) {
-        return minutosProductivosMes > 0 ? totalMensual / minutosProductivosMes : 0.0;
+        return minutosProductivosMes > 0
+                ? CostoDecimal.de(totalMensual).divide(CostoDecimal.de(minutosProductivosMes), 8, RoundingMode.HALF_UP).doubleValue()
+                : 0.0;
     }
 
     private void validarMonto(Double monto) {
         validarPositivo(monto, "El monto del costo indirecto debe ser mayor a 0");
+    }
+
+    private void validarDistribucion(BaseDistribucion base, Double porcentaje, Double tasaVariable) {
+        if (base != null && base != BaseDistribucion.HORAS_MOD)
+            throw new ValidationException("La distribución CIF disponible es por minutos de mano de obra directa");
+        if (porcentaje != null || tasaVariable != null)
+            throw new ValidationException("El porcentaje asignado y la tasa variable no se usan en el prorrateo CIF actual");
     }
 
     private void validarPositivo(Double valor, String mensaje) {

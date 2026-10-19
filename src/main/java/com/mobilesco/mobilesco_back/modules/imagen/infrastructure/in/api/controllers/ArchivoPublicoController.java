@@ -38,6 +38,14 @@ public class ArchivoPublicoController {
         return responder(accesoArchivosService.cargarImagenProducto(productoId, nombreArchivo));
     }
 
+    @GetMapping("/empresa/logos/{variante}/{nombreArchivo:.+}")
+    public ResponseEntity<Resource> obtenerLogoEmpresa(
+            @PathVariable String variante,
+            @PathVariable String nombreArchivo
+    ) {
+        return responder(accesoArchivosService.cargarLogoEmpresa(variante, nombreArchivo));
+    }
+
     private ResponseEntity<Resource> responder(AccesoArchivosService.ArchivoDescargable archivo) {
         return ResponseEntity.ok()
                 .contentType(archivo.mediaType())

@@ -31,6 +31,8 @@ import com.mobilesco.mobilesco_back.modules.compra.domain.models.CompraModel;
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraModel;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
+import com.mobilesco.mobilesco_back.modules.configuracion.domain.models.ConfiguracionSistemaModel;
+import com.mobilesco.mobilesco_back.modules.configuracion.infrastructure.out.persistence.repositories.ConfiguracionSistemaRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.application.usecases.InsumoService;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoResponseDTO;
@@ -50,6 +52,7 @@ class AbastecimientoServiceTest {
     private CompraRepository compraRepository;
     private DetalleCompraRepository detalleCompraRepository;
     private KardexRepository kardexRepository;
+    private ConfiguracionSistemaRepository configuracionRepository;
     private AbastecimientoService service;
 
     @BeforeEach
@@ -60,13 +63,21 @@ class AbastecimientoServiceTest {
         compraRepository = mock(CompraRepository.class);
         detalleCompraRepository = mock(DetalleCompraRepository.class);
         kardexRepository = mock(KardexRepository.class);
+        configuracionRepository = mock(ConfiguracionSistemaRepository.class);
+        ConfiguracionSistemaModel configuracion = new ConfiguracionSistemaModel();
+        configuracion.setId(1L);
+        configuracion.setCoberturaAbcA(2.0);
+        configuracion.setCoberturaAbcB(1.5);
+        configuracion.setCoberturaAbcC(1.0);
+        when(configuracionRepository.findById(1L)).thenReturn(java.util.Optional.of(configuracion));
         service = new AbastecimientoService(
                 insumoService,
                 insumoRepository,
                 proveedorRepository,
                 compraRepository,
                 detalleCompraRepository,
-                kardexRepository);
+                kardexRepository,
+                configuracionRepository);
     }
 
     @Test

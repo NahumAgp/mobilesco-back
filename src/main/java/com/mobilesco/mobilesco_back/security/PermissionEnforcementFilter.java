@@ -30,6 +30,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
             .collect(java.util.stream.Collectors.toUnmodifiableSet());
 
     private static final List<Rule> RULES = List.of(
+            new Rule("/api/v1/configuracion/sistema", "VIEW_USERS", "VIEW_USERS", "VIEW_USERS", null),
             new Rule("/api/v1/abastecimiento", "VIEW_ASSISTED_PROCUREMENT", "ACTION_ASSISTED_PROCUREMENT_DRAFTS", null, null),
             new Rule("/api/v1/cuentas-por-pagar", "VIEW_ACCOUNTS_PAYABLE", null, "ACTION_ACCOUNTS_PAYABLE_EDIT", null),
             new Rule("/api/v1/detalles-compra", "VIEW_PURCHASES", "ACTION_PURCHASES_EDIT", "ACTION_PURCHASES_RECEIVE", "ACTION_PURCHASES_EDIT"),
@@ -70,6 +71,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         return "OPTIONS".equalsIgnoreCase(request.getMethod())
                 || path.startsWith("/api/v1/public/")
+                || path.equals("/api/v1/configuracion/sistema/publica")
                 || path.startsWith("/api/v1/auth/")
                 || path.startsWith("/api/v1/notificaciones")
                 || path.startsWith("/uploads/")

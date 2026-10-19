@@ -1,5 +1,10 @@
 package com.mobilesco.mobilesco_back.modules.compra.domain.models;
 
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
+import com.mobilesco.mobilesco_back.modules.shared.application.costos.CostoDecimal;
+import jakarta.persistence.Convert;
+import java.math.RoundingMode;
+
 import java.time.LocalDateTime;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
@@ -57,11 +62,14 @@ public class DetalleCompraModel {
     @Column(nullable = false)
     private Double factorConversion;
 
-    @Column(nullable = false)
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(nullable = false, precision = 18, scale = 6)
     private Double precioUnitario;
 
     private Double cantidadRecibida;
 
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(precision = 18, scale = 6)
     private Double subtotal;
 
     @Column(length = 255)
@@ -83,7 +91,9 @@ public class DetalleCompraModel {
 
     @Transient
     public Double getCostoPorUnidadConsumo() {
-        return precioUnitario / factorConversion;
+        if (factorConversion == null || factorConversion <= 0 || precioUnitario == null) return 0.0;
+        return CostoDecimal.de(precioUnitario).divide(CostoDecimal.de(factorConversion), 6,
+                RoundingMode.HALF_UP).doubleValue();
     }
 
     @Transient
@@ -92,7 +102,7 @@ public class DetalleCompraModel {
             return subtotal;
         }
         if (cantidad != null && precioUnitario != null) {
-            return cantidad * precioUnitario;
+            return CostoDecimal.de(cantidad).multiply(CostoDecimal.de(precioUnitario)).doubleValue();
         }
         return 0.0;
     }
@@ -115,7 +125,7 @@ public class DetalleCompraModel {
         }
 
         if (subtotal == null) {
-            subtotal = cantidad * precioUnitario;
+            subtotal = CostoDecimal.de(cantidad).multiply(CostoDecimal.de(precioUnitario)).doubleValue();
         }
     }
 

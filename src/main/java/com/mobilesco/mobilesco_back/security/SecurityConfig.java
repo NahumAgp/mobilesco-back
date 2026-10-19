@@ -73,7 +73,9 @@ public SecurityFilterChain filterChain(
                 // Solo los recursos que forman parte del catalogo son publicos.
                 .requestMatchers(HttpMethod.GET,
                         "/uploads/modelos/**",
-                        "/uploads/productos/catalogo/**").permitAll()
+                        "/uploads/productos/catalogo/**",
+                        "/uploads/empresa/logos/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/configuracion/sistema/publica").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
                 // Las demas cargas, incluidas fotos de empleados, requieren autenticacion.
                 .requestMatchers("/uploads/**").authenticated()

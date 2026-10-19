@@ -24,6 +24,7 @@ public class InsumoCostoResponseDTO {
     private Double ultimoCostoCompra;
     private Double costoPromedio;
     private Double costoCotizacion;
+    private LocalDateTime fechaCostoCotizacion;
     private Boolean activo;
     private LocalDateTime fechaActualizacion;
 

@@ -1,5 +1,8 @@
 package com.mobilesco.mobilesco_back.modules.salidainsumo.domain.models;
 
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
+import jakarta.persistence.Convert;
+
 import java.time.LocalDateTime;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
@@ -53,10 +56,12 @@ public class DetalleSalidaInsumoModel {
     @Column(name = "stock_nuevo", nullable = false)
     private Double stockNuevo;
 
-    @Column(name = "costo_unitario", nullable = false)
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_unitario", nullable = false, precision = 18, scale = 6)
     private Double costoUnitario;
 
-    @Column(name = "costo_total", nullable = false)
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_total", nullable = false, precision = 18, scale = 6)
     private Double costoTotal;
 
     @Column(name = "observaciones", length = 255)

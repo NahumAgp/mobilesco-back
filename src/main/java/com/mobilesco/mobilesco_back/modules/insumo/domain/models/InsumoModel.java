@@ -1,6 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.insumo.domain.models;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.CascadeType;
@@ -8,8 +9,10 @@ import jakarta.persistence.OneToMany;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import com.mobilesco.mobilesco_back.modules.unidadmedida.domain.models.UnidadMedidaModel;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -63,8 +66,12 @@ public class InsumoModel {
     private String fila;
     private String columna;
 
-    @Column(name = "costo_cotizar")
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_cotizar", precision = 18, scale = 6)
     private Double costoCotizacion;
+
+    @Column(name = "fecha_costo_cotizacion")
+    private LocalDateTime fechaCostoCotizacion;
 
     @Column(nullable = false)
     @Builder.Default
@@ -85,6 +92,25 @@ public class InsumoModel {
             total += componente.getCantidad() * costo;
         }
         return total;
+    }
+
+    public LocalDateTime getFechaCostoCotizacion() {
+        if (!conjunto) return fechaCostoCotizacion;
+        LocalDateTime masAntigua = null;
+        for (var componente : componentes) {
+            LocalDateTime fecha = componente.getInsumo().getFechaCostoCotizacion();
+            if (fecha == null) return null;
+            if (masAntigua == null || fecha.isBefore(masAntigua)) masAntigua = fecha;
+        }
+        return masAntigua;
+    }
+
+    public void invalidarRevisionSiCompraDifiere(Double nuevoCosto) {
+        if (conjunto || nuevoCosto == null || nuevoCosto <= 0 || costoCotizacion == null || costoCotizacion <= 0) return;
+        BigDecimal referencia = BigDecimal.valueOf(nuevoCosto);
+        BigDecimal diferencia = BigDecimal.valueOf(costoCotizacion).subtract(referencia).abs();
+        if (diferencia.compareTo(referencia.multiply(new BigDecimal("0.15"))) >= 0)
+            fechaCostoCotizacion = null;
     }
 
     public void exigirInsumoDirecto() {

@@ -74,6 +74,14 @@ public class AccesoArchivosService {
         return cargarImagen(Paths.get("productos", "catalogo", productoId.toString(), nombreArchivo));
     }
 
+    public ArchivoDescargable cargarLogoEmpresa(String variante, String nombreArchivo) {
+        if (!Set.of("sistema", "documentos", "catalogo").contains(variante)
+                || !esNombreAlmacenadoSeguro(nombreArchivo)) {
+            throw new NotFoundException("Archivo no encontrado");
+        }
+        return cargarImagen(Paths.get("empresa", "logos", variante, nombreArchivo));
+    }
+
     private void validarIdentificadorYNombre(Long id, String nombreArchivo) {
         if (id == null || id <= 0 || !esNombreAlmacenadoSeguro(nombreArchivo)) {
             throw new NotFoundException("Archivo no encontrado");

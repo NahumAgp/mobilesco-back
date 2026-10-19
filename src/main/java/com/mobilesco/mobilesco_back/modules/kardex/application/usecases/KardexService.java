@@ -1,5 +1,7 @@
 package com.mobilesco.mobilesco_back.modules.kardex.application.usecases;
 
+import com.mobilesco.mobilesco_back.modules.shared.application.costos.CostoDecimal;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -55,7 +57,7 @@ public class KardexService {
 
         Double stockAnteriorSeguro = stockAnterior != null ? stockAnterior : 0.0;
         Double stockNuevoSeguro = stockNuevo != null ? stockNuevo : stockAnteriorSeguro + cantidad;
-        Double costoTotal = cantidad * costoUnitario;
+        Double costoTotal = CostoDecimal.de(cantidad).multiply(CostoDecimal.de(costoUnitario)).doubleValue();
         
         MovimientoInsumoModel movimiento = MovimientoInsumoModel.builder()
                 .insumo(insumo)
@@ -108,7 +110,7 @@ public class KardexService {
                 cantidad, insumo.getUnidadMedida().getSimbolo()));
         }
 
-        Double costoTotal = cantidad * costoUnitario;
+        Double costoTotal = CostoDecimal.de(cantidad).multiply(CostoDecimal.de(costoUnitario)).doubleValue();
         
         MovimientoInsumoModel movimiento = MovimientoInsumoModel.builder()
                 .insumo(insumo)
@@ -208,7 +210,7 @@ public class KardexService {
         // Obtener último costo para el ajuste
         MovimientoInsumoModel ultimoMovimiento = kardexRepository.findUltimoMovimientoByInsumo(insumoId);
         Double costoUnitario = ultimoMovimiento != null ? ultimoMovimiento.getCostoUnitario() : 0.0;
-        Double costoTotal = cantidad * costoUnitario;
+        Double costoTotal = CostoDecimal.de(cantidad).multiply(CostoDecimal.de(costoUnitario)).doubleValue();
         
         MovimientoInsumoModel movimiento = MovimientoInsumoModel.builder()
                 .insumo(insumo)

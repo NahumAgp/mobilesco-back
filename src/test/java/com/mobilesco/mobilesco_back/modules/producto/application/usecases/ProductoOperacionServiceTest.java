@@ -99,4 +99,19 @@ class ProductoOperacionServiceTest {
 
         assertEquals(30.0, service.calcularCostoTotalOperaciones(1L));
     }
+
+    @Test
+    void usaTarifaVigenteAunqueElImportePersistidoSeaAnterior() {
+        OperacionModel operacion = OperacionModel.builder()
+                .tiempoOperacion(4.0).costoMinuto(2.5).activo(true).build();
+        ProductoOperacionModel asignacion = ProductoOperacionModel.builder()
+                .operacion(operacion).cantidad(3).tiempoTotal(12.0).importeActividad(30.0).activo(true).build();
+        when(productoOperacionRepository.findByProductoIdOrderByOrdenAsc(1L))
+                .thenReturn(List.of(asignacion));
+
+        operacion.setCostoMinuto(3.0);
+        assertEquals(36.0, service.calcularCostoTotalOperaciones(1L));
+        operacion.setTiempoOperacion(5.0);
+        assertEquals(45.0, service.calcularCostoTotalOperaciones(1L));
+    }
 }

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.Normalizer;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import org.springframework.data.domain.*;
@@ -12,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.mobilesco.mobilesco_back.modules.cliente.domain.models.ClienteModel;
 import com.mobilesco.mobilesco_back.modules.cliente.infrastructure.out.persistence.repositories.ClienteRepository;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.models.CifTarifaVersionModel;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.out.persistence.repositories.CifTarifaVersionRepository;
 import com.mobilesco.mobilesco_back.modules.cotizacion.domain.models.*;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.in.api.dtos.*;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
@@ -29,11 +32,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CotizacionService {
     private static final BigDecimal CIEN = new BigDecimal("100");
+    private static final int DIAS_VIGENCIA_COSTO_INSUMO = 90;
     private final CotizacionRepository cotizacionRepository;
     private final ClienteRepository clienteRepository;
     private final ProductoRepository productoRepository;
     private final ProductoService productoService;
     private final ImagenService imagenService;
+    private final CifTarifaVersionRepository cifTarifaVersionRepository;
 
     @Transactional(readOnly = true)
     public Page<CotizacionResponseDTO> listar(EstadoCotizacion estado, String busqueda, Pageable pageable) {
@@ -56,6 +61,16 @@ public class CotizacionService {
                 .map(this::evaluarProducto)
                 .limit(20)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProductoCotizableDTO obtenerProductoCotizable(Long productoId) {
+        ProductoModel producto = productoRepository.findById(productoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + productoId));
+        if (!Boolean.TRUE.equals(producto.getActivo())) {
+            throw new ValidationException("El producto " + producto.getSku() + " está inactivo");
+        }
+        return evaluarProducto(producto);
     }
 
     @Transactional
@@ -123,6 +138,11 @@ public class CotizacionService {
                     .cantidad(item.getCantidad())
                     .utilidadPorcentaje(utilidad == null ? null : escala(utilidad))
                     .costoUnitario(costoUnitario)
+                    .costoInsumos(moneda(costos.getCostoInsumosConDesperdicio()))
+                    .costoOperaciones(moneda(costos.getCostoOperaciones()))
+                    .costoCif(costoUnitario.subtract(moneda(costos.getCostoInsumosConDesperdicio()))
+                            .subtract(moneda(costos.getCostoOperaciones())))
+                    .cifTarifaVersion(registrarTarifa(costos))
                     .precioUnitario(precioUnitario)
                     .importe(importe)
                     .build());
@@ -132,6 +152,8 @@ public class CotizacionService {
 
         BigDecimal descuento = subtotalVenta.multiply(dto.getDescuentoPorcentaje())
                 .divide(CIEN, 2, RoundingMode.HALF_UP);
+        if (cotizacion.getEstado() != EstadoCotizacion.BORRADOR)
+            validarMargenReal(subtotalVenta, descuento, subtotalCostos);
         BigDecimal subtotalConFlete = subtotalVenta.subtract(descuento).add(dto.getFlete()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal iva = subtotalConFlete.multiply(dto.getIvaPorcentaje()).divide(CIEN, 2, RoundingMode.HALF_UP);
         cotizacion.setSubtotalCostos(escala(subtotalCostos));
@@ -184,7 +206,8 @@ public class CotizacionService {
             ProductoModel producto = productoRepository.findById(item.getProductoId())
                     .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + item.getProductoId()));
             if (!Boolean.TRUE.equals(producto.getActivo())) throw new ValidationException("El producto " + producto.getSku() + " está inactivo");
-            BigDecimal costoUnitario = moneda(costosValidos(producto).getCostoTotal());
+            ProductoEstructuraCostosDTO costos = costosValidos(producto);
+            BigDecimal costoUnitario = moneda(costos.getCostoTotal());
             BigDecimal utilidad = item.getUtilidadPorcentaje();
             BigDecimal precioUnitario = utilidad == null
                     ? costoUnitario.divide(divisorMargen, 2, RoundingMode.HALF_UP)
@@ -194,11 +217,18 @@ public class CotizacionService {
             cotizacion.agregarDetalle(CotizacionDetalleModel.builder().producto(producto).skuSnapshot(producto.getSku())
                     .nombreSnapshot(producto.getNombre()).cantidad(item.getCantidad())
                     .utilidadPorcentaje(utilidad == null ? null : escala(utilidad)).costoUnitario(costoUnitario)
+                    .costoInsumos(moneda(costos.getCostoInsumosConDesperdicio()))
+                    .costoOperaciones(moneda(costos.getCostoOperaciones()))
+                    .costoCif(costoUnitario.subtract(moneda(costos.getCostoInsumosConDesperdicio()))
+                            .subtract(moneda(costos.getCostoOperaciones())))
+                    .cifTarifaVersion(registrarTarifa(costos))
                     .precioUnitario(precioUnitario).importe(importe).build());
             subtotalCostos = subtotalCostos.add(costoUnitario.multiply(cantidad));
             subtotalVenta = subtotalVenta.add(importe);
         }
         BigDecimal descuento = subtotalVenta.multiply(dto.getDescuentoPorcentaje()).divide(CIEN, 2, RoundingMode.HALF_UP);
+        if (cotizacion.getEstado() != EstadoCotizacion.BORRADOR)
+            validarMargenReal(subtotalVenta, descuento, subtotalCostos);
         BigDecimal subtotalConFlete = subtotalVenta.subtract(descuento).add(dto.getFlete()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal iva = subtotalConFlete.multiply(dto.getIvaPorcentaje()).divide(CIEN, 2, RoundingMode.HALF_UP);
         cotizacion.setSubtotalCostos(escala(subtotalCostos));
@@ -224,6 +254,22 @@ public class CotizacionService {
         if (cotizacion.getEstado() == EstadoCotizacion.CANCELADA && estado != EstadoCotizacion.CANCELADA) {
             throw new ValidationException("Una cotización cancelada no puede reabrirse");
         }
+        if (cotizacion.getEstado() == EstadoCotizacion.BORRADOR
+                && estado != EstadoCotizacion.BORRADOR && estado != EstadoCotizacion.CANCELADA) {
+            for (CotizacionDetalleModel detalle : cotizacion.getDetalles()) {
+                ProductoEstructuraCostosDTO costosVigentes = costosValidos(detalle.getProducto());
+                BigDecimal costoVigente = moneda(costosVigentes.getCostoTotal());
+                CifTarifaVersionModel version = detalle.getCifTarifaVersion();
+                boolean tasaCambio = version != null && (version.getTasaMinuto().compareTo(
+                        decimal(costosVigentes.getTasaCifMinuto(), 8)) != 0
+                        || version.getAnio() != LocalDate.now().getYear()
+                        || version.getMes() != LocalDate.now().getMonthValue());
+                if (costoVigente.compareTo(detalle.getCostoUnitario()) != 0 || tasaCambio)
+                    throw new ValidationException("Los costos cambiaron; edita la cotización antes de emitirla");
+            }
+        }
+        if (estado != EstadoCotizacion.BORRADOR && estado != EstadoCotizacion.CANCELADA)
+            validarMargenReal(cotizacion.getSubtotalVenta(), cotizacion.getMontoDescuento(), cotizacion.getSubtotalCostos());
         cotizacion.setEstado(estado);
         return mapear(cotizacionRepository.save(cotizacion));
     }
@@ -291,6 +337,9 @@ public class CotizacionService {
         if (c.getInsumos() == null || c.getInsumos().isEmpty()) faltantes.add("insumos");
         else if (c.getInsumos().stream().anyMatch(i -> nz(i.getCantidad()) <= 0 || nz(i.getCostoUnitario()) <= 0))
             faltantes.add("cantidades o costos de insumos");
+        else if (c.getInsumos().stream().anyMatch(i -> i.getFechaCostoCotizacion() == null
+                || i.getFechaCostoCotizacion().isBefore(LocalDateTime.now().minusDays(DIAS_VIGENCIA_COSTO_INSUMO))))
+            faltantes.add("revisión reciente del costo de insumos");
         if (c.getOperaciones() == null || c.getOperaciones().isEmpty()) faltantes.add("operaciones");
         else if (c.getOperaciones().stream().anyMatch(o -> o.getCantidad() == null || o.getCantidad() <= 0
                 || nz(o.getTiempoTotal()) <= 0 || nz(o.getCostoMinutoOperacion()) <= 0 || nz(o.getImporteActividad()) <= 0))
@@ -304,12 +353,42 @@ public class CotizacionService {
         return c;
     }
 
+    private CifTarifaVersionModel registrarTarifa(ProductoEstructuraCostosDTO costos) {
+        LocalDate fecha = LocalDate.now();
+        return cifTarifaVersionRepository.save(CifTarifaVersionModel.builder()
+                .anio(fecha.getYear())
+                .mes(fecha.getMonthValue())
+                .configuracionCifId(costos.getConfiguracionCifId())
+                .totalMensual(decimal(costos.getCifMensual(), 6))
+                .minutosProductivosMes(decimal(costos.getMinutosProductivosMes(), 6))
+                .tasaMinuto(decimal(costos.getTasaCifMinuto(), 8))
+                .build());
+    }
+
+    private BigDecimal decimal(Double valor, int escala) {
+        return BigDecimal.valueOf(nz(valor)).setScale(escala, RoundingMode.HALF_UP);
+    }
+
     private void validarPorcentajes(CotizacionRequestDTO dto, boolean usaUtilidadPorDetalle) {
         if (!usaUtilidadPorDetalle && (dto.getMargenPorcentaje() == null || dto.getMargenPorcentaje().compareTo(BigDecimal.ZERO) <= 0
                 || dto.getMargenPorcentaje().compareTo(new BigDecimal("95")) > 0))
             throw new ValidationException("El margen debe ser mayor a 0 y máximo 95%");
         if (dto.getDescuentoPorcentaje() == null || dto.getFlete() == null || dto.getIvaPorcentaje() == null)
             throw new ValidationException("Descuento, flete e IVA son obligatorios");
+    }
+
+    private void validarMargenReal(BigDecimal subtotalVenta, BigDecimal descuento, BigDecimal subtotalCostos) {
+        BigDecimal ventaNetaProductos = subtotalVenta.subtract(descuento);
+        if (ventaNetaProductos.compareTo(subtotalCostos) <= 0) {
+            throw new ValidationException("El descuento deja la venta de productos sin utilidad; reduce el descuento o aumenta el precio");
+        }
+    }
+
+    private BigDecimal margenReal(BigDecimal subtotalVenta, BigDecimal descuento, BigDecimal subtotalCostos) {
+        BigDecimal ventaNetaProductos = subtotalVenta.subtract(descuento);
+        if (ventaNetaProductos.signum() <= 0) return BigDecimal.ZERO.setScale(2);
+        return ventaNetaProductos.subtract(subtotalCostos).multiply(CIEN)
+                .divide(ventaNetaProductos, 2, RoundingMode.HALF_UP);
     }
 
     private CotizacionModel buscarCotizacion(Long id) {
@@ -329,12 +408,19 @@ public class CotizacionService {
                 .margenPorcentaje(c.getMargenPorcentaje()).descuentoPorcentaje(c.getDescuentoPorcentaje())
                 .flete(c.getFlete()).ivaPorcentaje(c.getIvaPorcentaje()).subtotalCostos(c.getSubtotalCostos())
                 .subtotalVenta(c.getSubtotalVenta()).montoDescuento(c.getMontoDescuento())
+                .margenRealPorcentaje(margenReal(c.getSubtotalVenta(), c.getMontoDescuento(), c.getSubtotalCostos()))
                 .subtotalConFlete(c.getSubtotalConFlete()).montoIva(c.getMontoIva()).total(c.getTotal())
                 .notas(c.getNotas()).condiciones(c.getCondiciones()).fechaRegistro(c.getFechaRegistro())
                 .detalles(c.getDetalles().stream().map(d -> CotizacionResponseDTO.Detalle.builder()
                         .id(d.getId()).productoId(d.getProducto().getId()).sku(d.getSkuSnapshot())
                         .nombre(d.getNombreSnapshot()).cantidad(d.getCantidad()).utilidadPorcentaje(d.getUtilidadPorcentaje())
                         .costoUnitario(d.getCostoUnitario())
+                        .costoInsumos(d.getCostoInsumos()).costoOperaciones(d.getCostoOperaciones())
+                        .costoCif(d.getCostoCif())
+                        .cifTarifaVersionId(d.getCifTarifaVersion() == null ? null : d.getCifTarifaVersion().getId())
+                        .anioCif(d.getCifTarifaVersion() == null ? null : d.getCifTarifaVersion().getAnio())
+                        .mesCif(d.getCifTarifaVersion() == null ? null : d.getCifTarifaVersion().getMes())
+                        .tasaCifMinuto(d.getCifTarifaVersion() == null ? null : d.getCifTarifaVersion().getTasaMinuto())
                         .precioUnitario(d.getPrecioUnitario()).importe(d.getImporte()).build()).toList())
                 .build();
     }

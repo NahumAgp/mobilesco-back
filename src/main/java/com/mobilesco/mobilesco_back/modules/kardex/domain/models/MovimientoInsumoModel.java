@@ -1,5 +1,8 @@
 package com.mobilesco.mobilesco_back.modules.kardex.domain.models;
 
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
+import jakarta.persistence.Convert;
+
 import java.time.LocalDateTime;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
@@ -50,10 +53,12 @@ public class MovimientoInsumoModel {
     @Column(name = "cantidad", nullable = false)
     private Double cantidad;
 
-    @Column(name = "costo_unitario", nullable = false)
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_unitario", nullable = false, precision = 18, scale = 6)
     private Double costoUnitario;
 
-    @Column(name = "costo_total", nullable = false)
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_total", nullable = false, precision = 18, scale = 6)
     private Double costoTotal;
 
     @Column(name = "documento", length = 100) // N° Factura, N° Orden, etc.

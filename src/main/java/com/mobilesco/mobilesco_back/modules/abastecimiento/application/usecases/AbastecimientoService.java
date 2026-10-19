@@ -32,6 +32,7 @@ import com.mobilesco.mobilesco_back.modules.compra.domain.models.CompraModel;
 import com.mobilesco.mobilesco_back.modules.compra.domain.models.DetalleCompraModel;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.CompraRepository;
 import com.mobilesco.mobilesco_back.modules.compra.infrastructure.out.persistence.repositories.DetalleCompraRepository;
+import com.mobilesco.mobilesco_back.modules.configuracion.infrastructure.out.persistence.repositories.ConfiguracionSistemaRepository;
 import com.mobilesco.mobilesco_back.modules.insumo.application.usecases.InsumoService;
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.insumo.infrastructure.in.api.dtos.InsumoResponseDTO;
@@ -59,9 +60,11 @@ public class AbastecimientoService {
     private final CompraRepository compraRepository;
     private final DetalleCompraRepository detalleCompraRepository;
     private final KardexRepository kardexRepository;
+    private final ConfiguracionSistemaRepository configuracionRepository;
 
     @Transactional(readOnly = true)
     public List<SugerenciaAbastecimientoDTO> obtenerSugerencias() {
+        var politica = configuracionRepository.findById(1L).orElseThrow();
         List<InsumoResponseDTO> insumos = insumoService.listarActivos();
         if (insumos.isEmpty()) {
             return List.of();
@@ -90,7 +93,10 @@ public class AbastecimientoService {
                         consumos.getOrDefault(insumo.getId(), 0.0),
                         cantidadesAbiertas.getOrDefault(insumo.getId(), 0.0),
                         historial.getOrDefault(insumo.getId(), List.of()),
-                        proveedoresActivos))
+                        proveedoresActivos,
+                        politica.getCoberturaAbcA(),
+                        politica.getCoberturaAbcB(),
+                        politica.getCoberturaAbcC()))
                 .filter(sugerencia -> sugerencia != null)
                 .sorted(Comparator
                         .comparingInt((SugerenciaAbastecimientoDTO sugerencia) -> ordenPrioridad(sugerencia.getPrioridad()))
@@ -158,13 +164,16 @@ public class AbastecimientoService {
             double consumoPeriodo,
             double cantidadAbierta,
             List<DetalleCompraModel> historial,
-            List<ProveedorModel> proveedoresActivos) {
+            List<ProveedorModel> proveedoresActivos,
+            double coberturaAbcA,
+            double coberturaAbcB,
+            double coberturaAbcC) {
         double consumoMensual = Math.max(0, consumoPeriodo) / MESES_PERIODO;
         double stockDisponible = calcularStockDisponibleReal(insumo);
         double stockMinimo = Math.max(0, valor(insumo.getStockMinimo()));
         String clasificacionAbc = normalizarClasificacion(insumo.getClasificacionAbc());
         double puntoReorden = Math.max(stockMinimo, consumoMensual);
-        double mesesCobertura = mesesCobertura(clasificacionAbc);
+        double mesesCobertura = mesesCobertura(clasificacionAbc, coberturaAbcA, coberturaAbcB, coberturaAbcC);
         double stockObjetivo = Math.max(stockMinimo * 2, consumoMensual * mesesCobertura);
         double cantidadSugerida = stockObjetivo - stockDisponible - Math.max(0, cantidadAbierta);
 
@@ -188,6 +197,7 @@ public class AbastecimientoService {
                 .clasificacionAbc(clasificacionAbc)
                 .consumoMensual(redondear(consumoMensual, 3))
                 .stockDisponible(redondear(stockDisponible, 3))
+                .diasCobertura(calcularDiasCobertura(stockDisponible, cantidadAbierta, consumoMensual))
                 .stockMinimo(redondear(stockMinimo, 3))
                 .puntoReorden(redondear(puntoReorden, 3))
                 .cantidadSugerida(redondear(cantidadSugerida, 3))
@@ -487,6 +497,13 @@ public class AbastecimientoService {
         return valor(insumo.getStockDisponible());
     }
 
+    private Double calcularDiasCobertura(double stockDisponible, double cantidadAbierta, double consumoMensual) {
+        double consumoDiario = consumoMensual / 30.0;
+        if (consumoDiario <= 0.000001) return null;
+        double dias = (Math.max(0, stockDisponible) + Math.max(0, cantidadAbierta)) / consumoDiario;
+        return redondear(dias, 1);
+    }
+
     private String construirExplicacion(
             String clasificacionAbc,
             double stockDisponible,
@@ -541,11 +558,11 @@ public class AbastecimientoService {
         };
     }
 
-    private double mesesCobertura(String clasificacionAbc) {
+    private double mesesCobertura(String clasificacionAbc, double coberturaA, double coberturaB, double coberturaC) {
         return switch (clasificacionAbc) {
-            case "A" -> 2.0;
-            case "B" -> 1.5;
-            default -> 1.0;
+            case "A" -> coberturaA;
+            case "B" -> coberturaB;
+            default -> coberturaC;
         };
     }
 

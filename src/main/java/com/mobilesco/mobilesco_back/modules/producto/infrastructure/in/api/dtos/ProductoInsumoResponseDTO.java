@@ -32,6 +32,7 @@ public class ProductoInsumoResponseDTO {
     private Double cantidadConDesperdicio;  // cantidad * (1 + desperdicio/100)
     private String observaciones;
     private Double costoUnitario;      // Costo de cotizacion del insumo
+    private LocalDateTime fechaCostoCotizacion;
     private Double subtotal;           
     private LocalDateTime fechaRegistro;
     private LocalDateTime fechaActualizacion;

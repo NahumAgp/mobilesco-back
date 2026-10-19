@@ -5,8 +5,10 @@ import java.time.LocalDateTime;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.BaseDistribucion;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.PeriodicidadCostoIndirecto;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.domain.enums.TipoCostoIndirecto;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -58,7 +60,8 @@ public class CostoIndirectoModel {
     @Column(name = "base_distribucion", nullable = false)
     private BaseDistribucion baseDistribucion;  // HORAS_MOD, HORAS_MAQUINA, PESO, UNIDADES
 
-    @Column(name = "monto_mensual")
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "monto_mensual", precision = 18, scale = 6)
     private Double montoMensual;        // Monto capturado segun periodicidad.
 
     @Enumerated(EnumType.STRING)

@@ -309,6 +309,7 @@ public class DetalleCompraService {
         double stockNuevo = stockAnterior + cantidadConsumoDelta;
 
         insumo.setStockActual(stockNuevo);
+        insumo.invalidarRevisionSiCompraDifiere(detalle.getCostoPorUnidadConsumo());
         insumoRepository.save(insumo);
 
         detalle.setCantidadRecibida(nuevaCantidadRecibida);

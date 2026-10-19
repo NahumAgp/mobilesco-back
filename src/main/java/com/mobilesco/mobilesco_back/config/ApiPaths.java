@@ -24,6 +24,7 @@ public final class ApiPaths {
     public static final String PROVEEDORES = API_VERSION + "/proveedores";
     public static final String UNIDADES_MEDIDA = API_VERSION + "/unidades-medida";
     public static final String TIPOS_INSUMO = API_VERSION + "/tipos-insumo";
+    public static final String CONFIGURACION_SISTEMA = API_VERSION + "/configuracion/sistema";
 
     //  PRODUCTOS
     public static final String LINEAS = API_VERSION + "/lineas"; 

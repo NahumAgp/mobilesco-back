@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -128,6 +129,7 @@ public class InsumoService {
         if (dto.getCostoCotizacion() != null && !Objects.equals(insumo.getCostoCotizacion(), dto.getCostoCotizacion())) {
             validarPermisoGestionCostos();
             insumo.setCostoCotizacion(dto.getCostoCotizacion());
+            insumo.setFechaCostoCotizacion(LocalDateTime.now());
         }
         
         if (dto.getStockMinimo() != null) {
@@ -199,6 +201,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
             .fila(dto.getFila())
             .columna(dto.getColumna())
             .costoCotizacion(dto.getCostoCotizacion())
+            .fechaCostoCotizacion(dto.getCostoCotizacion() == null ? null : LocalDateTime.now())
             .unidadMedida(unidadMedida)
             .stockMinimo(stockMinimo)  // ✅ Ya es Double, no hay unboxing
             .stockActual(stockActual)
@@ -313,6 +316,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
         validarPermisoGestionCostos();
         insumo.setCostoCotizacion(costoCotizacion);
+        insumo.setFechaCostoCotizacion(LocalDateTime.now());
         return mapToCostoResponseDTO(insumoRepository.save(insumo));
     }
 
@@ -707,6 +711,7 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                         ? kardexService.calcularCostoPromedio(insumoId)
                         : metadata.costosPromedio().getOrDefault(insumoId, 0.0))
                 .costoCotizacion(insumo.getCostoCotizacion())
+                .fechaCostoCotizacion(insumo.getFechaCostoCotizacion())
                 .activo(insumo.getActivo())
                 .fechaActualizacion(insumo.getFechaActualizacion())
                 .build();

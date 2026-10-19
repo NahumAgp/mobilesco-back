@@ -1,5 +1,8 @@
 package com.mobilesco.mobilesco_back.modules.producto.application.usecases;
 
+import com.mobilesco.mobilesco_back.modules.shared.application.costos.CostoDecimal;
+import java.math.BigDecimal;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -296,10 +299,12 @@ public class ProductoInsumoService {
     // Calcular cantidad con desperdicio
     Double cantidadConDesperdicio = pi.getCantidad() == null
             ? null
-            : pi.getCantidad() * (1 + (pi.getDesperdicioPorcentaje() != null ? pi.getDesperdicioPorcentaje() : 0) / 100);
+            : CostoDecimal.de(pi.getCantidad()).multiply(BigDecimal.ONE.add(
+                    CostoDecimal.de(pi.getDesperdicioPorcentaje()).movePointLeft(2))).doubleValue();
     
     // Calcular subtotal
-    Double subtotal = cantidadConDesperdicio == null ? null : cantidadConDesperdicio * costoUnitario;
+    Double subtotal = cantidadConDesperdicio == null ? null
+            : CostoDecimal.de(cantidadConDesperdicio).multiply(CostoDecimal.de(costoUnitario)).doubleValue();
     
     return ProductoInsumoResponseDTO.builder()
             .id(pi.getId())
@@ -312,6 +317,7 @@ public class ProductoInsumoService {
             .desperdicioPorcentaje(pi.getDesperdicioPorcentaje())
             .cantidadConDesperdicio(cantidadConDesperdicio)
             .costoUnitario(costoUnitario)              
+            .fechaCostoCotizacion(pi.getInsumo().getFechaCostoCotizacion())
             .subtotal(subtotal)                          
             .observaciones(pi.getObservaciones())
             .fechaRegistro(pi.getFechaRegistro())

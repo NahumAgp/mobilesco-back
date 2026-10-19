@@ -20,6 +20,7 @@ public class SugerenciaAbastecimientoDTO {
     private String clasificacionAbc;
     private Double consumoMensual;
     private Double stockDisponible;
+    private Double diasCobertura;
     private Double stockMinimo;
     private Double puntoReorden;
     private Double cantidadSugerida;

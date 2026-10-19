@@ -240,6 +240,7 @@ public class CompraService {
             
             double stockNuevo = stockAnterior + cantidadEnUnidadConsumo;
             insumo.setStockActual(stockNuevo);
+            insumo.invalidarRevisionSiCompraDifiere(detalle.getCostoPorUnidadConsumo());
             insumoRepository.save(insumo);
             
             log.info("Stock actualizado - Insumo: {}, Anterior: {}, Nuevo: {}, +{} {}", 

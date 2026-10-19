@@ -28,6 +28,7 @@ public class CotizacionResponseDTO {
     private BigDecimal subtotalCostos;
     private BigDecimal subtotalVenta;
     private BigDecimal montoDescuento;
+    private BigDecimal margenRealPorcentaje;
     private BigDecimal subtotalConFlete;
     private BigDecimal montoIva;
     private BigDecimal total;
@@ -46,6 +47,13 @@ public class CotizacionResponseDTO {
         private Integer cantidad;
         private BigDecimal utilidadPorcentaje;
         private BigDecimal costoUnitario;
+        private BigDecimal costoInsumos;
+        private BigDecimal costoOperaciones;
+        private BigDecimal costoCif;
+        private Long cifTarifaVersionId;
+        private Integer anioCif;
+        private Integer mesCif;
+        private BigDecimal tasaCifMinuto;
         private BigDecimal precioUnitario;
         private BigDecimal importe;
     }

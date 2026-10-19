@@ -189,6 +189,21 @@ public class AlmacenamientoImagenesService {
         return "/uploads/modelos/" + modeloId + "/" + destinoJpg.getFileName().toString();
     }
 
+    public String guardarLogoEmpresa(String variante, MultipartFile archivo) throws IOException {
+        if (!Set.of("sistema", "documentos", "catalogo").contains(variante)) {
+            throw new IllegalArgumentException("Variante de logo no válida.");
+        }
+        BufferedImage img = leerImagenValidada(archivo);
+        Path carpeta = Paths.get(uploadsDir, "empresa", "logos", variante);
+        Files.createDirectories(carpeta);
+        String nombre = UUID.randomUUID() + ".jpg";
+        Path destino = carpeta.resolve(nombre);
+        int anchoMaximo = "sistema".equals(variante) ? 512 : 1400;
+        int altoMaximo = "sistema".equals(variante) ? 512 : 500;
+        Thumbnails.of(img).size(anchoMaximo, altoMaximo).outputFormat("jpg").toFile(destino.toFile());
+        return "/uploads/empresa/logos/" + variante + "/" + nombre;
+    }
+
     public void eliminarImagenPublica(String urlPublica) throws IOException {
         Path archivo = resolverRutaPublica(urlPublica);
         if (archivo != null) {

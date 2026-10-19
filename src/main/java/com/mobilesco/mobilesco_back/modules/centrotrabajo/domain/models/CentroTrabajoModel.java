@@ -1,5 +1,8 @@
 package com.mobilesco.mobilesco_back.modules.centrotrabajo.domain.models;
 
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
+import jakarta.persistence.Convert;
+
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -44,10 +47,12 @@ public class CentroTrabajoModel {
     @Column(name = "descripcion", length = 255)
     private String descripcion;
 
-    @Column(name = "costo_hora", nullable = false)
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_hora", nullable = false, precision = 18, scale = 6)
     private Double costoHora;          // $330 por hora (incluye energía, mantenimiento, depreciación)
 
-    @Column(name = "costo_minuto")
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_minuto", precision = 18, scale = 6)
     private Double costoMinuto;
 
     @Column(name = "capacidad_diaria")

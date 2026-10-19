@@ -288,7 +288,7 @@ public class ProductoOperacionService {
                 .stream()
                 .filter(po -> Boolean.TRUE.equals(po.getActivo()))
                 .filter(po -> po.getOperacion() != null && Boolean.TRUE.equals(po.getOperacion().getActivo()))
-                .mapToDouble(this::calcularImporteActividadActual)
+                .mapToDouble(ProductoOperacionModel::getImporteActividadVigente)
                 .sum();
     }
 
@@ -307,8 +307,6 @@ public class ProductoOperacionService {
     }
 
     private ProductoOperacionResponseDTO mapToResponseDTO(ProductoOperacionModel po) {
-        double tiempoTotalActual = calcularTiempoTotalActual(po);
-        double importeActividadActual = calcularImporteActividadActual(po);
         return ProductoOperacionResponseDTO.builder()
                 .id(po.getId())
                 .productoId(po.getProducto().getId())
@@ -322,8 +320,8 @@ public class ProductoOperacionService {
                 .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null ? 
                     po.getOperacion().getCentroTrabajo().getNombre() : null)
                 .cantidad(po.getCantidad())
-                .tiempoTotal(tiempoTotalActual)
-                .importeActividad(importeActividadActual)
+                .tiempoTotal(po.getTiempoTotalVigente())
+                .importeActividad(po.getImporteActividadVigente())
                 .orden(po.getOrden())
                 .observaciones(po.getObservaciones())
                 .activo(po.getActivo())
