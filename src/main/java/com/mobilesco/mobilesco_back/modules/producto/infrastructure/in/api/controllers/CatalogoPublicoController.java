@@ -22,6 +22,8 @@ import com.mobilesco.mobilesco_back.modules.producto.application.usecases.Produc
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.CatalogoFacetasDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ModeloCatalogoPublicoDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ProductoFichaDTO;
+import com.mobilesco.mobilesco_back.modules.familia.application.usecases.FamiliaUseCase;
+import com.mobilesco.mobilesco_back.modules.familia.infrastructure.in.api.dtos.FamiliaResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +36,13 @@ import lombok.RequiredArgsConstructor;
 public class CatalogoPublicoController {
 
     private final ProductoService productoService;
+    private final FamiliaUseCase familiaService;
+
+    @Operation(summary = "Listar familias activas del catalogo publico")
+    @GetMapping("/familias")
+    public ResponseEntity<List<FamiliaResponseDTO>> listarFamiliasActivas() {
+        return ResponseEntity.ok(familiaService.obtenerActivos());
+    }
 
     @Operation(summary = "Listar muebles (modelos activos) del catalogo publico, con filtros opcionales")
     @GetMapping("/modelos")

@@ -621,6 +621,7 @@ public class ProductoService {
     public ProductoFichaDTO obtenerFichaPublicaPorModelo(Long modeloId) {
         ModeloModel modelo = modeloRepository.findById(modeloId)
                 .filter(m -> Boolean.TRUE.equals(m.getActivo()))
+                .filter(m -> m.getFamilia() != null && Boolean.TRUE.equals(m.getFamilia().getActivo()))
                 .orElseThrow(() -> new ResourceNotFoundException("Modelo no encontrado: " + modeloId));
 
         List<ProductoModel> productos = productoRepository.findByModeloId(modeloId).stream()
@@ -670,6 +671,9 @@ public class ProductoService {
         Map<Long, CatalogoFacetasDTO.SubfamiliaFacetaDTO> subfamilias = new LinkedHashMap<>();
         Map<Long, Long> conteoSubfamilias = new LinkedHashMap<>();
         modelosActivosFiltrados(familiaId, null).forEach(modelo -> {
+            if (variantesPorModelo.getOrDefault(modelo.getId(), List.of()).isEmpty()) {
+                return;
+            }
             if (modelo.getSubfamilia() == null || modelo.getSubfamilia().getId() == null) {
                 return;
             }
@@ -736,20 +740,21 @@ public class ProductoService {
 
     private Stream<ModeloModel> modelosActivosFiltrados(Long familiaId, Long subfamiliaId) {
         return modeloRepository.findByActivo(true).stream()
+                .filter(modelo -> modelo.getFamilia() != null
+                        && Boolean.TRUE.equals(modelo.getFamilia().getActivo()))
                 .filter(modelo -> familiaId == null
                         || (modelo.getFamilia() != null && familiaId.equals(modelo.getFamilia().getId())))
                 .filter(modelo -> subfamiliaId == null
                         || (modelo.getSubfamilia() != null && subfamiliaId.equals(modelo.getSubfamilia().getId())));
     }
 
-    // Sin filtros de color/tamano todo modelo cumple; con filtros, debe existir una variante activa
-    // que satisfaga AMBOS a la vez.
+    // Todo modelo debe tener una variante activa; con filtros, una misma variante debe satisfacer ambos.
     private boolean cumpleFiltrosDeVariante(List<ProductoModel> variantes, Long colorId, Long tamanoId) {
-        if (colorId == null && tamanoId == null) {
-            return true;
-        }
         if (variantes == null || variantes.isEmpty()) {
             return false;
+        }
+        if (colorId == null && tamanoId == null) {
+            return true;
         }
         return variantes.stream().anyMatch(variante ->
                 (colorId == null || (variante.getColor() != null
