@@ -55,6 +55,9 @@ public class ModeloModel {
 
     @Column(name = "activo")
     private Boolean activo = true;
+
+    @Column(name = "costo_inicial_pendiente", nullable = false)
+    private Boolean costoInicialPendiente = false;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;

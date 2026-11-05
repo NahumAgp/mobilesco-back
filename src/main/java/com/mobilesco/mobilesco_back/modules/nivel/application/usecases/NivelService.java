@@ -179,6 +179,9 @@ public class NivelService {
             }
             existente.setActivo(dto.getActivo());
         }
+        if (dto.getCostoInicialPendiente() != null) {
+            existente.setCostoInicialPendiente(dto.getCostoInicialPendiente());
+        }
 
         return mapToResponseDTO(nivelRepository.save(existente));
     }
@@ -248,6 +251,7 @@ public class NivelService {
         dto.setNombre(nivel.getNombre());
         dto.setDescripcion(nivel.getDescripcion());
         dto.setActivo(nivel.getActivo());
+        dto.setCostoInicialPendiente(nivel.getCostoInicialPendiente());
         dto.setCreatedAt(nivel.getCreatedAt());
         if (nivel.getModelo() != null) {
             dto.setModeloId(nivel.getModelo().getId());

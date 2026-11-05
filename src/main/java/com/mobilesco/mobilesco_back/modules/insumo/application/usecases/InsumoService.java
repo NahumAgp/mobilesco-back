@@ -256,6 +256,13 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
     @Transactional(readOnly = true)
     public PageResponseDTO<InsumoResponseDTO> listarPaginado(int page, Integer size, String sortBy, String direction,
             String busqueda, Boolean activo, Boolean stockBajo) {
+        return listarPaginado(page, size, sortBy, direction, busqueda, activo, stockBajo, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<InsumoResponseDTO> listarPaginado(int page, Integer size, String sortBy, String direction,
+            String busqueda, Boolean activo, Boolean stockBajo, String tipoInsumo, Long unidadMedidaId,
+            String ubicacion) {
         int pageNumber = Math.max(page, 0);
         int pageSize = size == null || size <= 0 ? PAGE_SIZE : Math.min(size, 100);
 
@@ -264,12 +271,18 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 pageSize,
                 construirSortInsumos(sortBy, direction));
         String filtro = busqueda == null || busqueda.isBlank() ? null : busqueda.trim();
+        String filtroTipo = tipoInsumo == null || tipoInsumo.isBlank() ? null : tipoInsumo.trim();
+        String filtroUbicacion = ubicacion == null || ubicacion.isBlank() ? null : ubicacion.trim();
         Page<InsumoModel> result = filtro == null && activo == null && !Boolean.TRUE.equals(stockBajo)
+                && filtroTipo == null && unidadMedidaId == null && filtroUbicacion == null
                 ? insumoRepository.findAll(pageable)
                 : insumoRepository.buscarPaginado(
                         filtro,
                         activo,
                         Boolean.TRUE.equals(stockBajo),
+                        filtroTipo,
+                        unidadMedidaId,
+                        filtroUbicacion,
                         pageable);
 
         return new PageResponseDTO<>(
@@ -390,6 +403,11 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
 
     @Transactional(readOnly = true)
     public byte[] generarReporteExcel(Boolean activo, Boolean stockBajo, String busqueda, String sortBy, String direction) {
+        return generarReporteExcel(activo, stockBajo, busqueda, sortBy, direction, null, null, null);
+    }
+
+    public byte[] generarReporteExcel(Boolean activo, Boolean stockBajo, String busqueda, String sortBy, String direction,
+            String tipoInsumo, Long unidadMedidaId, String ubicacion) {
         List<InsumoResponseDTO> insumos = mapToResponseDTOList(
                 insumoRepository.findAll(construirSortInsumos(sortBy, direction)));
 
@@ -397,6 +415,11 @@ public InsumoResponseDTO crear(InsumoCreateDTO dto) {
                 .filter(insumo -> activo == null || Objects.equals(insumo.getActivo(), activo))
                 .filter(insumo -> !Boolean.TRUE.equals(stockBajo) || esStockBajo(insumo))
                 .filter(insumo -> coincideBusqueda(insumo, busqueda))
+                .filter(insumo -> tipoInsumo == null || tipoInsumo.isBlank()
+                        || tipoInsumo.equalsIgnoreCase(nvl(insumo.getTipoInsumo())))
+                .filter(insumo -> unidadMedidaId == null || Objects.equals(insumo.getUnidadMedidaId(), unidadMedidaId))
+                .filter(insumo -> ubicacion == null || ubicacion.isBlank()
+                        || nvl(insumo.getUbicacion()).toLowerCase().contains(ubicacion.trim().toLowerCase()))
                 .collect(Collectors.toList());
 
         String[] headers = {

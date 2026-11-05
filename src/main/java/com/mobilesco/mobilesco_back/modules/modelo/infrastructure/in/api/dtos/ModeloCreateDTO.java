@@ -46,6 +46,9 @@ public class ModeloCreateDTO {
 
     private Boolean activo;
 
+    @JsonProperty("costoInicialPendiente")
+    private Boolean costoInicialPendiente;
+
     @Valid
     @NotNull(message = "Las categorias del modelo son obligatorias")
     @Size(min = 1, message = "El modelo debe tener al menos una categoria")
@@ -122,6 +125,14 @@ public class ModeloCreateDTO {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Boolean getCostoInicialPendiente() {
+        return costoInicialPendiente;
+    }
+
+    public void setCostoInicialPendiente(Boolean costoInicialPendiente) {
+        this.costoInicialPendiente = costoInicialPendiente;
     }
 
     public List<ModeloCategoriaDTO> getCategorias() {

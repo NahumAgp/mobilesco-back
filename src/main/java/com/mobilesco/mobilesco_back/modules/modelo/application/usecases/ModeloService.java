@@ -152,6 +152,7 @@ public class ModeloService {
         dto.setDescripcionCorta(modelo.getDescripcionCorta());
         dto.setUrlImagen(modelo.getUrlImagen());
         dto.setActivo(modelo.getActivo());
+        dto.setCostoInicialPendiente(modelo.getCostoInicialPendiente());
         dto.setCreatedAt(modelo.getCreatedAt());
         dto.setUpdatedAt(modelo.getUpdatedAt());
 
@@ -274,6 +275,7 @@ public class ModeloService {
         modelo.setDescripcionCorta(dto.getDescripcionCorta());
         modelo.setUrlImagen(dto.getUrlImagen());
         modelo.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
+        modelo.setCostoInicialPendiente(Boolean.TRUE.equals(dto.getCostoInicialPendiente()));
         modelo.setFamilia(familia);
         modelo.setSubfamilia(subfamilia);
 
@@ -492,6 +494,9 @@ public class ModeloService {
         if (dto.getActivo() != null) {
             existente.setActivo(dto.getActivo());
         }
+        if (dto.getCostoInicialPendiente() != null) {
+            existente.setCostoInicialPendiente(dto.getCostoInicialPendiente());
+        }
 
         ModeloModel actualizado = modeloRepository.save(existente);
         if (dto.getMateriales() != null) {
@@ -562,6 +567,14 @@ public class ModeloService {
             throw new BadRequestException("La categoria seleccionada no pertenece al modelo");
         }
         validarMaterialPlantilla(modelo, nivel, materialId);
+
+        List<NivelInsumoModel> insumosActuales = nivelInsumoRepository.findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(nivelId);
+        if (insumosActuales != null && insumosActuales.stream()
+                .anyMatch(item -> item.getCostoUnitarioInicial() != null
+                        && (materialId == null || item.getMaterial() != null
+                        && Objects.equals(item.getMaterial().getId(), materialId)))) {
+            throw new BadRequestException("Los costos por material no se pueden sincronizar a variantes sin costos propios");
+        }
 
         Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla = normalizarPlantillaInsumos(modelo, nivel, insumosDto);
         sincronizarInsumosCategoria(nivel, List.copyOf(plantilla.values()));
@@ -693,6 +706,12 @@ public class ModeloService {
 
         if (nivel.getModelo() == null || !Objects.equals(nivel.getModelo().getId(), modelo.getId())) {
             throw new BadRequestException("La categoria seleccionada no pertenece al modelo");
+        }
+
+        List<NivelOperacionModel> operacionesActuales = nivelOperacionRepository.findByNivelIdOrderByOrdenAsc(nivelId);
+        if (operacionesActuales != null && operacionesActuales.stream()
+                .anyMatch(item -> item.getTiempoMinutosInicial() != null || item.getCostoMinutoInicial() != null)) {
+            throw new BadRequestException("Las tarifas por material no se pueden sincronizar a variantes sin costos propios");
         }
 
         List<ModeloOperacionDTO> plantilla = normalizarPlantillaOperaciones(nivel, operacionesDto);
@@ -915,6 +934,7 @@ public class ModeloService {
         dto.setNombre(nivel.getNombre());
         dto.setDescripcion(nivel.getDescripcion());
         dto.setActivo(nivel.getActivo());
+        dto.setCostoInicialPendiente(nivel.getCostoInicialPendiente());
         dto.setInsumos(nivelInsumoRepository.findByNivelIdOrderByMaterialNombreAscInsumoNombreAsc(nivel.getId()).stream()
                 .map(this::mapNivelInsumo)
                 .toList());
@@ -938,6 +958,8 @@ public class ModeloService {
                 .cantidad(nivelInsumo.getCantidad())
                 .desperdicioPorcentaje(valorSeguro(nivelInsumo.getDesperdicioPorcentaje()))
                 .costoCotizacion(valorSeguro(insumo.getCostoCotizacion()))
+                .costoUnitarioInicial(nivelInsumo.getCostoUnitarioInicial())
+                .costoInicial(nivelInsumo.getCostoInicial())
                 .conjunto(insumo.isConjunto())
                 .componentes(com.mobilesco.mobilesco_back.modules.insumo.application.usecases.ConjuntoInsumoService.componentes(insumo))
                 .activo(insumo.getActivo())
@@ -953,8 +975,12 @@ public class ModeloService {
                 .centroTrabajoNombre(operacion.getCentroTrabajo() != null
                         ? operacion.getCentroTrabajo().getNombre()
                         : null)
+                .materialId(nivelOperacion.getMaterial() != null ? nivelOperacion.getMaterial().getId() : null)
                 .tiempoOperacion(valorSeguro(operacion.getTiempoOperacion()))
                 .costoMinuto(valorSeguro(operacion.getCostoMinuto()))
+                .tiempoMinutosInicial(nivelOperacion.getTiempoMinutosInicial())
+                .costoMinutoInicial(nivelOperacion.getCostoMinutoInicial())
+                .costoInicial(nivelOperacion.getCostoInicial())
                 .cantidad(nivelOperacion.getCantidad())
                 .orden(nivelOperacion.getOrden())
                 .activo(operacion.getActivo())
@@ -1061,6 +1087,10 @@ public class ModeloService {
             if (item.getCantidad() == null || item.getCantidad() <= 0) {
                 throw new BadRequestException("La cantidad del insumo debe ser mayor a cero en la categoria " + nivel.getNombre());
             }
+            if (item.getCostoUnitarioInicial() != null
+                    && (!Double.isFinite(item.getCostoUnitarioInicial()) || item.getCostoUnitarioInicial() <= 0)) {
+                throw new BadRequestException("El costo de plantilla del insumo debe ser mayor a cero en la categoria " + nivel.getNombre());
+            }
             item.setDesperdicioPorcentaje(validarDesperdicioInsumo(nivel, item.getDesperdicioPorcentaje()));
             plantilla.put(key, item);
         }
@@ -1137,12 +1167,17 @@ public class ModeloService {
             nivel.setNombre(catalogo.getNombre());
             nivel.setDescripcion(catalogo.getDescripcion());
             nivel.setActivo(catalogo.getActivo() == null || Boolean.TRUE.equals(catalogo.getActivo()));
+            if (categoria.getCostoInicialPendiente() != null) {
+                nivel.setCostoInicialPendiente(categoria.getCostoInicialPendiente());
+            }
 
             NivelModel guardado = nivelRepository.save(nivel);
             Map<PlantillaInsumoKey, ModeloInsumoDTO> plantilla = normalizarPlantillaInsumos(modelo, guardado, categoria.getInsumos());
             sincronizarInsumosCategoria(guardado, List.copyOf(plantilla.values()));
             sincronizarOperacionesCategoria(guardado, categoria.getOperaciones());
-            sincronizarInsumosHeredadosEnVariantes(modelo, guardado, null, plantilla);
+            if (plantilla.values().stream().noneMatch(item -> item.getCostoUnitarioInicial() != null)) {
+                sincronizarInsumosHeredadosEnVariantes(modelo, guardado, null, plantilla);
+            }
             idsConservados.add(guardado.getId());
         }
 
@@ -1186,6 +1221,8 @@ public class ModeloService {
             insumos.add(NivelInsumoModel.builder()
                     .nivel(nivel)
                     .insumo(insumo)
+                    .costoUnitarioInicial(item.getCostoUnitarioInicial())
+                    .costoInicial(Boolean.TRUE.equals(item.getCostoInicial()))
                     .material(item.getMaterialId() != null
                             ? materialRepository.findById(item.getMaterialId())
                                     .orElseThrow(() -> new NotFoundException("Material no encontrado con ID: " + item.getMaterialId()))
@@ -1205,21 +1242,33 @@ public class ModeloService {
             return plantilla;
         }
 
-        Set<Long> idsUnicos = new HashSet<>();
+        Set<String> idsUnicos = new HashSet<>();
         int orden = 1;
         for (ModeloOperacionDTO item : operacionesDto) {
             if (item == null || item.getId() == null) {
                 continue;
             }
-            if (!idsUnicos.add(item.getId())) {
+            if (!idsUnicos.add(item.getMaterialId() + ":" + item.getId())) {
                 throw new BadRequestException("No se pueden repetir operaciones en la categoria " + nivel.getNombre());
             }
             Integer cantidad = item.getCantidad() != null ? item.getCantidad() : 1;
             if (cantidad < 1) {
                 throw new BadRequestException("La cantidad de la operacion debe ser al menos 1 en la categoria " + nivel.getNombre());
             }
+            if (item.getTiempoMinutosInicial() != null
+                    && (!Double.isFinite(item.getTiempoMinutosInicial()) || item.getTiempoMinutosInicial() < 0)) {
+                throw new BadRequestException("Los minutos de plantilla deben ser mayores o iguales a cero en la categoria " + nivel.getNombre());
+            }
+            if (item.getCostoMinutoInicial() != null
+                    && (!Double.isFinite(item.getCostoMinutoInicial()) || item.getCostoMinutoInicial() < 0)) {
+                throw new BadRequestException("El costo por minuto de plantilla debe ser mayor o igual a cero en la categoria " + nivel.getNombre());
+            }
             plantilla.add(ModeloOperacionDTO.builder()
                     .id(item.getId())
+                    .materialId(item.getMaterialId())
+                    .tiempoMinutosInicial(item.getTiempoMinutosInicial())
+                    .costoMinutoInicial(item.getCostoMinutoInicial())
+                    .costoInicial(item.getCostoInicial())
                     .cantidad(cantidad)
                     .orden(item.getOrden() != null ? item.getOrden() : orden)
                     .build());
@@ -1246,14 +1295,14 @@ public class ModeloService {
             return;
         }
 
-        Set<Long> idsUnicos = new HashSet<>();
+        Set<String> idsUnicos = new HashSet<>();
         List<NivelOperacionModel> operaciones = new java.util.ArrayList<>();
         int orden = 1;
         for (ModeloOperacionDTO item : operacionesDto) {
             if (item == null || item.getId() == null) {
                 continue;
             }
-            if (!idsUnicos.add(item.getId())) {
+            if (!idsUnicos.add(item.getMaterialId() + ":" + item.getId())) {
                 throw new BadRequestException("No se pueden repetir operaciones en la categoria " + nivel.getNombre());
             }
             Integer cantidad = item.getCantidad() != null ? item.getCantidad() : 1;
@@ -1265,6 +1314,11 @@ public class ModeloService {
             operaciones.add(NivelOperacionModel.builder()
                     .nivel(nivel)
                     .operacion(operacion)
+                    .material(item.getMaterialId() != null ? materialRepository.findById(item.getMaterialId())
+                            .orElseThrow(() -> new NotFoundException("Material no encontrado con ID: " + item.getMaterialId())) : null)
+                    .tiempoMinutosInicial(item.getTiempoMinutosInicial())
+                    .costoMinutoInicial(item.getCostoMinutoInicial())
+                    .costoInicial(Boolean.TRUE.equals(item.getCostoInicial()))
                     .cantidad(cantidad)
                     .orden(orden++)
                     .build());

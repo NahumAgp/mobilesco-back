@@ -315,8 +315,8 @@ public class ProductoOperacionService {
                 .operacionId(po.getOperacion().getId())
                 .operacionCodigo(po.getOperacion().getCodigo())
                 .operacionNombre(po.getOperacion().getNombre())
-                .tiempoOperacion(po.getOperacion().getTiempoOperacion())
-                .costoMinutoOperacion(po.getOperacion().getCostoMinuto())
+                .tiempoOperacion(po.getTiempoOperacionVigente())
+                .costoMinutoOperacion(po.getCostoMinutoVigente())
                 .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null ? 
                     po.getOperacion().getCentroTrabajo().getNombre() : null)
                 .cantidad(po.getCantidad())

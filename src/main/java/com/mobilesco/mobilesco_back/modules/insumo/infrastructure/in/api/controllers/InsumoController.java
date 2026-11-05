@@ -83,10 +83,15 @@ public class InsumoController {
             @RequestParam(required = false, defaultValue = "asc") String direction,
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) Boolean activo,
-            @RequestParam(required = false) Boolean stockBajo) {
+            @RequestParam(required = false) Boolean stockBajo,
+            @RequestParam(required = false) String tipoInsumo,
+            @RequestParam(required = false) Long unidadMedidaId,
+            @RequestParam(required = false) String ubicacion) {
         if (page != null) {
             return ResponseEntity.ok(
-                    insumoService.listarPaginado(page, size, sortBy, direction, busqueda, activo, stockBajo));
+                    insumoService.listarPaginado(
+                            page, size, sortBy, direction, busqueda, activo, stockBajo,
+                            tipoInsumo, unidadMedidaId, ubicacion));
         }
 
         return ResponseEntity.ok(insumoService.listar());
@@ -130,8 +135,12 @@ public class InsumoController {
             @RequestParam(required = false) Boolean stockBajo,
             @RequestParam(required = false) String busqueda,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false, defaultValue = "asc") String direction) {
-        byte[] excel = insumoService.generarReporteExcel(activo, stockBajo, busqueda, sortBy, direction);
+            @RequestParam(required = false, defaultValue = "asc") String direction,
+            @RequestParam(required = false) String tipoInsumo,
+            @RequestParam(required = false) Long unidadMedidaId,
+            @RequestParam(required = false) String ubicacion) {
+        byte[] excel = insumoService.generarReporteExcel(
+                activo, stockBajo, busqueda, sortBy, direction, tipoInsumo, unidadMedidaId, ubicacion);
         String filename = "insumos.xlsx";
 
         return ResponseEntity.ok()

@@ -84,7 +84,10 @@ class ProductoServiceCatalogoPublicoTest {
     @Test
     void listaSinFiltrosDevuelveTodosLosModelosActivos() {
         when(modeloRepository.findByActivo(true)).thenReturn(List.of(ropero, roperoDos, sala));
-        when(productoRepository.findByActivoTrue()).thenReturn(List.of());
+        when(productoRepository.findByActivoTrue()).thenReturn(List.of(
+                variante(100L, ropero, negro, chico),
+                variante(101L, roperoDos, blanco, grande),
+                variante(102L, sala, negro, grande)));
 
         List<ModeloCatalogoPublicoDTO> resultado = service.listarCatalogoPublico(null, null, null, null);
 
@@ -94,7 +97,10 @@ class ProductoServiceCatalogoPublicoTest {
     @Test
     void filtraPorFamiliaYSubfamilia() {
         when(modeloRepository.findByActivo(true)).thenReturn(List.of(ropero, roperoDos, sala));
-        when(productoRepository.findByActivoTrue()).thenReturn(List.of());
+        when(productoRepository.findByActivoTrue()).thenReturn(List.of(
+                variante(100L, ropero, negro, chico),
+                variante(101L, roperoDos, blanco, grande),
+                variante(102L, sala, negro, grande)));
 
         List<ModeloCatalogoPublicoDTO> porFamilia = service.listarCatalogoPublico(1L, null, null, null);
         List<ModeloCatalogoPublicoDTO> porSubfamilia = service.listarCatalogoPublico(1L, 7L, null, null);
@@ -125,7 +131,7 @@ class ProductoServiceCatalogoPublicoTest {
         when(productoRepository.findByActivoTrue()).thenReturn(List.of());
 
         assertTrue(service.listarCatalogoPublico(null, null, 1L, null).isEmpty());
-        assertEquals(1, service.listarCatalogoPublico(null, null, null, null).size());
+        assertTrue(service.listarCatalogoPublico(null, null, null, null).isEmpty());
     }
 
     @Test
@@ -169,6 +175,7 @@ class ProductoServiceCatalogoPublicoTest {
         FamiliaModel f = new FamiliaModel();
         f.setId(id);
         f.setNombre(nombre);
+        f.setActivo(true);
         return f;
     }
 

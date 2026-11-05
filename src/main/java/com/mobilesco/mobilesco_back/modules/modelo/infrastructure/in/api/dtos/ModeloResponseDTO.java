@@ -24,6 +24,7 @@ public class ModeloResponseDTO {
     private String descripcionCorta;
     private String urlImagen;
     private Boolean activo;
+    private Boolean costoInicialPendiente;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -93,6 +94,14 @@ public class ModeloResponseDTO {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Boolean getCostoInicialPendiente() {
+        return costoInicialPendiente;
+    }
+
+    public void setCostoInicialPendiente(Boolean costoInicialPendiente) {
+        this.costoInicialPendiente = costoInicialPendiente;
     }
 
     public LocalDateTime getCreatedAt() {

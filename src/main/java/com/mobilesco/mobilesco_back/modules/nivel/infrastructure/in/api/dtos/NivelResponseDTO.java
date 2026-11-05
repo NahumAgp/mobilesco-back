@@ -10,6 +10,7 @@ public class NivelResponseDTO {
     private String nombre;
     private String descripcion;
     private Boolean activo;
+    private Boolean costoInicialPendiente;
     private LocalDateTime createdAt;
     private Long modeloId;
     private String modeloNombre;
@@ -55,6 +56,14 @@ public class NivelResponseDTO {
     
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Boolean getCostoInicialPendiente() {
+        return costoInicialPendiente;
+    }
+
+    public void setCostoInicialPendiente(Boolean costoInicialPendiente) {
+        this.costoInicialPendiente = costoInicialPendiente;
     }
     
     public LocalDateTime getCreatedAt() {

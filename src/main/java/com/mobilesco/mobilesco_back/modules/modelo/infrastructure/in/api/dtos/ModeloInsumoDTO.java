@@ -29,6 +29,8 @@ public class ModeloInsumoDTO {
     private Double desperdicioPorcentaje;
     @JsonAlias({"costo", "costo_cotizar", "costo_cotizacion"})
     private Double costoCotizacion;
+    private Double costoUnitarioInicial;
+    private Boolean costoInicial;
     private Boolean activo;
     @Builder.Default
     private Boolean conjunto = Boolean.FALSE;

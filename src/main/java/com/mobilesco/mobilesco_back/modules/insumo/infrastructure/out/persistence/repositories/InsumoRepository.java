@@ -96,6 +96,9 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
             LEFT JOIN i.unidadMedida um
             WHERE i.conjunto = false AND (:activo IS NULL OR i.activo = :activo)
               AND (:stockBajo = false OR (i.stockActual - COALESCE(i.stockApartado, 0)) <= i.stockMinimo)
+              AND (:tipoInsumo IS NULL OR :tipoInsumo = '' OR LOWER(COALESCE(i.tipoInsumo, '')) = LOWER(:tipoInsumo))
+              AND (:unidadMedidaId IS NULL OR um.id = :unidadMedidaId)
+              AND (:ubicacion IS NULL OR :ubicacion = '' OR LOWER(COALESCE(i.ubicacion, '')) LIKE LOWER(CONCAT('%', :ubicacion, '%')))
               AND (
                     :busqueda IS NULL OR :busqueda = '' OR
                     LOWER(CAST(i.id AS string)) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR
@@ -119,6 +122,9 @@ public interface InsumoRepository extends JpaRepository<InsumoModel, Long> {
             @Param("busqueda") String busqueda,
             @Param("activo") Boolean activo,
             @Param("stockBajo") boolean stockBajo,
+            @Param("tipoInsumo") String tipoInsumo,
+            @Param("unidadMedidaId") Long unidadMedidaId,
+            @Param("ubicacion") String ubicacion,
             Pageable pageable);
 
     @Query("""

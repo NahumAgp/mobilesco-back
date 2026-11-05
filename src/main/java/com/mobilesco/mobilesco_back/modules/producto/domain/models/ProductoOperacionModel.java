@@ -63,6 +63,18 @@ public class ProductoOperacionModel {
     @Column(name = "importe_actividad", precision = 18, scale = 6)
     private Double importeActividad;  // tiempoTotal * operacion.costoMinuto
 
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "tiempo_minutos_inicial", precision = 18, scale = 6)
+    private Double tiempoMinutosInicial;
+
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_minuto_inicial", precision = 18, scale = 6)
+    private Double costoMinutoInicial;
+
+    @Column(name = "costo_inicial", nullable = false)
+    @Builder.Default
+    private Boolean costoInicial = false;
+
     @Column(nullable = false)
     private Integer orden;  // Secuencia (1,2,3...)
 
@@ -106,13 +118,23 @@ public class ProductoOperacionModel {
 
     /** El costo vigente se deriva de la operación, sin depender del importe persistido. */
     public double getTiempoTotalVigente() {
-        if (operacion == null || cantidad == null || operacion.getTiempoOperacion() == null) return 0.0;
-        return CostoDecimal.de(cantidad).multiply(CostoDecimal.de(operacion.getTiempoOperacion())).doubleValue();
+        if (operacion == null || cantidad == null) return 0.0;
+        return CostoDecimal.de(cantidad).multiply(CostoDecimal.de(getTiempoOperacionVigente())).doubleValue();
     }
 
     public double getImporteActividadVigente() {
-        if (operacion == null || operacion.getCostoMinuto() == null) return 0.0;
+        if (operacion == null) return 0.0;
         return CostoDecimal.de(getTiempoTotalVigente())
-                .multiply(CostoDecimal.de(operacion.getCostoMinuto())).doubleValue();
+                .multiply(CostoDecimal.de(getCostoMinutoVigente())).doubleValue();
+    }
+
+    public double getTiempoOperacionVigente() {
+        if (tiempoMinutosInicial != null) return tiempoMinutosInicial;
+        return operacion != null && operacion.getTiempoOperacion() != null ? operacion.getTiempoOperacion() : 0.0;
+    }
+
+    public double getCostoMinutoVigente() {
+        if (costoMinutoInicial != null) return costoMinutoInicial;
+        return operacion != null && operacion.getCostoMinuto() != null ? operacion.getCostoMinuto() : 0.0;
     }
 }

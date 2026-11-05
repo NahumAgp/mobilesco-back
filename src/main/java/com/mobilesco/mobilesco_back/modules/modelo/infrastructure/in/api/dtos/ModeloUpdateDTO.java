@@ -42,6 +42,9 @@ public class ModeloUpdateDTO {
 
     private Boolean activo;
 
+    @JsonProperty("costoInicialPendiente")
+    private Boolean costoInicialPendiente;
+
     @Valid
     @Size(min = 1, message = "El modelo debe tener al menos una categoria")
     private List<ModeloCategoriaDTO> categorias;
@@ -117,6 +120,14 @@ public class ModeloUpdateDTO {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Boolean getCostoInicialPendiente() {
+        return costoInicialPendiente;
+    }
+
+    public void setCostoInicialPendiente(Boolean costoInicialPendiente) {
+        this.costoInicialPendiente = costoInicialPendiente;
     }
 
     public List<ModeloCategoriaDTO> getCategorias() {

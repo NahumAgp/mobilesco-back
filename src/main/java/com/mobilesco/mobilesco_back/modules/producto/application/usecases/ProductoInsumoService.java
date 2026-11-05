@@ -294,7 +294,7 @@ public class ProductoInsumoService {
     
     private ProductoInsumoResponseDTO mapToResponseDTO(ProductoInsumoModel pi) {
     // 🔴 Obtener costo del Kardex
-    Double costoUnitario = obtenerCostoCotizacionOpcional(pi.getInsumo());
+    Double costoUnitario = pi.getCostoUnitarioVigente();
     
     // Calcular cantidad con desperdicio
     Double cantidadConDesperdicio = pi.getCantidad() == null

@@ -27,6 +27,7 @@ public class ModeloCategoriaDTO {
     private String descripcion;
 
     private Boolean activo;
+    private Boolean costoInicialPendiente;
 
     @Valid
     private List<ModeloInsumoDTO> insumos;
@@ -80,6 +81,14 @@ public class ModeloCategoriaDTO {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Boolean getCostoInicialPendiente() {
+        return costoInicialPendiente;
+    }
+
+    public void setCostoInicialPendiente(Boolean costoInicialPendiente) {
+        this.costoInicialPendiente = costoInicialPendiente;
     }
 
     public List<ModeloInsumoDTO> getInsumos() {

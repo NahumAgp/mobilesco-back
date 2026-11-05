@@ -18,6 +18,7 @@ public class NivelUpdateDTO {
     private String descripcion;
 
     private Boolean activo;
+    private Boolean costoInicialPendiente;
 
     public String getCodigo() {
         return codigo;
@@ -49,5 +50,13 @@ public class NivelUpdateDTO {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Boolean getCostoInicialPendiente() {
+        return costoInicialPendiente;
+    }
+
+    public void setCostoInicialPendiente(Boolean costoInicialPendiente) {
+        this.costoInicialPendiente = costoInicialPendiente;
     }
 }

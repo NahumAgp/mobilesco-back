@@ -32,8 +32,8 @@ class InsumoControllerTest {
     @Test
     void endpointsDeLecturaDeInsumosRequierenPermisoDeInventario() throws Exception {
         assertPreAuthorize("obtenerPorId", PERMISO_VER_INVENTARIO, Long.class);
-        assertPreAuthorize("listar", PERMISO_VER_INVENTARIO, Integer.class, Integer.class, String.class, String.class, String.class, Boolean.class, Boolean.class);
-        assertPreAuthorize("exportarExcel", PERMISO_VER_INVENTARIO, Boolean.class, Boolean.class, String.class, String.class, String.class);
+        assertPreAuthorize("listar", PERMISO_VER_INVENTARIO, Integer.class, Integer.class, String.class, String.class, String.class, Boolean.class, Boolean.class, String.class, Long.class, String.class);
+        assertPreAuthorize("exportarExcel", PERMISO_VER_INVENTARIO, Boolean.class, Boolean.class, String.class, String.class, String.class, String.class, Long.class, String.class);
         assertPreAuthorize("listarActivos", PERMISO_VER_INVENTARIO);
         assertPreAuthorize("getTiposInsumo", PERMISO_VER_INVENTARIO);
         assertPreAuthorize("buscar", PERMISO_VER_INVENTARIO, String.class, String.class, Boolean.class);

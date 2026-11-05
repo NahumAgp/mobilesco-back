@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
@@ -207,7 +208,7 @@ class InsumoServiceTest {
 
         InsumoModel tornillo = insumo(1L, "Tornillo", unidad);
         InsumoModel tuerca = insumo(2L, "Tuerca", unidad);
-        when(insumoRepository.buscarPaginado(eq("tor"), eq(true), eq(true), any(Pageable.class)))
+        when(insumoRepository.buscarPaginado(eq("tor"), eq(true), eq(true), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(tornillo, tuerca), PageRequest.of(1, 2), 5));
         when(detalleCompraRepository.findUltimosCostosRecibidosByInsumos(List.of(1L, 2L)))
                 .thenReturn(List.of());
@@ -234,7 +235,7 @@ class InsumoServiceTest {
         assertEquals(true, response.getContent().get(1).getPuedeEliminar());
 
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
-        verify(insumoRepository).buscarPaginado(eq("tor"), eq(true), eq(true), pageable.capture());
+        verify(insumoRepository).buscarPaginado(eq("tor"), eq(true), eq(true), isNull(), isNull(), isNull(), pageable.capture());
         assertEquals(1, pageable.getValue().getPageNumber());
         assertEquals(2, pageable.getValue().getPageSize());
         verify(insumoRepository, never()).findAll(any(org.springframework.data.domain.Sort.class));

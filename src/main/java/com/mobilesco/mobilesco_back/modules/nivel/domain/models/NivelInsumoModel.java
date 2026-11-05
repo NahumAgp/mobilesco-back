@@ -2,8 +2,10 @@ package com.mobilesco.mobilesco_back.modules.nivel.domain.models;
 
 import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.material.domain.models.MaterialModel;
+import com.mobilesco.mobilesco_back.modules.shared.infrastructure.persistence.CostoDecimalConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -53,4 +55,12 @@ public class NivelInsumoModel {
     @Column(name = "desperdicio_porcentaje", nullable = false)
     @Builder.Default
     private Double desperdicioPorcentaje = 0.0;
+
+    @Convert(converter = CostoDecimalConverter.class)
+    @Column(name = "costo_unitario_inicial", precision = 18, scale = 6)
+    private Double costoUnitarioInicial;
+
+    @Column(name = "costo_inicial", nullable = false)
+    @Builder.Default
+    private Boolean costoInicial = false;
 }

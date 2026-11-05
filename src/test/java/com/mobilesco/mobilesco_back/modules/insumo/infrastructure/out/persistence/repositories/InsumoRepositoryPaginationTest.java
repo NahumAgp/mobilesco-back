@@ -90,6 +90,9 @@ class InsumoRepositoryPaginationTest {
                 "tornillo",
                 true,
                 true,
+                null,
+                null,
+                null,
                 PageRequest.of(0, 1, Sort.by("nombre").ascending()));
 
         assertEquals(1, page.getContent().size());
@@ -113,6 +116,9 @@ class InsumoRepositoryPaginationTest {
                 null,
                 null,
                 false,
+                null,
+                null,
+                null,
                 PageRequest.of(0, 2, Sort.by("nombre").ascending()));
         page.getContent().forEach(insumo -> insumo.getUnidadMedida().getNombre());
 

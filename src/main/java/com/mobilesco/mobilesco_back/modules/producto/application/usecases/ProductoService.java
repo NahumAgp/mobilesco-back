@@ -284,7 +284,7 @@ public class ProductoService {
         List<ProductoInsumoResponseDTO> insumos = productoInsumos
                 .stream()
                 .map(pi -> {
-                    double costoUnitarioSeguro = obtenerCostoCotizacionOpcional(pi.getInsumo());
+                    double costoUnitarioSeguro = pi.getCostoUnitarioVigente();
                     double cantidad = nz(pi.getCantidad());
                     double desperdicio = nz(pi.getDesperdicioPorcentaje());
                     BigDecimal cantidadConDesperdicioDecimal = CostoDecimal.de(cantidad)
@@ -327,8 +327,8 @@ public class ProductoService {
                         .operacionId(po.getOperacion().getId())
                         .operacionCodigo(po.getOperacion().getCodigo())
                         .operacionNombre(po.getOperacion().getNombre())
-                        .tiempoOperacion(po.getOperacion().getTiempoOperacion())
-                        .costoMinutoOperacion(po.getOperacion().getCostoMinuto())
+                        .tiempoOperacion(po.getTiempoOperacionVigente())
+                        .costoMinutoOperacion(po.getCostoMinutoVigente())
                         .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null
                                 ? po.getOperacion().getCentroTrabajo().getNombre() : null)
                         .cantidad(po.getCantidad())
@@ -441,7 +441,7 @@ public class ProductoService {
         
         return insumos.stream()
                 .map(pi -> CostoDecimal.de(pi.getCantidad())
-                        .multiply(CostoDecimal.de(obtenerCostoCotizacionValido(pi.getInsumo()))))
+                        .multiply(CostoDecimal.de(pi.getCostoUnitarioVigente())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
     }
 
@@ -453,7 +453,7 @@ public class ProductoService {
         return insumos.stream()
                 .map(pi -> CostoDecimal.de(pi.getCantidad())
                         .multiply(BigDecimal.ONE.add(CostoDecimal.de(pi.getDesperdicioPorcentaje()).movePointLeft(2)))
-                        .multiply(CostoDecimal.de(obtenerCostoCotizacionValido(pi.getInsumo()))))
+                        .multiply(CostoDecimal.de(pi.getCostoUnitarioVigente())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add).doubleValue();
     }
 
@@ -461,7 +461,7 @@ public class ProductoService {
         List<ProductoInsumoResponseDTO> insumos = productoInsumoRepository.findByProductoId(producto.getId())
             .stream()
             .map(pi -> {
-                double costoUnitario = obtenerCostoCotizacionOpcional(pi.getInsumo());
+                double costoUnitario = pi.getCostoUnitarioVigente();
                 double cantidadConDesperdicio = nz(pi.getCantidad()) * (1 + nz(pi.getDesperdicioPorcentaje()) / 100);
 
                 return ProductoInsumoResponseDTO.builder()
@@ -496,8 +496,8 @@ public class ProductoService {
                     .operacionId(po.getOperacion().getId())
                     .operacionCodigo(po.getOperacion().getCodigo())
                     .operacionNombre(po.getOperacion().getNombre())
-                    .tiempoOperacion(po.getOperacion().getTiempoOperacion())
-                    .costoMinutoOperacion(po.getOperacion().getCostoMinuto())
+                    .tiempoOperacion(po.getTiempoOperacionVigente())
+                    .costoMinutoOperacion(po.getCostoMinutoVigente())
                     .centroTrabajoNombre(po.getOperacion().getCentroTrabajo() != null ? 
                         po.getOperacion().getCentroTrabajo().getNombre() : null)
                     .cantidad(po.getCantidad())
@@ -944,9 +944,8 @@ public class ProductoService {
 
     private void validarCostosCotizacion(List<ProductoInsumoModel> insumos) {
         List<String> faltantes = insumos.stream()
-                .map(ProductoInsumoModel::getInsumo)
-                .filter(insumo -> obtenerCostoCotizacionOpcional(insumo) <= 0)
-                .map(InsumoModel::getNombre)
+                .filter(item -> item.getCostoUnitarioVigente() <= 0)
+                .map(item -> item.getInsumo().getNombre())
                 .filter(nombre -> nombre != null && !nombre.isBlank())
                 .distinct()
                 .collect(Collectors.toList());
