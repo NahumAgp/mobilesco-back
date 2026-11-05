@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,20 +18,24 @@ import com.mobilesco.mobilesco_back.modules.color.domain.models.ColorModel;
 import com.mobilesco.mobilesco_back.modules.color.infrastructure.out.persistence.repositories.ColorRepository;
 import com.mobilesco.mobilesco_back.modules.cotizacion.infrastructure.out.persistence.repositories.CotizacionRepository;
 import com.mobilesco.mobilesco_back.modules.costoindirecto.application.usecases.CostoIndirectoService;
+import com.mobilesco.mobilesco_back.modules.costoindirecto.infrastructure.in.api.dtos.CifResumenDTO;
 import com.mobilesco.mobilesco_back.modules.familia.domain.models.FamiliaModel;
 import com.mobilesco.mobilesco_back.modules.imagen.application.usecases.ImagenService;
+import com.mobilesco.mobilesco_back.modules.insumo.domain.models.InsumoModel;
 import com.mobilesco.mobilesco_back.modules.material.infrastructure.out.persistence.repositories.MaterialRepository;
 import com.mobilesco.mobilesco_back.modules.modelo.domain.models.ModeloModel;
 import com.mobilesco.mobilesco_back.modules.modelo.infrastructure.out.persistence.repositories.ModeloRepository;
 import com.mobilesco.mobilesco_back.modules.nivel.domain.models.NivelModel;
 import com.mobilesco.mobilesco_back.modules.nivel.infrastructure.out.persistence.repositories.NivelRepository;
 import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoModel;
+import com.mobilesco.mobilesco_back.modules.producto.domain.models.ProductoInsumoModel;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.CatalogoFacetasDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.in.api.dtos.ModeloCatalogoPublicoDTO;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoInsumoRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoOperacionRepository;
 import com.mobilesco.mobilesco_back.modules.producto.infrastructure.out.persistence.repositories.ProductoRepository;
 import com.mobilesco.mobilesco_back.modules.subfamilia.domain.models.SubfamiliaModel;
+import com.mobilesco.mobilesco_back.modules.unidadmedida.domain.models.UnidadMedidaModel;
 
 @ExtendWith(MockitoExtension.class)
 class ProductoServiceCatalogoPublicoTest {
@@ -79,6 +85,29 @@ class ProductoServiceCatalogoPublicoTest {
         ropero = modelo(10L, "Ropero Monarca", familiaRoperos, subfamiliaTresPuertas);
         roperoDos = modelo(11L, "Ropero Colonial", familiaRoperos, subfamiliaDosPuertas);
         sala = modelo(12L, "Sala Praga", familiaSalas, null);
+    }
+
+    @Test
+    void usaFechaDelCostoEspecificoDeVarianteAunqueInsumoNoTengaRevisionGeneral() {
+        LocalDateTime fechaCarga = LocalDateTime.now().minusDays(3);
+        UnidadMedidaModel unidad = new UnidadMedidaModel();
+        unidad.setSimbolo("pza");
+        InsumoModel insumo = InsumoModel.builder().id(259L).nombre("Concha infantil amarilla")
+                .unidadMedida(unidad).costoCotizacion(91.0).build();
+        ProductoModel producto = ProductoModel.builder().id(34L).sku("ESC-01-P-AM")
+                .nombre("Concha preescolar amarilla").build();
+        ProductoInsumoModel renglon = ProductoInsumoModel.builder().producto(producto).insumo(insumo)
+                .cantidad(1.0).desperdicioPorcentaje(0.0).costoUnitarioInicial(91.0)
+                .fechaRegistro(fechaCarga).build();
+        when(productoRepository.findById(34L)).thenReturn(Optional.of(producto));
+        when(productoInsumoRepository.findByProductoId(34L)).thenReturn(List.of(renglon));
+        when(costoIndirectoService.obtenerResumen()).thenReturn(CifResumenDTO.builder()
+                .configuracionId(1L).totalMensual(0.0).minutosProductivosMes(1.0).costoMinuto(0.0).build());
+
+        var estructura = service.obtenerEstructuraCostos(34L);
+
+        assertEquals(91.0, estructura.getInsumos().get(0).getCostoUnitario());
+        assertEquals(fechaCarga, estructura.getInsumos().get(0).getFechaCostoCotizacion());
     }
 
     @Test

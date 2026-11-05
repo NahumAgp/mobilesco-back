@@ -317,7 +317,7 @@ public class ProductoInsumoService {
             .desperdicioPorcentaje(pi.getDesperdicioPorcentaje())
             .cantidadConDesperdicio(cantidadConDesperdicio)
             .costoUnitario(costoUnitario)              
-            .fechaCostoCotizacion(pi.getInsumo().getFechaCostoCotizacion())
+            .fechaCostoCotizacion(pi.getFechaCostoCotizacionVigente())
             .subtotal(subtotal)                          
             .observaciones(pi.getObservaciones())
             .fechaRegistro(pi.getFechaRegistro())

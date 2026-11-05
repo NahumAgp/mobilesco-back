@@ -81,6 +81,11 @@ public class ProductoInsumoModel {
         return insumo != null && insumo.getCostoCotizacion() != null ? insumo.getCostoCotizacion() : 0.0;
     }
 
+    public LocalDateTime getFechaCostoCotizacionVigente() {
+        if (costoUnitarioInicial != null) return fechaRegistro;
+        return insumo != null ? insumo.getFechaCostoCotizacion() : null;
+    }
+
     @PrePersist
     protected void prePersist() {
         LocalDateTime now = LocalDateTime.now();
